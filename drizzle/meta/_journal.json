@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1786275968154,
+      "tag": "0000_early_vampiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1786280506926,
+      "tag": "0001_reflective_rictor",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786283993785,
+      "tag": "0002_massive_ares",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1786285766954,
+      "tag": "0003_nosy_stark_industries",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1786291235681,
+      "tag": "0004_wise_cable",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1787411924943,
+      "tag": "0005_safe_iron_fist",
+      "breakpoints": true
+    }
+  ]
+}
