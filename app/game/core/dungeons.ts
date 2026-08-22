@@ -1,5 +1,16 @@
 export type RegionId = "yunzhou" | "canglan" | "chixia";
 
+export type DungeonDefinition = {
+  id: string;
+  waveId: number;
+  regionId: RegionId;
+  name: string;
+  kind: "permanent" | "random";
+  recommendedPower: number;
+  x: number;
+  y: number;
+};
+
 export const REGIONS = [
   { id: "yunzhou" as const, name: "云州山河", image: "/assets/maps/yunzhou-realm.webp", subtitle: "山门、烟市与初醒灵脉" },
   { id: "canglan" as const, name: "沧澜水域", image: "/assets/maps/canglan-waters.webp", subtitle: "潮宫、毒泽与水下旧城" },
@@ -12,7 +23,7 @@ const names: Record<RegionId, string[]> = {
   chixia: ["赤砂矿脉", "焚风古道", "离火妖城", "神墟战场", "烬羽天坑", "血月荒台", "太初火海"],
 };
 
-export const DUNGEONS = REGIONS.flatMap((region, regionIndex) => names[region.id].map((name, index) => ({
+export const DUNGEONS: DungeonDefinition[] = REGIONS.flatMap((region, regionIndex) => names[region.id].map((name, index) => ({
   id: `${region.id}-${index + 1}`,
   waveId: regionIndex * 7 + index + 1,
   regionId: region.id,

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+.alchemy-embedded-page .round-button{display:none}
+
 :root {
   --ink: #071311;
   --jade: #1b4e45;

@@ -315,6 +315,7 @@ export class BattleEngine {
   private keys = new Set<string>();
   private joystick = { x: 0, y: 0 };
   private animationFrame = 0;
+  private resizeObserver: ResizeObserver | null = null;
   private previousTime = 0;
   private snapshotTimer = 0;
   private spawnTimer = 0;
@@ -494,6 +495,10 @@ export class BattleEngine {
   start() {
     this.paused = false;
     this.previousTime = performance.now();
+    this.resize();
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = new ResizeObserver(() => this.resize());
+    this.resizeObserver.observe(this.context.canvas);
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
     window.addEventListener("resize", this.resize);
@@ -502,6 +507,8 @@ export class BattleEngine {
 
   destroy() {
     cancelAnimationFrame(this.animationFrame);
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
     window.removeEventListener("resize", this.resize);

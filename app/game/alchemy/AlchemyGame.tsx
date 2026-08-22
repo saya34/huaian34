@@ -106,7 +106,7 @@ function playTone(kind: "drop" | "ignite" | "reveal") {
   window.setTimeout(() => void ctx.close(), 1500);
 }
 
-export default function Home() {
+export default function Home({ embedded = false }: { embedded?: boolean }) {
   const { state: unifiedState, setAlchemy, applyEffects } = useUnifiedGame();
   const alchemy = unifiedState.alchemy;
   const setField = useCallback(<K extends keyof AlchemyProgress>(key: K, value: SetStateAction<AlchemyProgress[K]>) => {
@@ -704,7 +704,7 @@ export default function Home() {
     if (!offer || !item || offer.sold) return;
     const price = getMarketPrice(item);
     if (gold < price) {
-      setToast(`金币不足，还需 ${(price - gold).toLocaleString()} 金币`);
+      setToast(`灵石不足，还需 ${(price - gold).toLocaleString()} 灵石`);
       return;
     }
     setGold((current) => current - price);
@@ -721,7 +721,7 @@ export default function Home() {
   function refreshMarketManually() {
     const price = getManualRefreshPrice(manualRefreshCount);
     if (gold < price) {
-      setToast(`金币不足，刷新需要 ${price.toLocaleString()} 金币`);
+      setToast(`灵石不足，刷新需要 ${price.toLocaleString()} 灵石`);
       return;
     }
     if (price > 0) setGold((current) => current - price);
@@ -729,7 +729,7 @@ export default function Home() {
     setManualRefreshCount((current) => current + 1);
     setRefreshResetAt(Date.now() + MARKET_RESET_MS);
     setSoldOutRefreshAt(0);
-    setToast(price === 0 ? "免费刷新完成，云商已换上新货" : `消耗 ${price.toLocaleString()} 金币刷新集市`);
+    setToast(price === 0 ? "免费刷新完成，云商已换上新货" : `消耗 ${price.toLocaleString()} 灵石刷新集市`);
   }
 
   function deliverCommission(commission: DailyCommission) {
@@ -765,7 +765,7 @@ export default function Home() {
     setGold((current) => current + reward);
     setCommissions((current) => current.filter((entry) => entry.id !== commission.id));
     setPickerCommissionId(null);
-    setToast(`委托交付完成，获得 ${reward.toLocaleString()} 金币`);
+    setToast(`委托交付完成，获得 ${reward.toLocaleString()} 灵石`);
   }
 
   function consumeProductStacks(candidates: { stack: ProductStack; item: GameItem }[], quantity: number) {
@@ -893,7 +893,7 @@ export default function Home() {
       <div className="vignette" aria-hidden="true" />
 
       <header className="topbar">
-        <button className="round-button" aria-label="返回主界面">返</button>
+        <button className="round-button" aria-label="返回主界面" onClick={() => embedded && window.parent !== window ? window.parent.postMessage({ type: "huaian-close-module" }, window.location.origin) : window.location.assign("/")}>返</button>
         <div className="title-lockup">
           <span className="eyebrow">太虚仙府 · 炼丹房</span>
           <h1>玄火丹炉</h1>
@@ -901,9 +901,9 @@ export default function Home() {
         </div>
         <div className="top-actions">
           <button className="mythic-codex-entry" onClick={() => setShowMythicCodex(true)} aria-label={`打开太虚名册，共 ${characterCards.length} 张人物卡`}><span>册</span><strong>太虚名册</strong><b>{characterCards.length}</b></button>
-          <div className="gold-balance" aria-label={`持有金币 ${gold}`}><span>◉</span>{gold.toLocaleString()}</div>
+          <div className="gold-balance" aria-label={`持有灵石 ${gold}`}><span>◉</span>{gold.toLocaleString()}</div>
           <button className="text-button market-entry-button" onClick={() => setShowMarket(true)}><span>市</span> 云游集市</button>
-          <a className="text-button im-entry-button" href="/item-manager"><span>▦</span> IM 配方司 <b>v{recipeVersion}</b></a>
+          {!embedded && <a className="text-button im-entry-button" href="/item-manager"><span>▦</span> IM 配方司 <b>v{recipeVersion}</b></a>}
           <button className="text-button" onClick={() => setShowCodex(true)}><span>◈</span> 万物图鉴 <b>{ITEM_TABLE.length}/{ITEM_TABLE.length}</b></button>
           <button className="sound-button" onClick={() => setSoundOn((value) => !value)} aria-label={soundOn ? "关闭声效" : "开启声效"}>{soundOn ? "♪" : "×"}</button>
         </div>
@@ -1201,7 +1201,7 @@ export default function Home() {
           <div className="market-window">
             <header className="market-heading">
               <div><span>浮 云 有 市 · 奇 珍 自 来</span><h2>云游集市</h2><p>每轮六件灵材，售罄后十息自动补货</p></div>
-              <div className="market-wallet"><small>持有金币</small><strong><i>◉</i>{gold.toLocaleString()}</strong></div>
+              <div className="market-wallet"><small>持有灵石</small><strong><i>◉</i>{gold.toLocaleString()}</strong></div>
               <button className="market-close" onClick={() => setShowMarket(false)} aria-label="关闭集市">×</button>
             </header>
             <div className="market-odds" aria-label="品质出现概率">
@@ -1224,7 +1224,7 @@ export default function Home() {
               </div>
               <footer className="market-footer">
                 <div className="market-rule-copy"><strong>{marketSoldOut ? `全场售罄 · ${formatCountdown(soldOutRemaining)} 后自动补货` : "货品一经购入，将直接进入乾坤灵囊"}</strong><small>{manualRefreshCount > 0 ? `${formatCountdown(manualResetRemaining)} 后刷新费用恢复免费` : "当前拥有一次免费刷新机会"}</small></div>
-                <button className="market-refresh" onClick={refreshMarketManually} disabled={!marketReady}><span>↻</span><b>刷新货架</b><small>{manualRefreshPrice === 0 ? "本次免费" : `${manualRefreshPrice.toLocaleString()} 金币`}</small></button>
+                <button className="market-refresh" onClick={refreshMarketManually} disabled={!marketReady}><span>↻</span><b>刷新货架</b><small>{manualRefreshPrice === 0 ? "本次免费" : `${manualRefreshPrice.toLocaleString()} 灵石`}</small></button>
               </footer>
             </> : <>
               <div className="commission-workspace">

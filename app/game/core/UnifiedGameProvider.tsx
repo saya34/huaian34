@@ -1,10 +1,10 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { MATERIALS } from "../alchemy/item-data";
 import { DEFAULT_META } from "../battle/meta";
 import { INITIAL_STATE } from "../event-engine";
-import { LocalPlayerStateRepository } from "./player-state-repository";
+import { keyFor, LocalPlayerStateRepository } from "./player-state-repository";
 import { SAVE_VERSION, type AlchemyProgress, type GameEffect, type StateSetter, type UnifiedGameState } from "./types";
 
 const repository = new LocalPlayerStateRepository();
@@ -57,12 +57,22 @@ const UnifiedGameContext = createContext<UnifiedContextValue | null>(null);
 export function UnifiedGameProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<UnifiedGameState>(cloneInitial);
   const [hydrated, setHydrated] = useState(false);
+  const externallySyncedState = useRef<UnifiedGameState | null>(null);
 
   useEffect(() => { repository.load("main").then((saved) => { setState(mergeSave(saved)); setHydrated(true); }); }, []);
-  useEffect(() => { if (!hydrated) return; const timer = window.setTimeout(() => repository.save({ ...state, updatedAt: Date.now() }), 120); return () => window.clearTimeout(timer); }, [hydrated, state]);
+  useEffect(() => {
+    const syncOtherGameWindow = (event: StorageEvent) => {
+      if (event.key !== keyFor("main") || !event.newValue) return;
+      try { const next = mergeSave(JSON.parse(event.newValue) as UnifiedGameState); externallySyncedState.current = next; setState(next); } catch { /* Ignore incomplete cross-window writes. */ }
+    };
+    window.addEventListener("storage", syncOtherGameWindow);
+    return () => window.removeEventListener("storage", syncOtherGameWindow);
+  }, []);
+  useEffect(() => { if (!hydrated) return; if (externallySyncedState.current === state) { externallySyncedState.current = null; return; } const timer = window.setTimeout(() => repository.save({ ...state, updatedAt: Date.now() }), 120); return () => window.clearTimeout(timer); }, [hydrated, state]);
 
   const setRomance = useCallback<StateSetter<UnifiedGameState["romance"]>>((action) => setState((current) => {
     const requested = typeof action === "function" ? action(current.romance) : action;
+    if (requested === current.romance) return current;
     const pending = requested.pendingUnifiedEffects ?? [];
     let shared = { ...current.shared };
     let alchemy = current.alchemy;
@@ -87,6 +97,7 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
 
   const setBattle = useCallback<StateSetter<UnifiedGameState["battle"]>>((action) => setState((current) => {
     const next = typeof action === "function" ? action(current.battle) : action;
+    if (next === current.battle) return current;
     const spiritStones = next.spiritStones;
     const learnedSkills = Object.entries(next.skillMastery).filter(([, value]) => value.learned).map(([id]) => Number(id));
     return { ...current, battle: next, shared: { ...current.shared, spiritStones, playerLevel: next.playerLevel, playerExperience: next.playerExp, learnedSkills }, romance: { ...current.romance, spiritStones, experience: next.playerExp, playerLevel: next.playerLevel, teacherSkillRanks: next.passiveRanks, learnedSkillIds: learnedSkills } };
@@ -94,6 +105,7 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
 
   const setAlchemy = useCallback<StateSetter<AlchemyProgress>>((action) => setState((current) => {
     const alchemy = typeof action === "function" ? action(current.alchemy) : action;
+    if (alchemy === current.alchemy) return current;
     const materialItems = Object.fromEntries(MATERIALS.map((item) => [item.id, { ...(current.shared.items[item.id] ?? { itemId: item.id, itemType: "material" as const, rarity: Math.max(1, Math.min(7, item.rarity)) as 1|2|3|4|5|6|7, sourceTags: ["alchemy"] }), amount: alchemy.materialCounts[item.id] ?? 0 }]));
     const items = { ...current.shared.items, ...materialItems };
     const alchemyResults = Object.values(alchemy.productStacks).filter((stack) => stack.count > 0).map((stack) => stack.productId);

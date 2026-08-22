@@ -109,7 +109,7 @@ function skillVisual(data: GameData | null, choice: UpgradeChoice) {
   return path ? assetUrl(path) : null;
 }
 
-export function MowingGame({ initialWaveId = 1 }: { initialWaveId?: number }) {
+export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWaveId?: number; embedded?: boolean }) {
   const { state: unifiedState, setBattle: setMeta, applyEffects } = useUnifiedGame();
   const [screen, setScreen] = useState<Screen>("loading");
   const [data, setData] = useState<GameData | null>(null);
@@ -163,7 +163,7 @@ export function MowingGame({ initialWaveId = 1 }: { initialWaveId?: number }) {
         if (!active) return;
         setData(loaded);
         setHeroId(Number(loaded.heroes[0]?.id ?? 400001));
-        setScreen("menu");
+        setScreen(embedded ? "preparing" : "menu");
       })
       .catch((reason) => {
         setError(reason instanceof Error ? reason.message : "资源加载失败");
@@ -175,7 +175,7 @@ export function MowingGame({ initialWaveId = 1 }: { initialWaveId?: number }) {
       if (partnerTimer.current) clearTimeout(partnerTimer.current);
       if (ceremonyTimer.current) clearTimeout(ceremonyTimer.current);
     };
-  }, []);
+  }, [embedded]);
 
   const selectedHero = useMemo(() => data?.heroes.find((hero) => Number(hero.id) === heroId), [data, heroId]);
   const selectedWave = useMemo(() => data?.waves.find((wave) => Number(wave.id) === waveId), [data, waveId]);
@@ -767,7 +767,7 @@ export function MowingGame({ initialWaveId = 1 }: { initialWaveId?: number }) {
             )}
             {result.overflow.length > 0 && <p className="overflow-warning">藏宝阁空间不足，{result.overflow.length} 件宝物未能收纳。</p>}
             <div className="result-actions">
-              <button onClick={() => { engineRef.current?.destroy(); setScreen("menu"); }}>返回选择</button>
+              <button onClick={() => { engineRef.current?.destroy(); if (embedded && window.parent !== window) window.parent.postMessage({ type: "huaian-close-module", settled: true }, window.location.origin); else setScreen("menu"); }}>{embedded ? "返回山河" : "返回选择"}</button>
               <button className="primary" onClick={requestStart}>再次历练</button>
             </div>
           </div>

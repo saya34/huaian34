@@ -36,6 +36,8 @@ import { getAvailableActivities, isMarketReminderDay, marketReminderKey, type Pe
 import { drawDailyFortune, FORTUNE_STORAGE_KEY, fortuneBoosts, fortuneEffectLabel, getFortuneSign, getLocalDateKey, type FortuneDrawRecord } from "./fortune-engine";
 import type { CharacterDefinition, CharacterId, CharacterMessageDefinition, DialogueProfileDefinition, EventDefinition, GiftDefinition, GiftId, GameState, GlobalKeyDefinition, Period, RelationshipStageDefinition, SceneDefinition, SceneId, TriggerContext } from "./types";
 import { useUnifiedGame } from "./core/UnifiedGameProvider";
+import type { DungeonDefinition } from "./core/dungeons";
+import FusionSystemPanel, { type FusionPanelId } from "./ui/FusionSystemPanel";
 
 const PERIODS: Period[] = ["清晨", "黄昏", "夜晚"];
 
@@ -86,6 +88,8 @@ export default function GameDemo() {
   const [cultivationOpen,setCultivationOpen]=useState(false);
   const [inspectionReveal,setInspectionReveal]=useState<InspectionReveal|null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  const [activeModule, setActiveModule] = useState<{ kind: "battle"; dungeon: DungeonDefinition } | { kind: "alchemy" } | null>(null);
+  const [systemPanel, setSystemPanel] = useState<FusionPanelId | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [activeActivity, setActiveActivity] = useState<PeriodicActivityId | null>(null);
   const [realDateKey,setRealDateKey]=useState(()=>getLocalDateKey());
@@ -110,6 +114,23 @@ export default function GameDemo() {
   const [bondQueue, setBondQueue] = useState<BondFeedback[]>([]);
   const booted = useRef(false);
   const bondId = useRef(0);
+
+  useEffect(() => {
+    const receiveModuleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.data?.type !== "huaian-close-module") return;
+      setActiveModule(null);
+      setNotice(event.data?.settled ? "秘境结算已归入乾坤行囊，时辰随之推移。" : "已返回当前场景。");
+    };
+    window.addEventListener("message", receiveModuleMessage);
+    return () => window.removeEventListener("message", receiveModuleMessage);
+  }, []);
+
+  useEffect(() => {
+    if (!activeModule) return;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousBodyOverflow; };
+  }, [activeModule]);
 
   useEffect(()=>{
     try{const saved=window.localStorage.getItem(FORTUNE_STORAGE_KEY);if(saved)setFortuneHistory(JSON.parse(saved))}catch{/* A malformed fortune record should not block the game. */}
@@ -598,8 +619,8 @@ export default function GameDemo() {
         <button type="button" className={`map-entry-button ${visibleMapEvents.length ? "has-map-event" : ""}`} onClick={() => setMapOpen(true)} aria-label={visibleMapEvents.length ? `打开山河地图，有${visibleMapEvents.length}处待完成异闻` : "打开山河地图"}><span className="map-fold-icon"><i/><i/><i/></span><small>地图</small>{visibleMapEvents.length > 0 && <b className="map-entry-alert">!</b>}</button>
         <button type="button" className="calendar-entry-button" onClick={() => setCalendarOpen(true)} aria-label="打开云和历"><span className="calendar-page-icon"><i/><i/><b>{calendarDate.day}</b></span><small>日历</small></button>
         <div className="brand-block">
-          <div className="seal">见</div>
-          <div><p className="eyebrow">古风情缘事件演示</p><h1>云上见卿</h1></div>
+          <div className="seal">槐</div>
+          <div><p className="eyebrow">山河入梦 · 与卿同游</p><h1>槐安一梦</h1></div>
         </div>
         <div className="world-state" aria-label="当前时间"><span>第 {game.day} 日</span><i /><span>{calendarDate.eraYear} · {calendarDate.monthName}{calendarDate.dayName}</span><i /><span>{calendarDate.weekdayName} · {game.period}</span><i /><span className="stamina-balance">体力 {game.stamina}/10</span><i/><span className="spirit-stone-balance">灵石 {game.spiritStones}</span><i/><span className="proficiency-balance">酒艺 {drinkingProficiency.level}阶·{drinkingProficiency.name}</span></div>
         <nav className="top-actions" aria-label="功能菜单">
@@ -691,7 +712,22 @@ export default function GameDemo() {
 
       <footer className="statusbar"><span className="status-dot" /><p>{notice}</p><div className="game-reset-controls"><button type="button" onClick={recoverGifts}>恢复礼物</button><button type="button" onClick={resetDemo}>初始化</button></div><span>事件引擎 · 数据驱动</span></footer>
 
-      {mapOpen && <WorldMapModal sceneId={game.sceneId} sceneEventHints={sceneEventHints} mapEvents={visibleMapEvents} period={game.period} day={game.day} inspectionHints={inspectionHints} inspectionDays={game.sceneInspectionDays} onClose={() => setMapOpen(false)} onEnterScene={enterScene} onTriggerMapEvent={triggerMapEvent} onInspectScene={inspectScene} />}
+      <nav className="fusion-world-dock" aria-label="槐安一梦主要功能">
+        <button type="button" className={mapOpen ? "active" : ""} onClick={() => { setSystemPanel(null); setMapOpen(true); }}><i>山</i><span>山河地图</span>{visibleMapEvents.length > 0 && <b>{visibleMapEvents.length}</b>}</button>
+        <button type="button" onClick={() => setPanel("characters")}><i>缘</i><span>人物谱</span></button>
+        <button type="button" className={systemPanel === "inventory" ? "active" : ""} onClick={() => setSystemPanel("inventory")}><i>囊</i><span>乾坤行囊</span></button>
+        <button type="button" className={systemPanel === "cards" ? "active" : ""} onClick={() => setSystemPanel("cards")}><i>契</i><span>太虚名册</span><b>{unifiedState.shared.cards.length}</b></button>
+        <button type="button" className={systemPanel === "skills" ? "active" : ""} onClick={() => setSystemPanel("skills")}><i>法</i><span>万法谱</span></button>
+        <button type="button" className={systemPanel === "equipment" ? "active" : ""} onClick={() => setSystemPanel("equipment")}><i>器</i><span>法器阁</span></button>
+      </nav>
+
+      {mapOpen && <WorldMapModal sceneId={game.sceneId} sceneEventHints={sceneEventHints} mapEvents={visibleMapEvents} period={game.period} day={game.day} inspectionHints={inspectionHints} inspectionDays={game.sceneInspectionDays} onClose={() => setMapOpen(false)} onEnterScene={enterScene} onTriggerMapEvent={triggerMapEvent} onInspectScene={inspectScene} onEnterDungeon={(dungeon) => { setActiveModule({ kind: "battle", dungeon }); setMapOpen(false); }} onEnterAlchemy={() => { setActiveModule({ kind: "alchemy" }); setMapOpen(false); }} />}
+      {systemPanel && <FusionSystemPanel panel={systemPanel} onClose={() => setSystemPanel(null)} />}
+      {activeModule && <div className={`fusion-module-backdrop module-${activeModule.kind}`} role="presentation"><section className="fusion-module-window" role="dialog" aria-modal="true" aria-label={activeModule.kind === "battle" ? `${activeModule.dungeon.name}秘境战斗` : "玄火丹炉"}>
+        <header><button type="button" onClick={() => setActiveModule(null)} aria-label="返回当前场景">‹</button><div><small>{activeModule.kind === "battle" ? "山河地图 · 秘境投影" : "云州山河 · 常驻生产场景"}</small><strong>{activeModule.kind === "battle" ? activeModule.dungeon.name : "玄火丹炉"}</strong></div><span><b>{game.period}</b><i />灵石 {unifiedState.shared.spiritStones.toLocaleString()}</span></header>
+        <div className="fusion-module-frame"><iframe title={activeModule.kind === "battle" ? `${activeModule.dungeon.name}战斗窗口` : "玄火丹炉窗口"} src={activeModule.kind === "battle" ? `/battle?wave=${activeModule.dungeon.waveId}&embedded=1` : "/alchemy?embedded=1"} /></div>
+        {activeModule.kind === "battle" && <div className="module-orientation-note"><i>↻</i><strong>请横置手机进入秘境</strong><span>地图与恋爱场景会在结算后继续</span></div>}
+      </section></div>}
       {calendarOpen && <CalendarModal state={game} events={eventDefinitions} onClose={() => setCalendarOpen(false)} />}
       {activeActivity === "tavern-gambling" && <GamblingModal stones={game.spiritStones} stamina={game.stamina} portrait={characterMap.hua?.image ?? "/assets/characters/hua-zhaoying.webp"} onClose={() => setActiveActivity(null)} onSpend={spendSpiritStones} onSpendStamina={spendStamina} onPayout={gainSpiritStones} onBond={gainHuaBond} />}
       {activeActivity === "monthly-market" && <MarketModal stones={game.spiritStones} stamina={game.stamina} treasures={game.marketTreasures} onClose={() => setActiveActivity(null)} onSpend={spendSpiritStones} onSpendStamina={spendStamina} onTreasure={collectMarketTreasure} onBuyGift={buyMarketGift} />}
