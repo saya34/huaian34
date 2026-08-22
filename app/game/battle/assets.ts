@@ -185,7 +185,7 @@ export function findAtlasEntry(manifest: AssetManifest, model: string, heroName?
       };
     })
     .sort((a, b) => b.score - a.score)[0];
-  return best && best.baseScore > 0 ? best.entry : undefined;
+  return best && best.baseScore >= 500 ? best.entry : undefined;
 }
 
 export function loadAtlas(manifest: AssetManifest, model: string, heroName?: string) {

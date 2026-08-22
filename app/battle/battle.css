@@ -258,3 +258,4 @@ button { font: inherit; }
 @media(max-width:600px){.card-choice-panel{padding:16px}.card-choice-grid{gap:7px}.card-choice-grid span{padding:7px;font-size:11px}.card-choice-panel h2{font-size:18px}}
 .rotate-hint{display:none}
 @media(max-width:760px) and (orientation:portrait){.rotate-hint{position:fixed;z-index:30000;inset:0;display:grid;place-content:center;gap:8px;text-align:center;background:#07110d;color:#e9d7a7}.rotate-hint::before{content:"↻";font-size:58px;color:#86ae91}.rotate-hint b{font-size:22px;letter-spacing:.2em}.rotate-hint span{color:#9daa9e;font-size:12px}}
+.icon-skill-study{background-image:url('/game-assets/ui/menu-cultivate.webp');background-size:cover;background-position:center}

@@ -218,7 +218,7 @@ export async function loadGameData(): Promise<GameData> {
     wavePlans: rows[11],
     waveNums: rows[12],
     waveTypes: rows[13],
-    heroes: [...rows[14], GU_CHANGFENG_HERO, ...CUSTOM_HEROES],
+    heroes: [GU_CHANGFENG_HERO, ...CUSTOM_HEROES, ...rows[14]],
     maps: rows[15],
     models: rows[16],
     fubens: rows[17],
