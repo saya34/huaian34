@@ -3,11 +3,21 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { MATERIALS } from "../alchemy/item-data";
 import { DEFAULT_META } from "../battle/meta";
+import { EVENTS } from "../content";
 import { INITIAL_STATE } from "../event-engine";
 import { keyFor, LocalPlayerStateRepository } from "./player-state-repository";
 import { SAVE_VERSION, type AlchemyProgress, type GameEffect, type StateSetter, type UnifiedGameState } from "./types";
 
 const repository = new LocalPlayerStateRepository();
+
+function collectedQuestItems(collectedIds: string[] = []) {
+  const collected = new Set(collectedIds);
+  return Object.fromEntries(EVENTS.flatMap((event) => {
+    const item = event.exploration?.rewardItem;
+    if (!item || !collected.has(item.id)) return [];
+    return [[item.id, { itemId: item.id, itemType: "quest" as const, rarity: 4 as const, amount: 1, sourceTags: ["剧情", "藏珍录"], locked: true }]];
+  }));
+}
 
 function cloneInitial(): UnifiedGameState {
   const romance = { ...INITIAL_STATE, inventory: { ...INITIAL_STATE.inventory }, relationships: { ...INITIAL_STATE.relationships }, flags: { ...INITIAL_STATE.flags }, playerLevel: 1, teacherSkillRanks: {}, learnedSkillIds: [], ownedCardIds: ["story-shen-sword-1", "story-liu-ward-1"], completedDungeons: [], alchemyResults: [], inventoryRarities: {}, pendingUnifiedEffects: [] };
@@ -36,7 +46,7 @@ function mergeSave(saved: UnifiedGameState | null) {
   if (!saved || saved.version !== SAVE_VERSION) return base;
   return {
     ...base, ...saved, version: SAVE_VERSION,
-    shared: { ...base.shared, ...saved.shared, items: { ...base.shared.items, ...saved.shared?.items }, globalKeys: { ...base.shared.globalKeys, ...saved.shared?.globalKeys } },
+    shared: { ...base.shared, ...saved.shared, items: { ...base.shared.items, ...saved.shared?.items, ...collectedQuestItems(saved.romance?.collectedEasterEggs) }, globalKeys: { ...base.shared.globalKeys, ...saved.shared?.globalKeys } },
     romance: { ...base.romance, ...saved.romance, activeEvent: null },
     alchemy: { ...base.alchemy, ...saved.alchemy }, battle: { ...base.battle, ...saved.battle }, dungeons: { ...base.dungeons, ...saved.dungeons },
   };
@@ -88,19 +98,26 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
         if (MATERIALS.some((item) => item.id === effect.itemId)) alchemy = { ...alchemy, materialCounts: { ...alchemy.materialCounts, [effect.itemId]: (alchemy.materialCounts[effect.itemId] ?? 0) + effect.amount } };
       } else if (effect.type === "add_card") shared = { ...shared, cards: [...shared.cards, { id: effect.cardId, characterId: effect.characterId, name: effect.name, rarity: effect.rarity, mode: effect.mode, source: "story", art: effect.art, activeEffect: "sword" }] };
     }
+    if (requested.spiritStones !== current.romance.spiritStones) shared = { ...shared, spiritStones: requested.spiritStones };
+    if (requested.experience !== current.romance.experience) shared = { ...shared, playerExperience: requested.experience };
+    if (requested.playerLevel !== current.romance.playerLevel) shared = { ...shared, playerLevel: requested.playerLevel };
     const next = { ...requested, pendingUnifiedEffects: [], spiritStones: shared.spiritStones, experience: shared.playerExperience };
     const giftItems = Object.fromEntries(Object.entries(next.inventory).map(([itemId, amount]) => [itemId, { ...(current.shared.items[itemId] ?? { itemId, itemType: "gift" as const, rarity: 2 as const, sourceTags: ["romance"] }), amount }]));
     shared = { ...shared, spiritStones: next.spiritStones, stamina: next.stamina, playerExperience: next.experience, items: { ...shared.items, ...giftItems }, globalKeys: { ...shared.globalKeys, ...next.flags } };
     const projected = { ...next, playerLevel: shared.playerLevel, teacherSkillRanks: current.battle.passiveRanks, learnedSkillIds: shared.learnedSkills, ownedCardIds: shared.cards.map((card) => card.id), completedDungeons: dungeons.completed, alchemyResults: Object.values(alchemy.productStacks).filter((stack) => stack.count > 0).map((stack) => stack.productId), inventoryRarities: Object.fromEntries(Object.entries(shared.items).map(([id, item]) => [id, item.rarity])) };
-    return { ...current, romance: projected, shared, alchemy, dungeons, battle: { ...current.battle, spiritStones: shared.spiritStones } };
+    return { ...current, romance: projected, shared, alchemy, dungeons, battle: { ...current.battle, spiritStones: shared.spiritStones, playerLevel: shared.playerLevel, playerExp: shared.playerExperience } };
   }), []);
 
   const setBattle = useCallback<StateSetter<UnifiedGameState["battle"]>>((action) => setState((current) => {
     const next = typeof action === "function" ? action(current.battle) : action;
     if (next === current.battle) return current;
     const spiritStones = next.spiritStones;
+    const battleExperienceChanged = next.playerExp !== current.battle.playerExp || next.playerLevel !== current.battle.playerLevel;
+    const playerExperience = battleExperienceChanged ? next.playerExp : current.shared.playerExperience;
+    const playerLevel = battleExperienceChanged ? next.playerLevel : current.shared.playerLevel;
+    const synchronizedBattle = battleExperienceChanged ? next : { ...next, playerExp: playerExperience, playerLevel };
     const learnedSkills = Object.entries(next.skillMastery).filter(([, value]) => value.learned).map(([id]) => Number(id));
-    return { ...current, battle: next, shared: { ...current.shared, spiritStones, playerLevel: next.playerLevel, playerExperience: next.playerExp, learnedSkills }, romance: { ...current.romance, spiritStones, experience: next.playerExp, playerLevel: next.playerLevel, teacherSkillRanks: next.passiveRanks, learnedSkillIds: learnedSkills } };
+    return { ...current, battle: synchronizedBattle, shared: { ...current.shared, spiritStones, playerLevel, playerExperience, learnedSkills }, romance: { ...current.romance, spiritStones, experience: playerExperience, playerLevel, teacherSkillRanks: next.passiveRanks, learnedSkillIds: learnedSkills } };
   }), []);
 
   const setAlchemy = useCallback<StateSetter<AlchemyProgress>>((action) => setState((current) => {

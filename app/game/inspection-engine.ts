@@ -12,7 +12,7 @@ export function getInspectionHints(state: GameState, events: EventDefinition[], 
   if (state.period !== "夜晚") return hints;
   for (const sceneId of sceneIds) {
     if (state.sceneInspectionDays?.[sceneId] === state.day) continue;
-    if (eligibleInspectionEvents(state, events, sceneId).some((event) => event.inspection?.hint)) hints.add(sceneId);
+    if (eligibleInspectionEvents(state, events, sceneId).length > 0) hints.add(sceneId);
   }
   return hints;
 }

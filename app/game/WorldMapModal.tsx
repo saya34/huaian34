@@ -66,7 +66,7 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
     <header><div><small>WORLD ATLAS · 山河图</small><h2>{map.name}</h2><p>{map.subtitle}</p></div><button type="button" onClick={onClose} aria-label="关闭地图">×</button></header>
     <div className="world-map-canvas" style={{ backgroundImage: `url(${map.image})` }}>
       <div className="world-map-shade" />
-      {map.locations.map((location) => {
+      {map.locations.filter((location) => !inspectionMode || Boolean(location.sceneId && inspectionHints.has(location.sceneId))).map((location) => {
         const active = Boolean(location.sceneId && location.sceneId === sceneId);
         const hasSceneEvent = Boolean(location.sceneId && sceneEventHints.has(location.sceneId));
         const hasInspectionHint=Boolean(location.sceneId&&inspectionHints.has(location.sceneId));
@@ -78,23 +78,23 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
           <em><strong>{location.name}</strong><small>{active ? "当前所在" : location.subtitle}</small></em>
         </button>;
       })}
-      {currentMapId === "yunzhou" && <button type="button" className="map-system-location alchemy-location" style={{ left: "79%", top: "24%" }} onClick={() => onEnterAlchemy?.()}>
+      {!inspectionMode && currentMapId === "yunzhou" && <button type="button" className="map-system-location alchemy-location" style={{ left: "79%", top: "24%" }} onClick={() => onEnterAlchemy?.()}>
         <span className="system-location-art"><img src="/assets/xuanhuo-furnace.webp" alt="" /></span>
         <em><strong>玄火丹炉</strong><small>炼丹 · 委托 · 太虚显化</small></em><b>炉</b>
       </button>}
-      {mapDungeons.filter(dungeonIsVisible).map((dungeon) => {
+      {!inspectionMode && mapDungeons.filter(dungeonIsVisible).map((dungeon) => {
         const locked = dungeon.kind === "permanent" && dungeon.waveId > state.dungeons.highestUnlocked;
         return <button type="button" key={dungeon.id} className={`map-dungeon-location ${dungeon.kind} ${locked ? "locked" : ""}`} style={{ left: `${dungeon.x}%`, top: `${dungeon.y}%` }} disabled={locked} onClick={() => setSelectedDungeon(dungeon)}>
           <span><b>{dungeon.kind === "random" ? "?" : dungeon.waveId}</b><i /></span>
           <em><strong>{dungeon.name}</strong><small>{locked ? "前置秘境未镇压" : dungeon.kind === "random" ? "异闻秘境 · 本轮显现" : `常驻秘境 · 战力 ${dungeon.recommendedPower}`}</small></em>
         </button>;
       })}
-      {visibleMapEvents.map((event, index) => <button type="button" key={event.id} className="map-event-cursor" style={{ left: `${event.mapEvent!.x}%`, top: `${event.mapEvent!.y}%`, "--event-delay": `${index * .18}s` } as React.CSSProperties} onClick={() => { onClose(); onTriggerMapEvent(event.id); }} aria-label={`触发地图事件：${event.title}`}>
+      {!inspectionMode && visibleMapEvents.map((event, index) => <button type="button" key={event.id} className="map-event-cursor" style={{ left: `${event.mapEvent!.x}%`, top: `${event.mapEvent!.y}%`, "--event-delay": `${index * .18}s` } as React.CSSProperties} onClick={() => { onClose(); onTriggerMapEvent(event.id); }} aria-label={`触发地图事件：${event.title}`}>
         <span className="map-event-flare"><b>!</b><i /></span><em><strong>{event.title}</strong><small>待解异闻 · 完成前持续驻留</small></em>
       </button>)}
       <div className="map-compass"><i>北</i><span>✦</span><i>南</i></div>
     </div>
-    {selectedDungeon && <aside className="dungeon-brief" aria-label={`${selectedDungeon.name}战前情报`}>
+    {!inspectionMode && selectedDungeon && <aside className="dungeon-brief" aria-label={`${selectedDungeon.name}战前情报`}>
       <button className="dungeon-brief-close" type="button" onClick={() => setSelectedDungeon(null)} aria-label="收起秘境情报">×</button>
       <div className="dungeon-brief-visual" style={{ backgroundImage: `url(${map.image})` }}><span>{selectedDungeon.kind === "random" ? "异闻" : `第${selectedDungeon.waveId}境`}</span><b>{selectedDungeon.kind === "random" ? "?" : selectedDungeon.waveId}</b></div>
       <div className="dungeon-brief-copy">
@@ -106,6 +106,6 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
         <button type="button" className="enter-dungeon-button" onClick={() => onEnterDungeon?.(selectedDungeon)}><span>确认战斗配置</span><strong>踏 入 秘 境</strong></button>
       </div>
     </aside>}
-    <footer><div className="world-map-tabs">{WORLD_MAPS.map((item, index) => { const locked = index * 7 + 1 > state.dungeons.highestUnlocked; return <button type="button" key={item.id} className={item.id === currentMapId ? "active" : ""} disabled={locked} onClick={() => { setCurrentMapId(item.id); setNotice(""); }}><span>{item.id === "yunzhou" ? "壹" : item.id === "canglan" ? "贰" : "叁"}</span>{locked ? `${item.name}·未启` : item.name}</button>; })}</div><button type="button" className={`inspection-toggle ${inspectionMode?"active":""}`} onClick={()=>{if(period!=="夜晚"){setNotice("检视只能在夜晚进行。请先推移到夜晚。");return}setInspectionMode(value=>!value);setNotice(inspectionMode?"已退出检视模式":"检视模式已开启：选择任一未检视场景")}}><span>眼</span>{inspectionMode?"退出检视":"夜间检视"}</button><p>{notice || (inspectionMode?"选择场景放出神识；带眼睛图标处有明确线索，无图标处也可能藏有隐秘事件。":visibleMapEvents.length ? `此域有 ${visibleMapEvents.length} 处待完成异闻，完成剧情前不会消失。` : map.description)}</p></footer>
+    <footer><div className="world-map-tabs">{WORLD_MAPS.map((item, index) => { const locked = index * 7 + 1 > state.dungeons.highestUnlocked; return <button type="button" key={item.id} className={item.id === currentMapId ? "active" : ""} disabled={locked} onClick={() => { setCurrentMapId(item.id); setNotice(""); }}><span>{item.id === "yunzhou" ? "壹" : item.id === "canglan" ? "贰" : "叁"}</span>{locked ? `${item.name}·未启` : item.name}</button>; })}</div><button type="button" className={`inspection-toggle ${inspectionMode?"active":""}`} onClick={()=>{if(period!=="夜晚"){setNotice("检视只能在夜晚进行。请先推移到夜晚。");return}setSelectedDungeon(null);setInspectionMode(value=>!value);setNotice(inspectionMode?"已退出检视模式":"检视模式已开启：地图仅显现本夜确有异动之处")}}><span>眼</span>{inspectionMode?"退出检视":"夜间检视"}</button><p>{notice || (inspectionMode?(inspectionHints.size ? `神识捕捉到 ${inspectionHints.size} 处异动；其余地点本夜不再显示。` : "本夜山河寂静，未发现可检视事件。") : visibleMapEvents.length ? `此域有 ${visibleMapEvents.length} 处待完成异闻，完成剧情前不会消失。` : map.description)}</p></footer>
   </section></div>;
 }

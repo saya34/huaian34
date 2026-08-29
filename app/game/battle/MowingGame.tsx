@@ -100,8 +100,54 @@ const formatTime = (seconds: number) => {
   return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
 };
 
+const SKILL_ART_BY_ID: Record<number, string> = {
+  10000: "/game-assets/equipment/bamboo-sword.webp",
+  10001: "/game-assets/equipment/spirit-sword.webp",
+  10002: "/game-assets/equipment/frost-bow.webp",
+  10003: "/game-assets/equipment/phoenix-fan.webp",
+  10004: "/game-assets/equipment/frost-bow.webp",
+  10005: "/game-assets/equipment/galaxy-blade.webp",
+  10006: "/game-assets/equipment/iron-sabre.webp",
+  10007: "/game-assets/equipment/chaos-blade.webp",
+  10008: "/game-assets/equipment/blood-spear.webp",
+  10009: "/game-assets/equipment/galaxy-blade.webp",
+  10010: "/game-assets/equipment/mystic-weapon.webp",
+  10011: "/game-assets/equipment/phoenix-fan.webp",
+  10012: "/game-assets/spells/dragon-pill.webp",
+  10013: "/game-assets/treasures/relic-pearl.webp",
+  10014: "/game-assets/treasures/lotus-artifact.webp",
+  10015: "/game-assets/equipment/phoenix-crown.webp",
+  10016: "/game-assets/treasures/ancient-cauldron.webp",
+  10017: "/game-assets/equipment/vajra-bracers.webp",
+  10018: "/game-assets/equipment/phoenix-fan.webp",
+  10019: "/game-assets/equipment/flame-bracers.webp",
+  10020: "/game-assets/equipment/frost-bow.webp",
+  10021: "/game-assets/equipment/ice-bracers.webp",
+  10022: "/game-assets/equipment/heaven-crown.webp",
+  10023: "/game-assets/equipment/galaxy-blade.webp",
+  10024: "/game-assets/equipment/chaos-blade.webp",
+  10025: "/game-assets/equipment/spirit-sword.webp",
+  10026: "/game-assets/equipment/azure-dragon-crown.webp",
+  10027: "/game-assets/treasures/jade-scroll.webp",
+  10028: "/game-assets/equipment/mystic-weapon.webp",
+  10029: "/game-assets/equipment/blood-spear.webp",
+  10030: "/game-assets/equipment/blood-moon-crown.webp",
+  10031: "/game-assets/partners/thunder-lord.webp",
+  10032: "/game-assets/equipment/thunder-halberd.webp",
+  10033: "/game-assets/treasures/relic-pearl.webp",
+  10034: "/game-assets/equipment/moon-boots.webp",
+  10035: "/game-assets/treasures/relic-pearl.webp",
+  10036: "/game-assets/equipment/samsara-gloves.webp",
+  10037: "/game-assets/equipment/thunder-halberd.webp",
+  10038: "/game-assets/equipment/vajra-bracers.webp",
+};
+
+const skillArtwork = (id: number) => SKILL_ART_BY_ID[id] ?? null;
+
 function skillVisual(data: GameData | null, choice: UpgradeChoice) {
   if (!data || choice.kind === "supply" || choice.kind === "heal") return null;
+  const prepared = skillArtwork(choice.id);
+  if (prepared) return prepared;
   const level = data.skillLevels.find((row) => Number(row.skillId) === choice.id && Number(row.level) === choice.level)
     ?? data.skillLevels.find((row) => Number(row.skillId) === choice.id);
   const bullet = data.bullets.find((row) => Number(row.id) === Number(level?.bullet?.[0]));
@@ -126,6 +172,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
   const [menuPanel, setMenuPanel] = useState<"warehouse" | "upgrades" | "equipment" | "cards" | "character" | "skills" | "wm" | null>(null);
   const [loot, setLoot] = useState<LootOffer | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
   const [phaseAlert, setPhaseAlert] = useState<{ name: string; subtitle: string } | null>(null);
   const [battleCeremony, setBattleCeremony] = useState<BattleCeremony | null>(null);
   const [partnerCast, setPartnerCast] = useState<{ partner: PartnerDefinition; resonance: boolean } | null>(null);
@@ -514,8 +561,9 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
               行囊 {snapshot.backpack.length}/{snapshot.backpackSize.columns * snapshot.backpackSize.rows}
               <small>保险 {snapshot.safeBox.length}</small>
             </button>
+            <button className="battle-stats-button" onClick={() => { engineRef.current?.setInventoryPaused(true); setStatsOpen(true); }}>人物属性</button>
             <div className="skill-rack">
-              {snapshot.skills.map((skill) => <div key={skill.id} className={`skill-orb ${skill.evolved ? "evolved" : ""}`} title={skill.name}><span>{skill.name.slice(0, 1)}</span><b>{skill.level}</b></div>)}
+              {snapshot.skills.map((skill) => { const art = skillArtwork(skill.id); return <div key={skill.id} className={`skill-orb ${skill.evolved ? "evolved" : ""}`} title={skill.name}>{art ? <img src={art} alt="" /> : <span>{skill.name.slice(0, 1)}</span>}<b>{skill.level}</b></div>; })}
               {Array.from({ length: Math.max(0, 6 - snapshot.skills.length) }).map((_, index) => <div className="skill-orb empty" key={`skill-${index}`} />)}
             </div>
             <div className="skill-rack supplies">
@@ -574,6 +622,17 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
         </section>
       )}
 
+      {statsOpen && screen === "battle" && (
+        <section className="battle-attribute-overlay" onClick={() => { engineRef.current?.setInventoryPaused(false); setStatsOpen(false); }}>
+          <div className="battle-attribute-card" onClick={(event) => event.stopPropagation()}>
+            <button type="button" onClick={() => { engineRef.current?.setInventoryPaused(false); setStatsOpen(false); }} aria-label="关闭人物属性">×</button>
+            <header><small>PLAYER ATTRIBUTES · 入境快照</small><h2>人物属性</h2><p>永久属性已锁定，本局境界与修为在下方实时更新。</p></header>
+            <div className="battle-attribute-level"><span>场外修士等级 <b>Lv.{meta.playerLevel}</b></span><span>本局境界 <b>{snapshot.level}</b></span><span>本局修为 <b>{Math.floor(snapshot.exp)} / {Math.floor(snapshot.nextExp)}</b></span></div>
+            <div className="battle-attribute-grid"><span><small>生命</small><b>{Math.round(permanentAttributes.health)}</b></span><span><small>防御</small><b>{Math.round(permanentAttributes.defense)}</b></span><span><small>伤害</small><b>{Math.round(permanentAttributes.damage * 100)}%</b></span><span><small>闪避</small><b>{Math.round(permanentAttributes.dodge * 100)}%</b></span><span><small>移动</small><b>{Math.round(permanentAttributes.moveSpeed)}</b></span><span><small>攻速</small><b>{Math.round(permanentAttributes.attackSpeed * 100)}%</b></span><span><small>弹速</small><b>{Math.round(permanentAttributes.projectileSpeed * 100)}%</b></span><span><small>悟性</small><b>{Math.round(permanentAttributes.expGain * 100)}%</b></span></div>
+          </div>
+        </section>
+      )}
+
       {upgrades.length > 0 && screen === "battle" && (
         <section className="upgrade-overlay">
           <div className="upgrade-title"><small>突破境界 · 三选一</small><h2>请选择本次修炼方向</h2></div>
@@ -583,7 +642,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
               return (
                 <button key={`${choice.kind}-${choice.id}-${index}`} className={`upgrade-card ${choice.evolved ? "evolution" : ""}`} onClick={() => selectUpgrade(index)}>
                   <span className="upgrade-index">{index + 1}</span>
-                  <div className="upgrade-art" style={visual ? { backgroundImage: `url("${visual}")` } : undefined}><b>{choice.name.slice(0, 1)}</b></div>
+                  <div className={`upgrade-art ${visual ? "has-art" : ""}`} style={visual ? { backgroundImage: `url("${visual}")` } : undefined}><b>{choice.name.slice(0, 1)}</b></div>
                   <div className="upgrade-kind">{choice.kind === "skill" ? "主动技能" : choice.kind === "supply" ? "修炼心法" : choice.kind === "evolution" ? "超武进化" : "战场补给"}</div>
                   <h3>{choice.name}</h3>
                   <strong>{choice.evolved ? "觉醒" : `等级 ${choice.level}`}</strong>

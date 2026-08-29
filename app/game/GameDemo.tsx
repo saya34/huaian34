@@ -71,7 +71,7 @@ type ExplorePoint = { eventId: string; x: number; y: number };
 type InspectionReveal = { scene: SceneDefinition; event: EventDefinition | null };
 
 export default function GameDemo() {
-  const { state: unifiedState, setRomance: setGame, hydrated, resetGame } = useUnifiedGame();
+  const { state: unifiedState, setRomance: setGame, applyEffects: applyUnifiedEffects, hydrated, resetGame } = useUnifiedGame();
   const game = unifiedState.romance;
   const [eventDefinitions, setEventDefinitions] = useState<EventDefinition[]>(EVENTS);
   const [definitionsReady, setDefinitionsReady] = useState(false);
@@ -509,6 +509,7 @@ export default function GameDemo() {
     }
     const item=config.rewardItem;if(!item)return;
     setGame((state)=>({...state,completedEvents:(event.journal||event.once)&&!state.completedEvents.includes(event.id)?[...state.completedEvents,event.id]:state.completedEvents,eventRuns:{...state.eventRuns,[event.id]:(state.eventRuns[event.id]??0)+1},collectedEasterEggs:[...new Set([...state.collectedEasterEggs,item.id])]}));
+    applyUnifiedEffects([{ type: "add_item", item: { itemId: item.id, itemType: "quest", rarity: 4, amount: 1, sourceTags: ["剧情", "藏珍录"], locked: true } }]);
     setEggRewardNotice({name:item.name,image:item.image});setNotice(`获得彩蛋物品 · ${item.name}`);window.setTimeout(()=>setEggRewardNotice(null),2200);
   }
 
@@ -713,6 +714,7 @@ export default function GameDemo() {
       <footer className="statusbar"><span className="status-dot" /><p>{notice}</p><div className="game-reset-controls"><button type="button" onClick={recoverGifts}>恢复礼物</button><button type="button" onClick={resetDemo}>初始化</button></div><span>事件引擎 · 数据驱动</span></footer>
 
       <nav className="fusion-world-dock" aria-label="槐安一梦主要功能">
+        <button type="button" className={systemPanel === "profile" ? "active" : ""} onClick={() => setSystemPanel("profile")}><i>我</i><span>修士属性</span></button>
         <button type="button" className={mapOpen ? "active" : ""} onClick={() => { setSystemPanel(null); setMapOpen(true); }}><i>山</i><span>山河地图</span>{visibleMapEvents.length > 0 && <b>{visibleMapEvents.length}</b>}</button>
         <button type="button" onClick={() => setPanel("characters")}><i>缘</i><span>人物谱</span></button>
         <button type="button" className={systemPanel === "inventory" ? "active" : ""} onClick={() => setSystemPanel("inventory")}><i>囊</i><span>乾坤行囊</span></button>
