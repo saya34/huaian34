@@ -219,7 +219,10 @@ export function firstTreasurePosition(
   ignoreUid = "",
 ) {
   const definition = treasureById(item.treasureId);
-  for (let y = 0; y <= size.rows - definition.height; y++) {
+  // 1 格高物品优先放到底行，保持与 DevilutionX 快速拾取的行囊习惯一致。
+  const rows = Array.from({ length: size.rows - definition.height + 1 }, (_, index) => index);
+  if (definition.height === 1 && size.rows >= 4) rows.unshift(...rows.splice(rows.indexOf(size.rows - 1), 1));
+  for (const y of rows) {
     for (let x = 0; x <= size.columns - definition.width; x++) {
       if (canPlaceTreasure(items, item, size, x, y, ignoreUid)) return { x, y };
     }
@@ -232,7 +235,7 @@ export function placeItems(items: TreasureItem[], size: InventorySize): PlacedTr
   const sorted = [...items].sort((a, b) => {
     const aa = treasureById(a.treasureId);
     const bb = treasureById(b.treasureId);
-    return bb.width * bb.height - aa.width * aa.height;
+    return bb.height - aa.height || bb.width - aa.width;
   });
   for (const item of sorted) {
     const position = firstTreasurePosition(placed, item, size);
@@ -240,6 +243,56 @@ export function placeItems(items: TreasureItem[], size: InventorySize): PlacedTr
     placed.push({ ...item, ...position });
   }
   return placed;
+}
+
+export function treasureOverlaps(items: PlacedTreasure[], item: TreasureItem, x: number, y: number, ignoreUid = "") {
+  const definition = treasureById(item.treasureId);
+  return items.filter((placed) => {
+    if (placed.uid === ignoreUid) return false;
+    const other = treasureById(placed.treasureId);
+    return !(x + definition.width <= placed.x || placed.x + other.width <= x || y + definition.height <= placed.y || placed.y + other.height <= y);
+  });
+}
+
+/** 原子式放置：允许与一件物品交换；任一方放不下时保持原布局不变。 */
+export function placeOrSwapTreasure(
+  source: PlacedTreasure[],
+  target: PlacedTreasure[],
+  uid: string,
+  size: InventorySize,
+  x: number,
+  y: number,
+  sameContainer = false,
+  sourceSize: InventorySize = { columns: 10, rows: 4 },
+) {
+  const moving = source.find((entry) => entry.uid === uid);
+  if (!moving) return null;
+  const cleanTarget = target.filter((entry) => entry.uid !== uid);
+  if (x < 0 || y < 0) return null;
+  const definition = treasureById(moving.treasureId);
+  if (x + definition.width > size.columns || y + definition.height > size.rows) return null;
+  const overlaps = treasureOverlaps(cleanTarget, moving, x, y);
+  if (overlaps.length > 1) return null;
+  const sourceWithoutMoving = source.filter((entry) => entry.uid !== uid);
+  if (overlaps.length === 1) {
+    const displaced = overlaps[0];
+    if (sameContainer) {
+      const withoutBoth = cleanTarget.filter((entry) => entry.uid !== displaced.uid);
+      if (!canPlaceTreasure(withoutBoth, displaced, size, moving.x, moving.y)) return null;
+      return { source: withoutBoth, target: [...withoutBoth, { ...displaced, x: moving.x, y: moving.y }, { ...moving, x, y }] };
+    }
+    const sourcePosition = firstTreasurePosition(sourceWithoutMoving, displaced, sourceSize);
+    if (!sourcePosition) return null;
+    return {
+      source: [...sourceWithoutMoving, { ...displaced, ...sourcePosition }],
+      target: [...cleanTarget.filter((entry) => entry.uid !== displaced.uid), { ...moving, x, y }],
+    };
+  }
+  return { source: sourceWithoutMoving, target: [...cleanTarget, { ...moving, x, y }] };
+}
+
+export function organizeTreasures(items: TreasureItem[], size: InventorySize) {
+  return placeItems(items, size);
 }
 
 export function randomBuffChoices(count = 3) {

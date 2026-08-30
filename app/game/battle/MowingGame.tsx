@@ -8,7 +8,6 @@ import {
   ContainerKind,
   EXPEDITION_PHASES,
   LootOffer,
-  PARTNERS,
   PartnerDefinition,
   PlacedTreasure,
   RARITY_META,
@@ -26,25 +25,29 @@ import {
   backpackSize,
   computePermanentAttributes,
   equipCard,
-  equipItem,
+  identifyEquipment,
   experienceToNextLevel,
   feedSkillExperience,
   learnMetaSkill,
   safeSize,
   sellTreasure,
+  sortEquipment,
+  sortTreasureContainer,
   settleExpedition,
   upgradeCost,
   unequipCard,
-  unequipItem,
+  transferTreasure,
+  tryEquipItem,
+  tryUnequipItem,
+  moveEquipment,
   warehouseSize,
 } from "./meta";
-import { ATTRIBUTE_POINT_BONUS, AttributeAllocation, BLESSING_META, BlessingPage, CARDS, EQUIPMENT, EquipmentSlot, PASSIVE_SKILLS, SLOT_META, addAttributes, cardById, computeCombatTraits, equipmentById, formatBonus, passiveSkillUnlocked } from "./progression";
+import { ATTRIBUTE_POINT_BONUS, AttributeAllocation, BLESSING_META, BlessingPage, EquipmentBodySlot, EquipmentItem, PASSIVE_SKILLS, SLOT_META, addAttributes, canUseEquipment, cardById, computeCombatTraits, equipmentAttributeBonus, equipmentById, equipmentRequirements, equipmentSize, equipmentValue, formatBonus, passiveSkillUnlocked } from "./progression";
 import { DEFAULT_WM_CONFIG, WMAttributeKey, WMConfig, WMEquipmentRule, cloneWMConfig, validateWMConfig } from "./weaponManager";
 import {
   MAX_SKILL_MASTERY_LEVEL,
   SKILL_BOOK_EXP,
   SKILL_MANUALS,
-  SkillManualDefinition,
   learnedSkillIds,
   skillDamageBonuses,
   skillMasteryDamageMultiplier,
@@ -52,6 +55,7 @@ import {
   skillUnlockReady,
 } from "./skillMastery";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
+import { CULTIVATOR_PACK_SIZE, organizeEquipment } from "./inventorySystem";
 import type { UnifiedCardInstance, UnifiedRarity } from "../core/types";
 import { MATERIALS as ALCHEMY_MATERIALS } from "../alchemy/item-data";
 
@@ -89,7 +93,7 @@ const emptySnapshot: GameSnapshot = {
   qi: 100,
   backpack: [],
   safeBox: [],
-  backpackSize: { columns: 4, rows: 4 },
+  backpackSize: { columns: 10, rows: 4 },
   safeSize: { columns: 2, rows: 2 },
   activeBuffs: [],
   runEquipment: [],
@@ -165,7 +169,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
   const [snapshot, setSnapshot] = useState<GameSnapshot>(emptySnapshot);
   const [upgrades, setUpgrades] = useState<UpgradeChoice[]>([]);
   const [rerolls, setRerolls] = useState(1);
-  const [result, setResult] = useState<{ kind: RunResult; snapshot: GameSnapshot; accepted: TreasureItem[]; overflow: TreasureItem[]; experience: number; levelsGained: number; skillBooks: number } | null>(null);
+  const [result, setResult] = useState<{ kind: RunResult; snapshot: GameSnapshot; accepted: TreasureItem[]; overflow: TreasureItem[]; equipmentOverflow: EquipmentItem[]; experience: number; levelsGained: number; skillBooks: number } | null>(null);
   const [toast, setToast] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
   const meta = unifiedState.battle;
@@ -296,7 +300,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
           }),
           ...(kind === "victory" ? [{ type: "add_item" as const, item: { itemId: ALCHEMY_MATERIALS[(waveId * 11) % ALCHEMY_MATERIALS.length].id, itemType: "material" as const, rarity: Math.min(7, 2 + Math.floor(waveId / 4)) as UnifiedRarity, amount: 1, sourceTags: ["battle", "alchemy", `wave-${waveId}`] } }] : []),
         ]);
-        setResult({ kind, snapshot: finalSnapshot, accepted: settlement.accepted, overflow: settlement.overflow, experience: progression.gained, levelsGained: progression.levelsGained, skillBooks: bookReward.gained });
+        setResult({ kind, snapshot: finalSnapshot, accepted: settlement.accepted, overflow: settlement.overflow, equipmentOverflow: settlement.equipmentOverflow, experience: progression.gained, levelsGained: progression.levelsGained, skillBooks: bookReward.gained });
         const endingCopy = kind === "victory"
           ? { eyebrow: "妖王伏诛", title: "秘境镇压", subtitle: "一念斩群妖 · 清气复山河", seal: "胜" }
           : kind === "extracted"
@@ -628,7 +632,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
             <button type="button" onClick={() => { engineRef.current?.setInventoryPaused(false); setStatsOpen(false); }} aria-label="关闭人物属性">×</button>
             <header><small>PLAYER ATTRIBUTES · 入境快照</small><h2>人物属性</h2><p>永久属性已锁定，本局境界与修为在下方实时更新。</p></header>
             <div className="battle-attribute-level"><span>场外修士等级 <b>Lv.{meta.playerLevel}</b></span><span>本局境界 <b>{snapshot.level}</b></span><span>本局修为 <b>{Math.floor(snapshot.exp)} / {Math.floor(snapshot.nextExp)}</b></span></div>
-            <div className="battle-attribute-grid"><span><small>生命</small><b>{Math.round(permanentAttributes.health)}</b></span><span><small>防御</small><b>{Math.round(permanentAttributes.defense)}</b></span><span><small>伤害</small><b>{Math.round(permanentAttributes.damage * 100)}%</b></span><span><small>闪避</small><b>{Math.round(permanentAttributes.dodge * 100)}%</b></span><span><small>移动</small><b>{Math.round(permanentAttributes.moveSpeed)}</b></span><span><small>攻速</small><b>{Math.round(permanentAttributes.attackSpeed * 100)}%</b></span><span><small>弹速</small><b>{Math.round(permanentAttributes.projectileSpeed * 100)}%</b></span><span><small>悟性</small><b>{Math.round(permanentAttributes.expGain * 100)}%</b></span></div>
+            <div className="battle-attribute-grid"><span><small>生命</small><b>{Math.round(permanentAttributes.health)}</b></span><span><small>灵力</small><b>{Math.round(permanentAttributes.mana)}</b></span><span><small>护甲</small><b>{Math.round(permanentAttributes.defense)}</b></span><span><small>武器伤害</small><b>{Math.round(permanentAttributes.weaponMinDamage)}-{Math.round(permanentAttributes.weaponMaxDamage)}</b></span><span><small>命中</small><b>{Math.round(permanentAttributes.hitChance * 100)}%</b></span><span><small>体魄</small><b>{Math.floor(permanentAttributes.strength)}</b></span><span><small>身法</small><b>{Math.floor(permanentAttributes.dexterity)}</b></span><span><small>神识</small><b>{Math.floor(permanentAttributes.magic)}</b></span><span><small>离火抗性</small><b>{Math.round(permanentAttributes.fireResist * 100)}%</b></span><span><small>玄雷抗性</small><b>{Math.round(permanentAttributes.lightningResist * 100)}%</b></span><span><small>术法抗性</small><b>{Math.round(permanentAttributes.magicResist * 100)}%</b></span><span><small>伤害</small><b>{Math.round(permanentAttributes.damage * 100)}%</b></span><span><small>闪避</small><b>{Math.round(permanentAttributes.dodge * 100)}%</b></span><span><small>攻速</small><b>{Math.round(permanentAttributes.attackSpeed * 100)}%</b></span><span><small>悟性</small><b>{Math.round(permanentAttributes.expGain * 100)}%</b></span></div>
           </div>
         </section>
       )}
@@ -714,6 +718,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
                       held={heldTreasure}
                       onHeldChange={setHeldTreasure}
                       onPlace={(uid, source, x, y) => engineRef.current?.placeTreasure(uid, source, "backpack", x, y)}
+                      onSort={() => engineRef.current?.sortContainer("backpack")}
                     />
                     <InventoryGrid
                       title="保险箱"
@@ -723,7 +728,9 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
                       held={heldTreasure}
                       onHeldChange={setHeldTreasure}
                       onPlace={(uid, source, x, y) => engineRef.current?.placeTreasure(uid, source, "safe", x, y)}
+                      onSort={() => engineRef.current?.sortContainer("safe")}
                     />
+                    <RunEquipmentGrid items={snapshot.runEquipment} />
                   </div>
                 </div>
               </div>
@@ -749,6 +756,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
                 held={heldTreasure}
                 onHeldChange={setHeldTreasure}
                 onPlace={(uid, source, x, y) => engineRef.current?.placeTreasure(uid, source, "backpack", x, y)}
+                onSort={() => engineRef.current?.sortContainer("backpack")}
               />
               <InventoryGrid
                 title="保险箱"
@@ -760,7 +768,9 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
                 held={heldTreasure}
                 onHeldChange={setHeldTreasure}
                 onPlace={(uid, source, x, y) => engineRef.current?.placeTreasure(uid, source, "safe", x, y)}
+                onSort={() => engineRef.current?.sortContainer("safe")}
               />
+              <RunEquipmentGrid items={snapshot.runEquipment} />
             </div>
           </div>
         </section>
@@ -825,6 +835,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
               </div>
             )}
             {result.overflow.length > 0 && <p className="overflow-warning">藏宝阁空间不足，{result.overflow.length} 件宝物未能收纳。</p>}
+            {result.equipmentOverflow.length > 0 && <p className="overflow-warning">10×4 法器行囊已满，{result.equipmentOverflow.length} 件装备留在秘境。</p>}
             <div className="result-actions">
               <button onClick={() => { engineRef.current?.destroy(); if (embedded && window.parent !== window) window.parent.postMessage({ type: "huaian-close-module", settled: true }, window.location.origin); else setScreen("menu"); }}>{embedded ? "返回山河" : "返回选择"}</button>
               <button className="primary" onClick={requestStart}>再次历练</button>
@@ -837,15 +848,12 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
         <section className="meta-overlay" onClick={() => setMenuPanel(null)}>
           <div className="meta-panel warehouse-panel panel-treasure" onClick={(event) => event.stopPropagation()}>
             <button className="modal-close" onClick={() => setMenuPanel(null)}>×</button>
-            <header><small>万宝归藏</small><h2>藏宝阁</h2><b>灵石 {meta.spiritStones.toLocaleString()}</b></header>
-            <InventoryGrid
-              title={`仓库 ${warehouseSize(meta.warehouseLevel).columns}×${warehouseSize(meta.warehouseLevel).rows}`}
-              items={meta.warehouse}
-              size={warehouseSize(meta.warehouseLevel)}
-              actionLabel="出售"
-              onAction={(uid) => updateMeta(sellTreasure(meta, uid))}
-            />
-            {!meta.warehouse.length && <p className="warehouse-empty">尚未带回宝物。进入秘境搜寻宝匣并成功撤离。</p>}
+            <header><small>万宝归藏</small><h2>行囊与个人仓库</h2><b>灵石 {meta.spiritStones.toLocaleString()}</b></header>
+            <div className="personal-storage-layout">
+              <div><button className="inventory-sort" onClick={() => updateMeta(sortTreasureContainer(meta, "backpack"))}>整理 10×4 行囊</button><InventoryGrid title="随身行囊" items={meta.personalBackpack} size={backpackSize(meta.backpackLevel)} actionLabel="存入仓库" onAction={(uid) => { const result = transferTreasure(meta, uid, "warehouse"); updateMeta(result.meta); showToast(result.message); }} /></div>
+              <div><button className="inventory-sort" onClick={() => updateMeta(sortTreasureContainer(meta, "warehouse"))}>整理个人仓库</button><InventoryGrid title="个人仓库" items={meta.warehouse} size={warehouseSize(meta.warehouseLevel)} actionLabel="移入行囊" onAction={(uid) => { const result = transferTreasure(meta, uid, "backpack"); updateMeta(result.meta); showToast(result.message); }} secondaryActionLabel="出售" onSecondaryAction={(uid) => updateMeta(sellTreasure(meta, uid))} /></div>
+            </div>
+            {!meta.warehouse.length && !meta.personalBackpack.length && <p className="warehouse-empty">尚未带回宝物。进入秘境搜寻宝匣并成功撤离。</p>}
           </div>
         </section>
       )}
@@ -880,7 +888,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
           <div className="meta-panel equipment-panel panel-equipment" onClick={(event) => event.stopPropagation()}>
             <button className="modal-close" onClick={() => setMenuPanel(null)}>×</button>
             <header><small>法器护身</small><h2>装备</h2><b>仅可在入场前配置</b></header>
-            <EquipmentSystem meta={meta} onChange={updateMeta} />
+            <EquipmentSystem meta={meta} onChange={updateMeta} notify={showToast} />
           </div>
         </section>
       )}
@@ -956,8 +964,7 @@ function clampWave(waveId: number) {
   return Math.max(1, Math.min(21, waveId));
 }
 
-const EQUIPMENT_SLOTS: EquipmentSlot[] = ["head", "chest", "hands", "legs", "feet", "weapon"];
-const WM_STAT_LABELS: Record<WMAttributeKey, string> = { health: "生命", defense: "防御", damage: "伤害", dodge: "闪避", moveSpeed: "移速", expGain: "经验", attackSpeed: "攻速", projectileSpeed: "弹速" };
+const WM_STAT_LABELS: Record<WMAttributeKey, string> = { health: "生命", mana: "灵力", defense: "护甲", damage: "伤害", weaponMinDamage: "武伤下限", weaponMaxDamage: "武伤上限", hitChance: "命中", strength: "体魄", dexterity: "身法", magic: "神识", fireResist: "离火抗性", lightningResist: "玄雷抗性", magicResist: "术法抗性", dodge: "闪避", moveSpeed: "移速", expGain: "经验", attackSpeed: "攻速", projectileSpeed: "弹速" };
 
 function skillArtById(data: GameData, skillId: number) {
   const level = data.skillLevels.find((row) => Number(row.skillId) === skillId && Number(row.level) === 1)
@@ -1177,55 +1184,49 @@ function CharacterProgression({ meta, relationships, onChange }: { meta: MetaPro
   );
 }
 
-function EquipmentSystem({ meta, onChange }: { meta: MetaProgress; onChange: (meta: MetaProgress) => void }) {
-  const equip = (uid: string) => onChange(equipItem(meta, uid));
+function EquipmentSystem({ meta, onChange, notify }: { meta: MetaProgress; onChange: (meta: MetaProgress) => void; notify: (message: string) => void }) {
+  const [heldUid, setHeldUid] = useState<string | null>(null);
+  const [selectedUid, setSelectedUid] = useState(meta.equipmentBag[0]?.uid ?? null);
+  const attributes = computePermanentAttributes(meta);
+  const stored = meta.equipmentBag.filter((item) => meta.equipmentPositions[item.uid]);
+  const selected = meta.equipmentBag.find((item) => item.uid === selectedUid) ?? stored[0];
+  const bodySlots: EquipmentBodySlot[] = ["head", "chest", "hands", "legs", "feet", "weapon", "offhand"];
+  const slotName = (slot: EquipmentBodySlot) => slot === "offhand" ? { name: "副手", mark: "辅" } : SLOT_META[slot];
+  const equip = (uid: string) => { const result = tryEquipItem(meta, uid); onChange(result.meta); notify(result.message); if (result.ok) setHeldUid(null); };
+  const unequip = (slot: EquipmentBodySlot) => { const result = tryUnequipItem(meta, slot); onChange(result.meta); notify(result.message); };
+  const identify = (uid: string) => { const result = identifyEquipment(meta, uid); onChange(result.meta); notify(result.message); };
+  const place = (uid: string, x: number, y: number) => { const next = moveEquipment(meta, uid, x, y); if (next === meta) notify("此处放不下，或交换后的法器无处安放"); else { onChange(next); setHeldUid(null); } };
+
   return (
-    <div className="equipment-layout">
+    <div className="equipment-layout devilution-equipment">
       <section className="equipment-doll">
         <div className="doll-silhouette"><i className="doll-head" /><i className="doll-body" /><i className="doll-arms" /><i className="doll-legs" /></div>
-        {EQUIPMENT_SLOTS.map((slot) => {
+        {bodySlots.map((slot) => {
           const uid = meta.equipped[slot];
           const item = meta.equipmentBag.find((entry) => entry.uid === uid);
           const definition = item ? equipmentById(item.equipmentId) : null;
-          return (
-            <button
-              key={slot}
-              className={`gear-slot slot-${slot} ${definition ? `rarity-${definition.rarity}` : "empty"}`}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault();
-                const draggedUid = event.dataTransfer.getData("application/x-blcx-equipment");
-                const dragged = meta.equipmentBag.find((entry) => entry.uid === draggedUid);
-                if (dragged && equipmentById(dragged.equipmentId).slot === slot) equip(draggedUid);
-              }}
-              onClick={() => uid && onChange(unequipItem(meta, slot))}
-              title={definition ? `${definition.name}（点击卸下）` : SLOT_META[slot].name}
-            >
-              {definition ? <img src={definition.art} alt="" /> : <><b>{SLOT_META[slot].mark}</b><small>{SLOT_META[slot].name}</small></>}
-            </button>
-          );
+          const enabled = item ? canUseEquipment(item, attributes) : true;
+          return <button key={slot} className={`gear-slot slot-${slot} ${definition ? `rarity-${item?.rarity ?? definition.rarity}` : "empty"} ${enabled ? "" : "disabled-gear"}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const draggedUid = event.dataTransfer.getData("application/x-blcx-equipment"); if (draggedUid) equip(draggedUid); }} onClick={() => uid && unequip(slot)} title={definition ? `${item?.name ?? definition.name}（点击卸下）` : slotName(slot).name}>
+            {definition ? <><img src={definition.art} alt="" />{item?.twoHanded && <em>双手</em>}{!enabled && <b>失效</b>}</> : <><b>{slotName(slot).mark}</b><small>{slotName(slot).name}</small></>}
+          </button>;
         })}
+        <aside className="requirement-readout"><span>体魄 <b>{Math.floor(attributes.strength)}</b></span><span>身法 <b>{Math.floor(attributes.dexterity)}</b></span><span>神识 <b>{Math.floor(attributes.magic)}</b></span></aside>
       </section>
-      <section className="gear-backpack">
-        <h3>装备背包 <small>拖到对应部位，或双击装备</small></h3>
-        <div className="gear-grid">
-          {meta.equipmentBag.map((item) => {
-            const baseGear = equipmentById(item.equipmentId);
-            const gear = { ...baseGear, name: item.name ?? baseGear.name, rarity: item.rarity ?? baseGear.rarity, price: item.price ?? baseGear.price, bonuses: item.bonuses ?? baseGear.bonuses };
-            const worn = Object.values(meta.equipped).includes(item.uid);
-            return (
-              <article
-                key={item.uid}
-                draggable
-                onDragStart={(event) => event.dataTransfer.setData("application/x-blcx-equipment", item.uid)}
-                onDoubleClick={() => equip(item.uid)}
-                className={`rarity-${gear.rarity} ${worn ? "worn" : ""}`}
-              >
-                <img src={gear.art} alt="" />
-                <div><small>{RARITY_META[gear.rarity].name} · {SLOT_META[gear.slot].name}</small><strong>{gear.name}</strong><p>{formatBonus(gear.bonuses).join(" · ")}</p><em>{gear.price.toLocaleString()} 灵石</em></div>
-              </article>
-            );
-          })}
+      <section className="gear-backpack tetris-pack">
+        <header><div><h3>乾坤行囊 <small>10×4 · 40 格</small></h3><p>点击拿起再点格子，或直接拖拽；可与一件法器原子交换。</p></div><button onClick={() => { onChange(sortEquipment(meta)); notify("行囊已按高度、宽度压缩整理"); }}>一键整理</button></header>
+        <div className="gear-pack-workspace">
+          <div className="gear-tetris-grid" aria-label="10乘4法器背包">
+            {Array.from({ length: 40 }).map((_, index) => { const x = index % 10; const y = Math.floor(index / 10); return <i key={index} data-cell={`${x}-${y}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const uid = event.dataTransfer.getData("application/x-blcx-equipment"); if (uid) place(uid, x, y); }} onClick={() => heldUid && place(heldUid, x, y)} />; })}
+            {stored.map((item) => {
+              const definition = equipmentById(item.equipmentId); const point = meta.equipmentPositions[item.uid]; const size = equipmentSize(item); const rarity = item.rarity ?? definition.rarity;
+              return <article key={item.uid} draggable onDragStart={(event) => event.dataTransfer.setData("application/x-blcx-equipment", item.uid)} onClick={(event) => { event.stopPropagation(); setSelectedUid(item.uid); setHeldUid(heldUid === item.uid ? null : item.uid); }} onDoubleClick={() => equip(item.uid)} className={`rarity-${rarity} ${heldUid === item.uid ? "is-held" : ""} ${item.identified === false ? "unidentified" : ""}`} style={{ gridColumn: `${point.x + 1} / span ${size.width}`, gridRow: `${point.y + 1} / span ${size.height}`, "--rarity": RARITY_META[rarity].color } as CSSProperties}>
+                <img src={definition.art} alt="" /><small>{item.identified === false ? "未鉴定" : item.twoHanded ? "双手" : RARITY_META[rarity].name}</small>
+              </article>;
+            })}
+          </div>
+          <aside className="gear-inspector">
+            {selected ? (() => { const base = equipmentById(selected.equipmentId); const req = equipmentRequirements(selected); const enabled = canUseEquipment(selected, attributes); const size = equipmentSize(selected); return <><div className="gear-inspector-art" style={{ "--rarity": RARITY_META[selected.rarity ?? base.rarity].color } as CSSProperties}><img src={base.art} alt="" /><span>{selected.identified === false ? "未鉴定法器" : RARITY_META[selected.rarity ?? base.rarity].name}</span></div><small>{SLOT_META[base.slot].name} · {size.width}×{size.height}{selected.twoHanded ? " · 占据双手" : ""}</small><h3>{selected.identified === false ? `未鉴定的${base.name}` : selected.name ?? base.name}</h3><p>{base.description}</p><div className="gear-stat-chips">{formatBonus(equipmentAttributeBonus(selected)).map((line) => <span key={line}>{line}</span>)}</div><div className={`gear-requirements ${enabled ? "met" : "failed"}`}><b>驱使要求</b><span>体魄 {req.strength ?? 0}</span><span>身法 {req.dexterity ?? 0}</span><span>神识 {req.magic ?? 0}</span></div><footer><b>估值 {equipmentValue(selected).toLocaleString()} 灵石</b>{selected.identified === false ? <button onClick={() => identify(selected.uid)}>鉴定并激活词缀</button> : <button disabled={!enabled} onClick={() => equip(selected.uid)}>{enabled ? "装备" : "属性不足"}</button>}</footer></>; })() : <p>行囊中暂无法器</p>}
+          </aside>
         </div>
       </section>
     </div>
@@ -1293,12 +1294,20 @@ function CardSystem({ meta, onChange }: { meta: MetaProgress; onChange: (meta: M
   );
 }
 
+function RunEquipmentGrid({ items }: { items: EquipmentItem[] }) {
+  const positions = organizeEquipment(items, CULTIVATOR_PACK_SIZE) ?? {};
+  return <section className="inventory-section run-gear-pack"><h3>法器战利品<small>{items.length} 件 · 共用 10×4 容量规则</small></h3><div className="gear-tetris-grid">{Array.from({ length: 40 }).map((_, index) => <i key={index} />)}{items.map((item) => { const base = equipmentById(item.equipmentId); const point = positions[item.uid]; const size = equipmentSize(item); const rarity = item.rarity ?? base.rarity; if (!point) return null; return <article key={item.uid} style={{ gridColumn: `${point.x + 1}/span ${size.width}`, gridRow: `${point.y + 1}/span ${size.height}`, "--rarity": RARITY_META[rarity].color } as CSSProperties}><img src={base.art} alt="" /><small>{item.identified === false ? "未鉴定" : item.twoHanded ? "双手" : RARITY_META[rarity].name}</small></article>; })}</div></section>;
+}
+
 function InventoryGrid({
   title,
   items,
   size,
   actionLabel,
   onAction,
+  secondaryActionLabel,
+  onSecondaryAction,
+  onSort,
   container,
   onPlace,
   held,
@@ -1309,19 +1318,22 @@ function InventoryGrid({
   size: { columns: number; rows: number };
   actionLabel?: string;
   onAction?: (uid: string) => void;
+  secondaryActionLabel?: string;
+  onSecondaryAction?: (uid: string) => void;
+  onSort?: () => void;
   container?: ContainerKind;
   onPlace?: (uid: string, source: ContainerKind | "loot", x: number, y: number) => boolean | undefined;
   held?: HeldTreasure | null;
   onHeldChange?: (held: HeldTreasure | null) => void;
 }) {
-  const cellSize = 58;
+  const cellSize = size.columns >= 10 ? 40 : 58;
   const cellGap = 3;
   const gridPadding = 5;
   const hasSavedPositions = items.every((item) => "x" in item && "y" in item);
   const placed = hasSavedPositions ? items as PlacedTreasure[] : placeItems(items, size) ?? [];
   return (
     <section className="inventory-section">
-      <h3>{title}<small>{items.length} 件 · {size.columns}×{size.rows}</small></h3>
+      <h3>{title}<small>{items.length} 件 · {size.columns}×{size.rows}</small>{onSort && <button type="button" onClick={onSort}>整理</button>}</h3>
       <div
         className={`inventory-grid ${onPlace ? "droppable" : ""}`}
         style={{
@@ -1406,13 +1418,14 @@ function InventoryGrid({
               title={`${treasure.name} · ${treasure.value} 灵石`}
             >
               <img src={treasure.art} alt="" />
-              <aside className="inventory-tooltip">
+                <aside className="inventory-tooltip">
                 <strong>{treasure.name}</strong>
                 <small>{RARITY_META[treasure.rarity].name} · {treasure.width}×{treasure.height}</small>
                 <p>{treasure.description}</p>
                 <b>价值 {treasure.value.toLocaleString()} 灵石</b>
-                {onAction && <em>双击：{actionLabel}</em>}
-              </aside>
+                  {onAction && <em>双击：{actionLabel}</em>}
+                </aside>
+                {(onAction || onSecondaryAction) && <span className="inventory-item-actions">{onAction && <button type="button" onClick={(event) => { event.stopPropagation(); onAction(item.uid); }}>{actionLabel}</button>}{onSecondaryAction && <button type="button" onClick={(event) => { event.stopPropagation(); onSecondaryAction(item.uid); }}>{secondaryActionLabel}</button>}</span>}
             </article>
           );
         })}

@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { MATERIALS } from "../alchemy/item-data";
-import { DEFAULT_META } from "../battle/meta";
+import { DEFAULT_META, normalizeMetaProgress } from "../battle/meta";
 import { EVENTS } from "../content";
 import { INITIAL_STATE } from "../event-engine";
 import { keyFor, LocalPlayerStateRepository } from "./player-state-repository";
@@ -36,7 +36,7 @@ function cloneInitial(): UnifiedGameState {
     alchemy: {
       materialCounts: Object.fromEntries(MATERIALS.map((item) => [item.id, item.count])), productStacks: {}, characterCards: [], mythicRareUses: {}, marketOffers: [], manualRefreshCount: 0, refreshResetAt: 0, soldOutRefreshAt: 0, commissions: [], commissionRefreshAt: 0, discoveredRecipes: [],
     },
-    battle: { ...DEFAULT_META, spiritStones: romance.spiritStones, baseAttributes: { ...DEFAULT_META.baseAttributes }, equipmentBag: DEFAULT_META.equipmentBag.map((item) => ({ ...item })), equipped: {}, ownedCards: [], cardSlots: [null, null, null], attributeAllocation: { ...DEFAULT_META.attributeAllocation }, passiveRanks: {}, skillMastery: structuredClone(DEFAULT_META.skillMastery), wmDraft: structuredClone(DEFAULT_META.wmDraft), wmPublished: structuredClone(DEFAULT_META.wmPublished) },
+    battle: { ...DEFAULT_META, spiritStones: romance.spiritStones, baseAttributes: { ...DEFAULT_META.baseAttributes }, equipmentBag: DEFAULT_META.equipmentBag.map((item) => ({ ...item })), equipmentPositions: { ...DEFAULT_META.equipmentPositions }, personalBackpack: [], warehouse: [], equipped: {}, ownedCards: [], cardSlots: [null, null, null], attributeAllocation: { ...DEFAULT_META.attributeAllocation }, passiveRanks: {}, skillMastery: structuredClone(DEFAULT_META.skillMastery), wmDraft: structuredClone(DEFAULT_META.wmDraft), wmPublished: structuredClone(DEFAULT_META.wmPublished) },
     dungeons: { highestUnlocked: 1, completed: [], randomVisible: [] },
   };
 }
@@ -48,7 +48,7 @@ function mergeSave(saved: UnifiedGameState | null) {
     ...base, ...saved, version: SAVE_VERSION,
     shared: { ...base.shared, ...saved.shared, items: { ...base.shared.items, ...saved.shared?.items, ...collectedQuestItems(saved.romance?.collectedEasterEggs) }, globalKeys: { ...base.shared.globalKeys, ...saved.shared?.globalKeys } },
     romance: { ...base.romance, ...saved.romance, activeEvent: null },
-    alchemy: { ...base.alchemy, ...saved.alchemy }, battle: { ...base.battle, ...saved.battle }, dungeons: { ...base.dungeons, ...saved.dungeons },
+    alchemy: { ...base.alchemy, ...saved.alchemy }, battle: normalizeMetaProgress({ ...base.battle, ...saved.battle }), dungeons: { ...base.dungeons, ...saved.dungeons },
   };
 }
 
@@ -100,7 +100,7 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     }
     if (requested.spiritStones !== current.romance.spiritStones) shared = { ...shared, spiritStones: requested.spiritStones };
     if (requested.experience !== current.romance.experience) shared = { ...shared, playerExperience: requested.experience };
-    if (requested.playerLevel !== current.romance.playerLevel) shared = { ...shared, playerLevel: requested.playerLevel };
+    if (requested.playerLevel !== current.romance.playerLevel) shared = { ...shared, playerLevel: requested.playerLevel ?? current.romance.playerLevel ?? 1 };
     const next = { ...requested, pendingUnifiedEffects: [], spiritStones: shared.spiritStones, experience: shared.playerExperience };
     const giftItems = Object.fromEntries(Object.entries(next.inventory).map(([itemId, amount]) => [itemId, { ...(current.shared.items[itemId] ?? { itemId, itemType: "gift" as const, rarity: 2 as const, sourceTags: ["romance"] }), amount }]));
     shared = { ...shared, spiritStones: next.spiritStones, stamina: next.stamina, playerExperience: next.experience, items: { ...shared.items, ...giftItems }, globalKeys: { ...shared.globalKeys, ...next.flags } };

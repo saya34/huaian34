@@ -1,7 +1,17 @@
 export interface HeroAttributes {
   health: number;
+  mana: number;
   defense: number;
   damage: number;
+  weaponMinDamage: number;
+  weaponMaxDamage: number;
+  hitChance: number;
+  strength: number;
+  dexterity: number;
+  magic: number;
+  fireResist: number;
+  lightningResist: number;
+  magicResist: number;
   dodge: number;
   moveSpeed: number;
   expGain: number;
@@ -11,8 +21,18 @@ export interface HeroAttributes {
 
 export const BASE_HERO_ATTRIBUTES: Readonly<HeroAttributes> = {
   health: 1000,
+  mana: 100,
   defense: 100,
   damage: 1,
+  weaponMinDamage: 0,
+  weaponMaxDamage: 0,
+  hitChance: .9,
+  strength: 20,
+  dexterity: 20,
+  magic: 20,
+  fireResist: 0,
+  lightningResist: 0,
+  magicResist: 0,
   dodge: .03,
   moveSpeed: 250,
   expGain: 1,
@@ -127,9 +147,14 @@ export function passiveSkillUnlocked(ranks: Record<string, number>, skill: Passi
 }
 
 export function attributeAllocationBonus(allocation: AttributeAllocation): AttributeBonus {
-  return Object.fromEntries(Object.entries(allocation).map(([key, points]) => [key, points * ATTRIBUTE_POINT_BONUS[key as keyof AttributeAllocation]])) as AttributeBonus;
+  const result = Object.fromEntries(Object.entries(allocation).map(([key, points]) => [key, points * ATTRIBUTE_POINT_BONUS[key as keyof AttributeAllocation]])) as AttributeBonus;
+  result.strength = allocation.health * .5 + allocation.defense;
+  result.dexterity = allocation.dodge + allocation.moveSpeed * .5;
+  result.magic = allocation.damage + allocation.attackSpeed * .75;
+  return result;
 }
 export type EquipmentSlot = "head" | "chest" | "hands" | "legs" | "feet" | "weapon";
+export type EquipmentBodySlot = EquipmentSlot | "offhand";
 export type GearRarity = "common" | "fine" | "rare" | "epic" | "immortal";
 
 export interface EquipmentDefinition {
@@ -145,6 +170,52 @@ export interface EquipmentDefinition {
 
 export interface EquipmentItem {
   uid: string; equipmentId: string; name?: string; rarity?: GearRarity; price?: number; bonuses?: AttributeBonus; affixes?: string[];
+  prefix?: string; suffix?: string; identified?: boolean; twoHanded?: boolean; width?: number; height?: number;
+  requirements?: Partial<Record<"strength" | "dexterity" | "magic", number>>;
+  baseBonuses?: AttributeBonus; magicBonuses?: AttributeBonus;
+}
+
+export type EquipmentPosition = { x: number; y: number };
+
+export function equipmentSize(item: EquipmentItem) {
+  if (item.width && item.height) return { width: item.width, height: item.height };
+  const definition = equipmentById(item.equipmentId);
+  if (definition.slot === "weapon") return { width: item.twoHanded ? 2 : 1, height: 3 };
+  if (definition.slot === "chest" || definition.slot === "legs") return { width: 2, height: 3 };
+  return { width: 2, height: 2 };
+}
+
+export function equipmentRequirements(item: EquipmentItem) {
+  if (item.requirements) return item.requirements;
+  return { strength: 0, dexterity: 0, magic: 0 };
+}
+
+export function canUseEquipment(item: EquipmentItem, attributes: HeroAttributes) {
+  const requirement = equipmentRequirements(item);
+  return (requirement.strength ?? 0) <= attributes.strength
+    && (requirement.dexterity ?? 0) <= attributes.dexterity
+    && (requirement.magic ?? 0) <= attributes.magic;
+}
+
+export function equipmentAttributeBonus(item: EquipmentItem) {
+  const definition = equipmentById(item.equipmentId);
+  const base = item.baseBonuses ?? (item.magicBonuses ? definition.bonuses : item.bonuses ?? definition.bonuses);
+  if (item.identified === false) return base;
+  return addBonusRecords(base, item.magicBonuses);
+}
+
+export function equipmentValue(item: EquipmentItem) {
+  const definition = equipmentById(item.equipmentId);
+  const affixCount = Number(Boolean(item.prefix)) + Number(Boolean(item.suffix)) + (item.affixes?.length ?? 0);
+  const rarityMultiplier: Record<GearRarity, number> = { common: 1, fine: 1.35, rare: 1.9, epic: 2.8, immortal: 4.5 };
+  const base = item.price ?? definition.price;
+  return Math.max(1, Math.round(base * rarityMultiplier[item.rarity ?? definition.rarity] * (1 + affixCount * .18)));
+}
+
+function addBonusRecords(...records: Array<AttributeBonus | undefined>) {
+  const result: AttributeBonus = {};
+  for (const record of records) if (record) for (const key of Object.keys(record) as Array<keyof HeroAttributes>) result[key] = (result[key] ?? 0) + (record[key] ?? 0);
+  return result;
 }
 
 export const SLOT_META: Record<EquipmentSlot, { name: string; mark: string }> = {
@@ -238,9 +309,9 @@ export function addAttributes(base: HeroAttributes, ...bonuses: Array<AttributeB
 }
 
 export function formatBonus(bonus: AttributeBonus) {
-  const labels: Record<keyof HeroAttributes, string> = { health: "生命", defense: "防御", damage: "伤害", dodge: "闪避", moveSpeed: "移速", expGain: "经验", attackSpeed: "攻速", projectileSpeed: "弹速" };
+  const labels: Record<keyof HeroAttributes, string> = { health: "生命", mana: "灵力", defense: "护甲", damage: "伤害", weaponMinDamage: "武伤下限", weaponMaxDamage: "武伤上限", hitChance: "命中", strength: "体魄", dexterity: "身法", magic: "神识", fireResist: "离火抗性", lightningResist: "玄雷抗性", magicResist: "术法抗性", dodge: "闪避", moveSpeed: "移速", expGain: "经验", attackSpeed: "攻速", projectileSpeed: "弹速" };
   return (Object.keys(bonus) as Array<keyof HeroAttributes>).map((key) => {
     const value = bonus[key] ?? 0;
-    return `${labels[key]} +${["damage", "dodge", "expGain", "attackSpeed", "projectileSpeed"].includes(key) ? `${Math.round(value * 100)}%` : Math.round(value)}`;
+    return `${labels[key]} +${["damage", "hitChance", "fireResist", "lightningResist", "magicResist", "dodge", "expGain", "attackSpeed", "projectileSpeed"].includes(key) ? `${Math.round(value * 100)}%` : Math.round(value)}`;
   });
 }

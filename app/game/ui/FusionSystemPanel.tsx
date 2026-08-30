@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import * as React from "react";
 import { EVENTS, GIFTS } from "../content";
 import { ITEM_TABLE } from "../alchemy/item-data";
-import { computePermanentAttributes, experienceToNextLevel } from "../battle/meta";
+import { computePermanentAttributes, experienceToNextLevel, identifyEquipment, moveEquipment, sortEquipment, tryEquipItem, tryUnequipItem, type MetaProgress } from "../battle/meta";
 import { addAttributes } from "../battle/progression";
-import { equipmentById, SLOT_META } from "../battle/progression";
+import { EquipmentBodySlot, canUseEquipment, equipmentAttributeBonus, equipmentById, equipmentRequirements, equipmentSize, equipmentValue, formatBonus, SLOT_META } from "../battle/progression";
 import { RARITY_META, treasureById } from "../battle/expedition";
 import { SKILL_MANUALS } from "../battle/skillMastery";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
@@ -39,7 +40,7 @@ function ItemArtwork({ item, className = "" }: { item: ItemPresentation; classNa
 }
 
 export default function FusionSystemPanel({ panel, onClose }: { panel: FusionPanelId; onClose: () => void }) {
-  const { state } = useUnifiedGame();
+  const { state, setBattle } = useUnifiedGame();
   const [filter, setFilter] = useState<UnifiedItemType | "all">("all");
   const allItems = useMemo(() => Object.values(state.shared.items).filter((item) => item.amount > 0).sort((a, b) => b.rarity - a.rarity || b.amount - a.amount), [state.shared.items]);
   const items = filter === "all" ? allItems : allItems.filter((item) => item.itemType === filter);
@@ -71,7 +72,25 @@ export default function FusionSystemPanel({ panel, onClose }: { panel: FusionPan
 
       {panel === "skills" && <div className="manual-layout"><aside className="manual-summary"><div><small>悟道残卷</small><strong>{state.battle.skillBooks}</strong></div><div><small>已习流派</small><strong>{Object.values(state.battle.skillMastery).filter((skill) => skill.learned).length}<i>/20</i></strong></div><p>局内仍采用升级三选一、六主动＋六补给；离境后单局等级重置，场外修习永久保留。</p></aside><div className="manual-grid">{SKILL_MANUALS.map((manual, index) => { const mastery = state.battle.skillMastery[String(manual.baseId)]; const learned = Boolean(mastery?.learned); return <article key={manual.baseId} className={learned ? "learned" : "locked"}><span className="manual-sigil"><b>{manual.element.slice(0, 1)}</b><i>{String(index + 1).padStart(2, "0")}</i></span><div><small>{manual.school} · {learned ? `外修 ${mastery.level} 重` : `主角 ${manual.unlockLevel ?? 1} 级 / 第 ${manual.unlockWave ?? 1} 境`}</small><h3>{manual.verse.split("，")[0]}</h3><p>{manual.verse}</p></div><em>{learned ? "已习" : "未悟"}</em></article>; })}</div></div>}
 
-      {panel === "equipment" && <div className="equipment-layout"><aside className="equipment-slots">{Object.entries(SLOT_META).map(([slot, meta]) => { const uid = state.battle.equipped[slot as keyof typeof state.battle.equipped]; const instance = state.battle.equipmentBag.find((item) => item.uid === uid); const item = instance ? equipmentById(instance.equipmentId) : null; return <article key={slot} className={item ? "filled" : ""}><span>{item ? <img src={item.art} alt="" /> : meta.name.slice(0,1)}</span><div><small>{meta.name}</small><strong>{item?.name ?? "未装备"}</strong></div></article>; })}</aside><div className="equipment-vault"><header><span>法器库存</span><small>{state.battle.equipmentBag.length} 件 · 战前可调整</small></header><div>{state.battle.equipmentBag.map((instance) => { const item = equipmentById(instance.equipmentId); const rarity = instance.rarity ?? item.rarity; return <article key={instance.uid} data-rarity={rarity}><img src={item.art} alt="" /><div><small>{SLOT_META[item.slot].name} · {RARITY_META[rarity].name}</small><strong>{instance.name ?? item.name}</strong><p>{Object.entries(instance.bonuses ?? item.bonuses).map(([key,value]) => `${key} +${value}`).join(" · ")}</p></div><b>{Object.values(state.battle.equipped).includes(instance.uid) ? "已装备" : "入库"}</b></article>; })}{state.battle.equipmentBag.length === 0 && <div className="fusion-empty">尚无法器。镇压秘境、搜寻宝箱可获得随机装备与词条。</div>}</div></div></div>}
+      {panel === "equipment" && <MainEquipmentPanel meta={state.battle} onChange={setBattle} />}
     </section>
+  </div>;
+}
+
+function MainEquipmentPanel({ meta, onChange }: { meta: MetaProgress; onChange: (next: MetaProgress) => void }) {
+  const [selectedUid, setSelectedUid] = useState(meta.equipmentBag[0]?.uid ?? "");
+  const [heldUid, setHeldUid] = useState<string | null>(null);
+  const [notice, setNotice] = useState("点击法器查看详情；再次点击拿起，再点目标格放置");
+  const attributes = computePermanentAttributes(meta);
+  const stored = meta.equipmentBag.filter((item) => meta.equipmentPositions[item.uid]);
+  const selected = meta.equipmentBag.find((item) => item.uid === selectedUid) ?? stored[0];
+  const slots: EquipmentBodySlot[] = ["head", "chest", "hands", "legs", "feet", "weapon", "offhand"];
+  const equip = (uid: string) => { const result = tryEquipItem(meta, uid); onChange(result.meta); setNotice(result.message); if (result.ok) setHeldUid(null); };
+  const unequip = (slot: EquipmentBodySlot) => { const result = tryUnequipItem(meta, slot); onChange(result.meta); setNotice(result.message); };
+  const place = (uid: string, x: number, y: number) => { const next = moveEquipment(meta, uid, x, y); if (next === meta) setNotice("目标位置冲突：交换后的法器也必须能完整放回原位"); else { onChange(next); setHeldUid(null); setNotice("法器已归位"); } };
+  return <div className="main-gear-workbench">
+    <aside className="main-body-slots"><div className="main-cultivator"><img src="/game-assets/heroes/young-male-cultivator.webp" alt="修士立绘" /></div><div className="main-slot-ring">{slots.map((slot) => { const uid = meta.equipped[slot]; const instance = meta.equipmentBag.find((item) => item.uid === uid); const base = instance ? equipmentById(instance.equipmentId) : null; const label = slot === "offhand" ? "副手" : SLOT_META[slot].name; return <button key={slot} className={instance ? "filled" : ""} onClick={() => uid && unequip(slot)}><span>{base ? <img src={base.art} alt="" /> : label.slice(0, 1)}</span><small>{label}</small>{instance?.twoHanded && <em>双手</em>}</button>; })}</div><div className="main-core-stats"><span>体魄 <b>{Math.floor(attributes.strength)}</b></span><span>身法 <b>{Math.floor(attributes.dexterity)}</b></span><span>神识 <b>{Math.floor(attributes.magic)}</b></span></div></aside>
+    <section className="main-pack-section"><header><div><small>DEVILUTION GRID LOGIC · 仙侠化迁移</small><h3>乾坤行囊</h3><p>40 格、多格占位、交换与属性失效共用副本内核。</p></div><button onClick={() => { onChange(sortEquipment(meta)); setNotice("已按高度、宽度压缩空隙"); }}>自动整理</button></header><div className="main-pack-grid" aria-label="十乘四装备行囊">{Array.from({ length: 40 }).map((_, index) => { const x = index % 10; const y = Math.floor(index / 10); return <i key={index} onClick={() => heldUid && place(heldUid, x, y)} />; })}{stored.map((item) => { const base = equipmentById(item.equipmentId); const point = meta.equipmentPositions[item.uid]; const size = equipmentSize(item); const rarity = item.rarity ?? base.rarity; return <button key={item.uid} className={`${heldUid === item.uid ? "held" : ""} ${item.identified === false ? "unknown" : ""}`} style={{ gridColumn: `${point.x + 1}/span ${size.width}`, gridRow: `${point.y + 1}/span ${size.height}`, "--rarity": RARITY_META[rarity].color } as React.CSSProperties} onClick={(event) => { event.stopPropagation(); setSelectedUid(item.uid); setHeldUid(heldUid === item.uid ? null : item.uid); }} onDoubleClick={() => equip(item.uid)}><img src={base.art} alt="" /><span>{item.identified === false ? "?" : item.twoHanded ? "双" : RARITY_META[rarity].name.slice(0, 1)}</span></button>; })}</div><p className="main-pack-notice" role="status">{notice}</p></section>
+    <aside className="main-gear-detail">{selected ? (() => { const base = equipmentById(selected.equipmentId); const req = equipmentRequirements(selected); const usable = canUseEquipment(selected, attributes); return <><div className="detail-gear-art" style={{ "--rarity": RARITY_META[selected.rarity ?? base.rarity].color } as React.CSSProperties}><img src={base.art} alt="" /><span>{selected.identified === false ? "未鉴定" : RARITY_META[selected.rarity ?? base.rarity].name}</span></div><small>{SLOT_META[base.slot].name}{selected.twoHanded ? " · 双手法器" : ""}</small><h3>{selected.identified === false ? `未鉴定的${base.name}` : selected.name ?? base.name}</h3><p>{base.description}</p><div className="detail-gear-stats">{formatBonus(equipmentAttributeBonus(selected)).map((line) => <span key={line}>{line}</span>)}</div><div className={usable ? "detail-requirements met" : "detail-requirements failed"}><b>驱使要求</b><span>体魄 {req.strength ?? 0}</span><span>身法 {req.dexterity ?? 0}</span><span>神识 {req.magic ?? 0}</span></div><footer><b>估值 {equipmentValue(selected).toLocaleString()} 灵石</b>{selected.identified === false ? <button onClick={() => { const result = identifyEquipment(meta, selected.uid); onChange(result.meta); setNotice(result.message); }}>鉴定</button> : <button disabled={!usable} onClick={() => equip(selected.uid)}>{usable ? "装备" : "装备失效"}</button>}</footer></>; })() : <div className="fusion-empty">尚无法器</div>}</aside>
   </div>;
 }

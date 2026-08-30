@@ -1,18 +1,22 @@
-import { InventorySize, RunResult, TreasureItem, placeItems, treasureById } from "./expedition";
+import { InventorySize, PlacedTreasure, RunResult, TreasureItem, firstTreasurePosition, organizeTreasures, placeItems } from "./expedition";
 import {
   BASE_HERO_ATTRIBUTES,
   CARDS,
-  EQUIPMENT,
   EquipmentItem,
-  EquipmentSlot,
+  EquipmentPosition,
+  EquipmentBodySlot,
   HeroAttributes,
   AttributeAllocation,
   addAttributes,
   attributeAllocationBonus,
   cardById,
   equipmentById,
+  canUseEquipment,
+  equipmentAttributeBonus,
+  equipmentValue,
   passiveAttributeBonuses,
 } from "./progression";
+import { CULTIVATOR_PACK_SIZE, PERSONAL_STASH_SIZE, findEquipmentPosition, moveOrSwapEquipment, organizeEquipment } from "./inventorySystem";
 import { DEFAULT_WM_CONFIG, WMConfig, cloneWMConfig, managedTreasureDefinition, mergeWMConfig } from "./weaponManager";
 import {
   MAX_SKILL_MASTERY_LEVEL,
@@ -26,16 +30,18 @@ import {
 } from "./skillMastery";
 
 export interface MetaProgress {
-  version: 4;
+  version: 5;
   spiritStones: number;
   backpackLevel: number;
   safeLevel: number;
   warehouseLevel: number;
-  warehouse: TreasureItem[];
+  personalBackpack: PlacedTreasure[];
+  warehouse: PlacedTreasure[];
   discovered: string[];
   baseAttributes: HeroAttributes;
   equipmentBag: EquipmentItem[];
-  equipped: Partial<Record<EquipmentSlot, string>>;
+  equipmentPositions: Record<string, EquipmentPosition>;
+  equipped: Partial<Record<EquipmentBodySlot, string>>;
   ownedCards: string[];
   cardSlots: Array<string | null>;
   cardSlotCount: number;
@@ -53,18 +59,22 @@ export interface MetaProgress {
 
 const STORAGE_KEY = "blcx-expedition-meta-v1";
 
-const STARTER_EQUIPMENT = EQUIPMENT.map((item) => ({ uid: `gear-${item.id}`, equipmentId: item.id }));
+const STARTER_IDS = ["iron-crown", "linen-robe", "leather-bracers", "traveler-trousers", "straw-sandals", "iron-sabre"];
+const STARTER_EQUIPMENT: EquipmentItem[] = STARTER_IDS.map((id) => ({ uid: `gear-${id}`, equipmentId: id, identified: true }));
+const STARTER_POSITIONS = organizeEquipment(STARTER_EQUIPMENT, CULTIVATOR_PACK_SIZE) ?? {};
 
 export const DEFAULT_META: MetaProgress = {
-  version: 4,
+  version: 5,
   spiritStones: 0,
   backpackLevel: 0,
   safeLevel: 0,
   warehouseLevel: 0,
+  personalBackpack: [],
   warehouse: [],
   discovered: [],
   baseAttributes: { ...BASE_HERO_ATTRIBUTES },
   equipmentBag: STARTER_EQUIPMENT,
+  equipmentPositions: STARTER_POSITIONS,
   equipped: {},
   ownedCards: [],
   cardSlots: [null, null, null],
@@ -82,7 +92,8 @@ export const DEFAULT_META: MetaProgress = {
 };
 
 export function backpackSize(level: number): InventorySize {
-  return { columns: Math.min(6, 4 + Math.floor(level / 2)), rows: Math.min(5, 4 + Math.ceil(level / 2)) };
+  void level;
+  return CULTIVATOR_PACK_SIZE;
 }
 
 export function safeSize(level: number): InventorySize {
@@ -90,7 +101,8 @@ export function safeSize(level: number): InventorySize {
 }
 
 export function warehouseSize(level: number): InventorySize {
-  return { columns: Math.min(10, 6 + level), rows: Math.min(8, 6 + Math.floor(level / 2)) };
+  void level;
+  return PERSONAL_STASH_SIZE;
 }
 
 export function upgradeCost(kind: "backpack" | "safe" | "warehouse", level: number) {
@@ -98,36 +110,68 @@ export function upgradeCost(kind: "backpack" | "safe" | "warehouse", level: numb
   return Math.round(base * (level + 1) ** 1.55);
 }
 
+function normalizeTreasureGrid(value: unknown, size: InventorySize): PlacedTreasure[] {
+  if (!Array.isArray(value)) return [];
+  const items = value.filter((item): item is TreasureItem => Boolean(item && typeof item === "object" && typeof (item as TreasureItem).uid === "string" && typeof (item as TreasureItem).treasureId === "string"));
+  return organizeTreasures(items, size) ?? [];
+}
+
+function normalizeEquipmentGrid(
+  items: EquipmentItem[],
+  equipped: Partial<Record<EquipmentBodySlot, string>> | undefined,
+  saved: Record<string, EquipmentPosition> | undefined,
+) {
+  const equippedIds = new Set(Object.values(equipped ?? {}).filter(Boolean));
+  const stored = items.filter((item) => !equippedIds.has(item.uid));
+  const organized = organizeEquipment(stored, CULTIVATOR_PACK_SIZE);
+  if (organized) return organized;
+  const positions: Record<string, EquipmentPosition> = {};
+  const placed: EquipmentItem[] = [];
+  for (const item of stored) {
+    const previous = saved?.[item.uid];
+    const position = previous ?? findEquipmentPosition(placed, positions, item, CULTIVATOR_PACK_SIZE);
+    if (!position) continue;
+    positions[item.uid] = position;
+    placed.push(item);
+  }
+  return positions;
+}
+
 export function loadMetaProgress(): MetaProgress {
   if (typeof window === "undefined") return cloneDefaultMeta();
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "") as Partial<MetaProgress>;
-    return {
-      ...cloneDefaultMeta(),
-      ...parsed,
-      version: 4,
-      warehouse: Array.isArray(parsed.warehouse) ? parsed.warehouse : [],
-      discovered: Array.isArray(parsed.discovered) ? parsed.discovered : [],
-      baseAttributes: { ...BASE_HERO_ATTRIBUTES, ...(parsed.baseAttributes ?? {}) },
-      equipmentBag: Array.isArray(parsed.equipmentBag) ? parsed.equipmentBag : STARTER_EQUIPMENT,
-      equipped: parsed.equipped && typeof parsed.equipped === "object" ? parsed.equipped : {},
-      ownedCards: Array.isArray(parsed.ownedCards) ? parsed.ownedCards.filter((id) => CARDS.some((card) => card.id === id)) : [],
-      cardSlots: normalizeCardSlots(parsed.cardSlots),
-      cardSlotCount: Math.max(1, Math.min(3, Number(parsed.cardSlotCount) || 1)),
-      playerLevel: Math.max(1, Math.min(60, Number(parsed.playerLevel) || 1)),
-      playerExp: Math.max(0, Number(parsed.playerExp) || 0),
-      highestUnlockedWave: Math.max(1, Math.min(21, Number(parsed.highestUnlockedWave) || 1)),
-      attributeAllocation: { ...DEFAULT_META.attributeAllocation, ...(parsed.attributeAllocation ?? {}) },
-      passiveRanks: parsed.passiveRanks && typeof parsed.passiveRanks === "object" ? parsed.passiveRanks : {},
-      skillBooks: parsed.skillBooks === undefined ? DEFAULT_META.skillBooks : Math.max(0, Number(parsed.skillBooks) || 0),
-      skillMastery: normalizeSkillMastery(parsed.skillMastery),
-      wmDraft: mergeWMConfig(parsed.wmDraft),
-      wmPublished: mergeWMConfig(parsed.wmPublished),
-      wmPublishedAt: Math.max(0, Number(parsed.wmPublishedAt) || 0),
-    };
+    return normalizeMetaProgress(parsed);
   } catch {
     return cloneDefaultMeta();
   }
+}
+
+export function normalizeMetaProgress(parsed: Partial<MetaProgress> | null | undefined): MetaProgress {
+  const value = parsed ?? {};
+  const legacyStarterCatalog = value.version !== 5 && Array.isArray(value.equipmentBag) && value.equipmentBag.length > 20 && value.equipmentBag.every((item) => item.uid.startsWith("gear-"));
+  const equipmentBag = legacyStarterCatalog ? STARTER_EQUIPMENT : Array.isArray(value.equipmentBag) ? value.equipmentBag : STARTER_EQUIPMENT;
+  const equipped = legacyStarterCatalog ? {} : value.equipped && typeof value.equipped === "object" ? value.equipped : {};
+  return {
+    ...cloneDefaultMeta(), ...value, version: 5,
+    personalBackpack: normalizeTreasureGrid(value.personalBackpack, CULTIVATOR_PACK_SIZE),
+    warehouse: normalizeTreasureGrid(value.warehouse, PERSONAL_STASH_SIZE),
+    discovered: Array.isArray(value.discovered) ? value.discovered : [],
+    baseAttributes: { ...BASE_HERO_ATTRIBUTES, ...(value.baseAttributes ?? {}) },
+    equipmentBag,
+    equipmentPositions: normalizeEquipmentGrid(equipmentBag, equipped, value.equipmentPositions),
+    equipped,
+    ownedCards: Array.isArray(value.ownedCards) ? value.ownedCards.filter((id) => CARDS.some((card) => card.id === id)) : [],
+    cardSlots: normalizeCardSlots(value.cardSlots),
+    cardSlotCount: Math.max(1, Math.min(3, Number(value.cardSlotCount) || 1)),
+    playerLevel: Math.max(1, Math.min(60, Number(value.playerLevel) || 1)),
+    playerExp: Math.max(0, Number(value.playerExp) || 0),
+    highestUnlockedWave: Math.max(1, Math.min(21, Number(value.highestUnlockedWave) || 1)),
+    attributeAllocation: { ...DEFAULT_META.attributeAllocation, ...(value.attributeAllocation ?? {}) },
+    passiveRanks: value.passiveRanks && typeof value.passiveRanks === "object" ? value.passiveRanks : {},
+    skillBooks: value.skillBooks === undefined ? DEFAULT_META.skillBooks : Math.max(0, Number(value.skillBooks) || 0),
+    skillMastery: normalizeSkillMastery(value.skillMastery), wmDraft: mergeWMConfig(value.wmDraft), wmPublished: mergeWMConfig(value.wmPublished), wmPublishedAt: Math.max(0, Number(value.wmPublishedAt) || 0),
+  };
 }
 
 function cloneDefaultMeta(): MetaProgress {
@@ -135,6 +179,9 @@ function cloneDefaultMeta(): MetaProgress {
     ...DEFAULT_META,
     baseAttributes: { ...DEFAULT_META.baseAttributes },
     equipmentBag: DEFAULT_META.equipmentBag.map((item) => ({ ...item })),
+    equipmentPositions: { ...DEFAULT_META.equipmentPositions },
+    personalBackpack: DEFAULT_META.personalBackpack.map((item) => ({ ...item })),
+    warehouse: DEFAULT_META.warehouse.map((item) => ({ ...item })),
     equipped: { ...DEFAULT_META.equipped },
     ownedCards: [...DEFAULT_META.ownedCards],
     cardSlots: [...DEFAULT_META.cardSlots],
@@ -153,10 +200,6 @@ function normalizeCardSlots(value: unknown): Array<string | null> {
 }
 
 export function computePermanentAttributes(meta: MetaProgress): HeroAttributes {
-  const equipmentBonuses = Object.values(meta.equipped).map((uid) => {
-    const item = meta.equipmentBag.find((entry) => entry.uid === uid);
-    return item ? item.bonuses ?? equipmentById(item.equipmentId).bonuses : undefined;
-  });
   const passiveBonuses = meta.ownedCards
     .map(cardById)
     .filter((card) => card.type === "passive")
@@ -165,14 +208,25 @@ export function computePermanentAttributes(meta: MetaProgress): HeroAttributes {
     .slice(0, meta.cardSlotCount)
     .filter((id): id is string => Boolean(id))
     .map((id) => cardById(id).bonuses);
-  return addAttributes(
+  const root = addAttributes(
     meta.baseAttributes,
     attributeAllocationBonus(meta.attributeAllocation),
     ...passiveAttributeBonuses(meta.passiveRanks),
-    ...equipmentBonuses,
     ...passiveBonuses,
     ...insertedBonuses,
   );
+  const equippedItems = [...new Set(Object.values(meta.equipped).filter((uid): uid is string => Boolean(uid)))]
+    .map((uid) => meta.equipmentBag.find((entry) => entry.uid === uid))
+    .filter((item): item is EquipmentItem => Boolean(item));
+  // 属性要求可以被其他装备加成满足；用有限次稳定迭代还原原作的失效重算语义。
+  let attributes = root;
+  for (let pass = 0; pass < 4; pass++) {
+    const enabled = equippedItems.filter((item) => canUseEquipment(item, attributes));
+    const next = addAttributes(root, ...enabled.map(equipmentAttributeBonus));
+    if (JSON.stringify(next) === JSON.stringify(attributes)) break;
+    attributes = next;
+  }
+  return attributes;
 }
 
 export const MAX_PLAYER_LEVEL = 60;
@@ -256,17 +310,82 @@ export function awardSkillBooks(meta: MetaProgress, result: RunResult, waveId: n
   return { meta: gained ? { ...meta, skillBooks: meta.skillBooks + gained } : meta, gained };
 }
 
-export function equipItem(meta: MetaProgress, uid: string): MetaProgress {
+export function tryEquipItem(meta: MetaProgress, uid: string): { meta: MetaProgress; ok: boolean; message: string } {
   const item = meta.equipmentBag.find((entry) => entry.uid === uid);
-  if (!item) return meta;
+  if (!item) return { meta, ok: false, message: "法器不存在" };
+  const attributes = computePermanentAttributes(meta);
+  if (!canUseEquipment(item, attributes)) return { meta, ok: false, message: "体魄、身法或神识不足，无法驱使此法器" };
   const slot = equipmentById(item.equipmentId).slot;
-  return { ...meta, equipped: { ...meta.equipped, [slot]: uid } };
+  const targetSlots: EquipmentBodySlot[] = slot === "weapon" && item.twoHanded ? ["weapon", "offhand"] : [slot];
+  const displaced = new Set(targetSlots.map((key) => meta.equipped[key]).filter((id): id is string => Boolean(id && id !== uid)));
+  const existingAtWeapon = slot === "weapon" ? meta.equipped.weapon : undefined;
+  if (existingAtWeapon && existingAtWeapon !== uid && meta.equipped.offhand === existingAtWeapon) displaced.add(existingAtWeapon);
+
+  const inventory = meta.equipmentBag.filter((entry) => meta.equipmentPositions[entry.uid] && entry.uid !== uid && !displaced.has(entry.uid));
+  const positions = { ...meta.equipmentPositions };
+  delete positions[uid];
+  for (const displacedUid of displaced) delete positions[displacedUid];
+  const placed = [...inventory];
+  for (const displacedUid of displaced) {
+    const old = meta.equipmentBag.find((entry) => entry.uid === displacedUid);
+    if (!old) continue;
+    const position = findEquipmentPosition(placed, positions, old, CULTIVATOR_PACK_SIZE);
+    if (!position) return { meta, ok: false, message: "行囊没有空间容纳换下的法器" };
+    positions[old.uid] = position;
+    placed.push(old);
+  }
+
+  const equipped = { ...meta.equipped };
+  for (const displacedUid of displaced) for (const key of Object.keys(equipped) as EquipmentBodySlot[]) if (equipped[key] === displacedUid) delete equipped[key];
+  if (slot === "weapon" && item.twoHanded) {
+    equipped.weapon = uid;
+    equipped.offhand = uid;
+  } else equipped[slot] = uid;
+  return { meta: { ...meta, equipmentPositions: positions, equipped }, ok: true, message: item.twoHanded ? "双手法器已同时占据主手与副手" : "法器已装备" };
 }
 
-export function unequipItem(meta: MetaProgress, slot: EquipmentSlot): MetaProgress {
+export function equipItem(meta: MetaProgress, uid: string): MetaProgress {
+  return tryEquipItem(meta, uid).meta;
+}
+
+export function tryUnequipItem(meta: MetaProgress, slot: EquipmentBodySlot): { meta: MetaProgress; ok: boolean; message: string } {
+  const uid = meta.equipped[slot];
+  const item = meta.equipmentBag.find((entry) => entry.uid === uid);
+  if (!uid || !item) return { meta, ok: false, message: "此部位没有法器" };
+  const stored = meta.equipmentBag.filter((entry) => meta.equipmentPositions[entry.uid]);
+  const position = findEquipmentPosition(stored, meta.equipmentPositions, item, CULTIVATOR_PACK_SIZE);
+  if (!position) return { meta, ok: false, message: "行囊已满，无法卸下法器" };
   const equipped = { ...meta.equipped };
-  delete equipped[slot];
-  return { ...meta, equipped };
+  for (const key of Object.keys(equipped) as EquipmentBodySlot[]) if (equipped[key] === uid) delete equipped[key];
+  return { meta: { ...meta, equipmentPositions: { ...meta.equipmentPositions, [uid]: position }, equipped }, ok: true, message: "法器已收入行囊" };
+}
+
+export function unequipItem(meta: MetaProgress, slot: EquipmentBodySlot): MetaProgress {
+  return tryUnequipItem(meta, slot).meta;
+}
+
+export function moveEquipment(meta: MetaProgress, uid: string, x: number, y: number) {
+  const stored = meta.equipmentBag.filter((entry) => meta.equipmentPositions[entry.uid]);
+  const equipmentPositions = moveOrSwapEquipment(stored, meta.equipmentPositions, uid, x, y, CULTIVATOR_PACK_SIZE);
+  return equipmentPositions ? { ...meta, equipmentPositions } : meta;
+}
+
+export function sortEquipment(meta: MetaProgress) {
+  const stored = meta.equipmentBag.filter((entry) => meta.equipmentPositions[entry.uid]);
+  const equipmentPositions = organizeEquipment(stored, CULTIVATOR_PACK_SIZE);
+  return equipmentPositions ? { ...meta, equipmentPositions } : meta;
+}
+
+export function identifyEquipment(meta: MetaProgress, uid: string) {
+  const item = meta.equipmentBag.find((entry) => entry.uid === uid);
+  if (!item || item.identified !== false) return { meta, ok: false, message: "此法器无需鉴定" };
+  const cost = Math.max(80, Math.round(equipmentValue(item) * .08));
+  if (meta.spiritStones < cost) return { meta, ok: false, message: `鉴定需要 ${cost} 灵石` };
+  return {
+    meta: { ...meta, spiritStones: meta.spiritStones - cost, equipmentBag: meta.equipmentBag.map((entry) => entry.uid === uid ? { ...entry, identified: true } : entry) },
+    ok: true,
+    message: `鉴定完成，词缀灵力已激活（-${cost} 灵石）`,
+  };
 }
 
 export function equipCard(meta: MetaProgress, cardId: string, slotIndex: number): MetaProgress {
@@ -303,12 +422,47 @@ export function settleExpedition(
   }
   const discovered = new Set(meta.discovered);
   accepted.forEach((item) => discovered.add(item.treasureId));
-  const keptEquipment = result === "defeat" ? [] : runEquipment;
+  const requestedEquipment = result === "defeat" ? [] : runEquipment;
+  const equipmentPositions = { ...meta.equipmentPositions };
+  const storedEquipment = meta.equipmentBag.filter((entry) => equipmentPositions[entry.uid]);
+  const keptEquipment: EquipmentItem[] = [];
+  for (const item of requestedEquipment) {
+    const position = findEquipmentPosition([...storedEquipment, ...keptEquipment], equipmentPositions, item, CULTIVATOR_PACK_SIZE);
+    if (!position) continue;
+    equipmentPositions[item.uid] = position;
+    keptEquipment.push(item);
+  }
   return {
-    meta: { ...meta, warehouse: [...meta.warehouse, ...accepted], discovered: [...discovered], equipmentBag: [...meta.equipmentBag, ...keptEquipment] },
+    meta: { ...meta, warehouse: organizeTreasures([...meta.warehouse, ...accepted], size) ?? meta.warehouse, discovered: [...discovered], equipmentBag: [...meta.equipmentBag, ...keptEquipment], equipmentPositions },
     accepted,
     overflow: broughtOut.filter((item) => !accepted.includes(item)),
+    equipmentOverflow: requestedEquipment.filter((item) => !keptEquipment.includes(item)),
   };
+}
+
+export function transferTreasure(meta: MetaProgress, uid: string, target: "backpack" | "warehouse") {
+  const from = target === "backpack" ? meta.warehouse : meta.personalBackpack;
+  const to = target === "backpack" ? meta.personalBackpack : meta.warehouse;
+  const targetSize = target === "backpack" ? CULTIVATOR_PACK_SIZE : PERSONAL_STASH_SIZE;
+  const item = from.find((entry) => entry.uid === uid);
+  if (!item) return { meta, ok: false, message: "宝物不存在" };
+  const position = firstTreasurePosition(to, item, targetSize);
+  if (!position) return { meta, ok: false, message: target === "backpack" ? "10×4 行囊已满" : "个人仓库已满" };
+  const nextFrom = from.filter((entry) => entry.uid !== uid);
+  const nextTo = [...to, { ...item, ...position }];
+  return {
+    meta: { ...meta, personalBackpack: target === "backpack" ? nextTo : nextFrom, warehouse: target === "warehouse" ? nextTo : nextFrom },
+    ok: true,
+    message: target === "backpack" ? "已转入随身行囊" : "已存入个人仓库",
+  };
+}
+
+export function sortTreasureContainer(meta: MetaProgress, target: "backpack" | "warehouse") {
+  const size = target === "backpack" ? CULTIVATOR_PACK_SIZE : PERSONAL_STASH_SIZE;
+  const items = target === "backpack" ? meta.personalBackpack : meta.warehouse;
+  const organized = organizeTreasures(items, size);
+  if (!organized) return meta;
+  return target === "backpack" ? { ...meta, personalBackpack: organized } : { ...meta, warehouse: organized };
 }
 
 export function sellTreasure(meta: MetaProgress, uid: string) {

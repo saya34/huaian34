@@ -2,6 +2,7 @@ import { AnyRow, byId, GameData, gameConfigValue } from "./data";
 import { drawAtlasFrame, findEffect, findScene, loadAtlas, loadGridAtlas, loadImage, SpriteAtlas } from "./assets";
 import { BASE_HERO_ATTRIBUTES, CombatTraits, DEFAULT_COMBAT_TRAITS, HeroAttributes } from "./progression";
 import { EquipmentItem } from "./progression";
+import { CULTIVATOR_PACK_SIZE, organizeEquipment } from "./inventorySystem";
 import { DEFAULT_WM_CONFIG, WMConfig, rollManagedEquipment, rollManagedTreasure } from "./weaponManager";
 import {
   BUFFS,
@@ -20,12 +21,13 @@ import {
   createTreasureItem,
   canPlaceTreasure,
   firstTreasurePosition,
+  organizeTreasures,
+  placeOrSwapTreasure,
   phaseCountForWave,
   randomBuffChoices,
   rarityIndex,
   rollRarity,
   targetDurationForWave,
-  treasureById,
 } from "./expedition";
 
 export type UpgradeKind = "skill" | "supply" | "evolution" | "heal";
@@ -408,7 +410,7 @@ export class BattleEngine {
       duration: Math.max(1, Number(row.duration || 1) * timeScale),
     }));
     this.phaseCount = phaseCountForWave(settings.waveId);
-    this.backpackSize = settings.backpackSize ?? { columns: 4, rows: 4 };
+    this.backpackSize = settings.backpackSize ?? { columns: 10, rows: 4 };
     this.safeSize = settings.safeSize ?? { columns: 2, rows: 2 };
     data.monsters.forEach((row) => this.monsterById.set(Number(row.resId), row));
     data.bullets.forEach((row) => this.bulletById.set(Number(row.id), row));
@@ -576,6 +578,10 @@ export class BattleEngine {
     const offer = this.pendingLoot;
     const item = offer?.equipment?.find((entry) => entry.uid === uid);
     if (!offer || !item) return false;
+    if (!organizeEquipment([...this.runEquipment, item], CULTIVATOR_PACK_SIZE)) {
+      this.callbacks.onToast("10×4 法器行囊已满，无法拾取这件装备");
+      return false;
+    }
     this.runEquipment.push(item);
     offer.equipment = offer.equipment?.filter((entry) => entry.uid !== uid);
     this.callbacks.onLoot({ ...offer, items: [...offer.items], equipment: [...(offer.equipment ?? [])] });
@@ -616,7 +622,26 @@ export class BattleEngine {
       : source === "safe" ? this.safeBox : this.backpack;
     const item = sourceItems?.find((entry) => entry.uid === uid);
     if (!item) return false;
-    const ignoreUid = source === target ? uid : "";
+    if (source !== "loot") {
+      const sourceSize = source === "safe" ? this.safeSize : this.backpackSize;
+      const moved = placeOrSwapTreasure(sourceItems as PlacedTreasure[], targetItems, uid, targetSize, x, y, source === target, sourceSize);
+      if (!moved) {
+        this.callbacks.onToast("目标位置冲突，交换后的物品也放不下");
+        return false;
+      }
+      if (source === target) {
+        if (target === "safe") this.safeBox = moved.target;
+        else this.backpack = moved.target;
+      } else {
+        if (source === "safe") this.safeBox = moved.source;
+        else this.backpack = moved.source;
+        if (target === "safe") this.safeBox = moved.target;
+        else this.backpack = moved.target;
+      }
+      this.emitSnapshot(true);
+      return true;
+    }
+    const ignoreUid = "";
     if (!canPlaceTreasure(targetItems, item, targetSize, x, y, ignoreUid)) {
       this.callbacks.onToast("这里放不下这件宝物");
       return false;
@@ -631,6 +656,21 @@ export class BattleEngine {
       sourceItems!.splice(index, 1);
     }
     targetItems.push({ uid: item.uid, treasureId: item.treasureId, x, y });
+    this.emitSnapshot(true);
+    return true;
+  }
+
+  sortContainer(container: ContainerKind) {
+    const items = container === "safe" ? this.safeBox : this.backpack;
+    const size = container === "safe" ? this.safeSize : this.backpackSize;
+    const organized = organizeTreasures(items, size);
+    if (!organized) {
+      this.callbacks.onToast("当前布局无法整理");
+      return false;
+    }
+    if (container === "safe") this.safeBox = organized;
+    else this.backpack = organized;
+    this.callbacks.onToast(container === "safe" ? "保险箱已压缩整理" : "10×4 行囊已压缩整理");
     this.emitSnapshot(true);
     return true;
   }
@@ -1269,8 +1309,9 @@ export class BattleEngine {
     const size = Array.isArray(bullet.prototypeSize) ? Number(bullet.prototypeSize[0] || 30) : Number(bullet.prototypeSize || 30);
     const rangeScale = owner === "hero" ? this.supplyMultiplier(1006, 0.08) : 1;
     const life = Math.max(0.25, Number(bullet.effectTime || 2200) / 1000) * (owner === "hero" ? this.supplyMultiplier(1004, 0.08) : 1);
+    const weaponDamage = (this.baseAttributes.weaponMinDamage + this.baseAttributes.weaponMaxDamage) / 2;
     const damageScale = owner === "hero"
-      ? this.baseAttributes.damage * this.supplyMultiplier(1011, 0.1) * (1 + (this.runBuffs.get("damage") ?? 0) + this.partnerBuff.damage) * (this.settings.skillDamageBonuses?.[skillId] ?? 1)
+      ? this.baseAttributes.damage * (1 + weaponDamage / 100) * this.supplyMultiplier(1011, 0.1) * (1 + (this.runBuffs.get("damage") ?? 0) + this.partnerBuff.damage) * (this.settings.skillDamageBonuses?.[skillId] ?? 1)
       : 0.1 * EXPEDITION_PHASES[this.phaseIndex].attack;
     const model = bullet.model;
     const effectPath = findEffect(this.data.manifest, model);
@@ -1476,7 +1517,7 @@ export class BattleEngine {
         }
       } else if (projectile.owner === "monster") {
         if (distanceSq(projectile.x, projectile.y, this.player.x, this.player.y) <= (projectile.radius + this.player.radius) ** 2) {
-          this.damagePlayer(Math.max(8, projectile.damage));
+          this.damagePlayer(Math.max(8, projectile.damage), "magic");
           projectile.life = 0;
         }
       }
@@ -1487,6 +1528,10 @@ export class BattleEngine {
     const interval = Math.max(0.08, Number(projectile.bullet.damageInterval || 5) / 10);
     projectile.hit.add(monster.eid);
     projectile.hitCooldown.set(monster.eid, this.elapsed + interval);
+    if (Math.random() > Math.min(.99, this.baseAttributes.hitChance)) {
+      this.damageTexts.push({ x: monster.x, y: monster.y - monster.radius, value: "未命中", life: .45, color: "#b8c8bf", size: 13 });
+      return;
+    }
     let damage = projectile.damage;
     const critical = Math.random() < this.combatTraits.critChance;
     if (critical) damage *= this.combatTraits.critMultiplier;
@@ -1568,7 +1613,7 @@ export class BattleEngine {
     }
   }
 
-  private damagePlayer(amount: number) {
+  private damagePlayer(amount: number, element: "physical" | "fire" | "lightning" | "magic" = "physical") {
     if (this.player.invulnerable > 0 || this.ended) return;
     if (Math.random() < this.baseAttributes.dodge) {
       this.player.invulnerable = .18;
@@ -1578,7 +1623,8 @@ export class BattleEngine {
     const defenseConstant = 500 + this.settings.waveId * 25;
     const defenseReduction = Math.min(.85, this.baseAttributes.defense / (this.baseAttributes.defense + defenseConstant));
     const supplyReduction = clamp((this.learnedSupplies.get(1005) ?? 0) * 0.06, 0, 0.4);
-    const damage = Math.max(1, amount * (1 - defenseReduction) * (1 - supplyReduction));
+    const resistance = element === "fire" ? this.baseAttributes.fireResist : element === "lightning" ? this.baseAttributes.lightningResist : element === "magic" ? this.baseAttributes.magicResist : 0;
+    const damage = Math.max(1, amount * (1 - defenseReduction) * (1 - supplyReduction) * (1 - Math.min(.75, Math.max(0, resistance))));
     this.player.hp -= damage;
     this.player.invulnerable = 0.55;
     this.damageTexts.push({ x: this.player.x, y: this.player.y - 45, value: `-${Math.round(damage)}`, life: 0.7, color: "#ff756f", size: 22 });

@@ -82,6 +82,22 @@ function mergeBonuses(...bonuses: AttributeBonus[]) {
 
 const rarityDropFactor: Record<TreasureRarity, number> = { common: 1, fine: .72, rare: .42, epic: .2, immortal: .07 };
 
+const PREFIXES = [
+  { name: "锋锐", stats: { weaponMinDamage: 4, weaponMaxDamage: 9, damage: .04 }, value: 18 },
+  { name: "镇岳", stats: { defense: 34, strength: 3 }, value: 16 },
+  { name: "流光", stats: { hitChance: .045, dexterity: 3, attackSpeed: .035 }, value: 17 },
+  { name: "离火", stats: { fireResist: .08, damage: .035 }, value: 20 },
+  { name: "玄雷", stats: { lightningResist: .08, projectileSpeed: .05 }, value: 20 },
+] satisfies Array<{ name: string; stats: AttributeBonus; value: number }>;
+
+const SUFFIXES = [
+  { name: "护命", stats: { health: 90, mana: 15 }, value: 16 },
+  { name: "通玄", stats: { magic: 4, mana: 28, magicResist: .07 }, value: 19 },
+  { name: "破军", stats: { weaponMinDamage: 3, weaponMaxDamage: 12, hitChance: .025 }, value: 21 },
+  { name: "避劫", stats: { fireResist: .05, lightningResist: .05, magicResist: .05 }, value: 18 },
+  { name: "轻灵", stats: { dexterity: 4, dodge: .012, moveSpeed: 7 }, value: 17 },
+] satisfies Array<{ name: string; stats: AttributeBonus; value: number }>;
+
 export function rollManagedEquipment(config: WMConfig, waveId: number, chestRarity: TreasureRarity, uidSeed: number): EquipmentItem | null {
   const chestRank = RARITY_ORDER.indexOf(chestRarity);
   const candidates = config.equipment.filter((rule) => rule.enabled && waveAllowed(rule.universal, rule.waves, waveId));
@@ -93,14 +109,45 @@ export function rollManagedEquipment(config: WMConfig, waveId: number, chestRari
   for (let index = 0; index < candidates.length; index++) if ((point -= weights[index]) <= 0) { rule = candidates[index]; break; }
   const optional = [...rule.optionalStats].sort(() => Math.random() - .5).slice(0, Math.max(0, rule.optionalPick));
   const affixes = config.affixes.filter((affix) => rule.affixIds.includes(affix.id) && Math.random() < affix.chance).sort(() => Math.random() - .5).slice(0, Math.max(0, rule.affixCap));
-  const bonuses = mergeBonuses(rollStats([...rule.boundStats, ...optional]), ...affixes.map((affix) => rollStats(affix.stats)));
+  const managedBonuses = mergeBonuses(rollStats([...rule.boundStats, ...optional]), ...affixes.map((affix) => rollStats(affix.stats)));
   const definition = EQUIPMENT.find((item) => item.id === rule.equipmentId) ?? EQUIPMENT[0];
-  return {
+  // 与 DevilutionX 的生成节奏一致：前缀约四分之一、后缀约三分之二；两者都未命中时至少补一个。
+  let prefix = Math.random() < .25 ? PREFIXES[Math.floor(Math.random() * PREFIXES.length)] : undefined;
+  let suffix = Math.random() < 2 / 3 ? SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)] : undefined;
+  if (!prefix && !suffix) {
+    if (Math.random() < .5) prefix = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
+    else suffix = SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)];
+  }
+  const magicBonuses = mergeBonuses(managedBonuses, prefix?.stats ?? {}, suffix?.stats ?? {});
+  const rank = Math.max(0, RARITY_ORDER.indexOf(rule.rarity));
+  const weapon = definition.slot === "weapon";
+  const twoHanded = weapon && /弓|戟|枪|刀/.test(definition.name);
+  const item: EquipmentItem = {
     uid: `wm-${Date.now().toString(36)}-${uidSeed.toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
-    equipmentId: rule.equipmentId, name: `${affixes.map((affix) => affix.name).join("")}${definition.name}`,
-    rarity: rule.rarity, price: Math.round(rule.price * (1 + affixes.length * .22)), bonuses,
+    equipmentId: rule.equipmentId,
+    name: `${prefix?.name ?? ""}${affixes.map((affix) => affix.name).join("")}${definition.name}${suffix ? `·${suffix.name}` : ""}`,
+    rarity: rule.rarity,
+    price: rule.price,
+    baseBonuses: {
+      ...definition.bonuses,
+      ...(weapon ? { weaponMinDamage: 5 + waveId * 2 + rank * 3, weaponMaxDamage: 11 + waveId * 3 + rank * 6, hitChance: .01 + rank * .008 } : { defense: (definition.bonuses.defense ?? 0) + waveId * 2 }),
+    },
+    magicBonuses,
+    bonuses: mergeBonuses(definition.bonuses, magicBonuses),
     affixes: affixes.map((affix) => affix.id),
+    prefix: prefix?.name,
+    suffix: suffix?.name,
+    identified: rule.rarity === "common" || rule.rarity === "fine",
+    twoHanded,
+    width: weapon ? (twoHanded ? 2 : 1) : 2,
+    height: weapon || definition.slot === "chest" || definition.slot === "legs" ? 3 : 2,
+    requirements: {
+      strength: Math.round(12 + waveId * 1.7 + (definition.slot === "chest" || twoHanded ? 8 : 0)),
+      dexterity: Math.round(10 + waveId * 1.35 + (weapon ? 5 : 0)),
+      magic: Math.round(10 + waveId * 1.5 + (rank >= 3 ? 8 : 0)),
+    },
   };
+  return item;
 }
 
 export function rollManagedTreasure(config: WMConfig, rarity: TreasureRarity, waveId: number, uidSeed: number) {
