@@ -1335,7 +1335,7 @@ function InventoryGrid({
     <section className="inventory-section">
       <h3>{title}<small>{items.length} 件 · {size.columns}×{size.rows}</small>{onSort && <button type="button" onClick={onSort}>整理</button>}</h3>
       <div
-        className={`inventory-grid ${onPlace ? "droppable" : ""}`}
+        className={`treasure-grid ${onPlace ? "droppable" : ""}`}
         style={{
           "--columns": size.columns,
           "--rows": size.rows,
@@ -1408,6 +1408,8 @@ function InventoryGrid({
                 if (payload && onPlace(payload.uid, payload.source, item.x, item.y)) onHeldChange?.(null);
               }}
               className={`inventory-item rarity-${treasure.rarity} ${held?.uid === item.uid && held.source === container ? "is-held" : ""}`}
+              data-grid-x={item.x}
+              data-grid-y={item.y}
               style={{
                 left: gridPadding + item.x * (cellSize + cellGap),
                 top: gridPadding + item.y * (cellSize + cellGap),
