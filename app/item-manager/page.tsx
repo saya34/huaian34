@@ -34,18 +34,27 @@ function createRule(sequence: number): RecipeRule {
   };
 }
 
+function formatTimestamp(value: string) {
+  if (!value || value === "尚未读取") return value;
+  const date = new Date(value.includes("T") ? value : `${value.replace(" ", "T")}Z`);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("zh-CN", { hour12: false });
+}
+
 export default function ItemManagerPage() {
   const [rules, setRules] = useState<RecipeRule[]>(DEFAULT_RECIPE_RULES);
   const [selectedId, setSelectedId] = useState(DEFAULT_RECIPE_RULES[0]?.id ?? "");
   const [version, setVersion] = useState(1);
   const [publishedAt, setPublishedAt] = useState("尚未读取");
+  const [updatedAt, setUpdatedAt] = useState("尚未读取");
   const [status, setStatus] = useState("正在连接配方库……");
   const [busy, setBusy] = useState(false);
   const [jsonText, setJsonText] = useState("");
   const [showJson, setShowJson] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(DEFAULT_RECIPE_RULES));
 
   const selectedRule = rules.find((rule) => rule.id === selectedId) ?? rules[0];
   const resultItem = PRODUCTS.find((item) => item.id === selectedRule?.resultItemId);
+  const dirty = useMemo(() => JSON.stringify(rules) !== savedSnapshot, [rules, savedSnapshot]);
 
   useEffect(() => {
     void fetch("/api/item-manager", { cache: "no-store" })
@@ -56,10 +65,22 @@ export default function ItemManagerPage() {
         setSelectedId(data.draft[0]?.id ?? "");
         setVersion(data.version);
         setPublishedAt(data.publishedAt);
+        setUpdatedAt(data.updatedAt);
+        setSavedSnapshot(JSON.stringify(data.draft));
         setStatus(`已连接 · 当前发布版本 v${data.version}`);
       })
       .catch((error) => setStatus(`连接失败：${error instanceof Error ? error.message : "未知错误"}`));
   }, []);
+
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   const ruleSummary = useMemo(() => {
     if (!selectedRule) return "尚未创建规则";
@@ -77,6 +98,7 @@ export default function ItemManagerPage() {
   }
 
   async function submit(action: "save-draft" | "publish" | "reset-defaults") {
+    if (action === "publish" && !window.confirm(`确认将当前 ${rules.length} 条规则发布到游戏？发布后玩家端会读取新版本。`)) return;
     setBusy(true);
     setStatus(action === "publish" ? "正在发布……" : action === "save-draft" ? "正在保存草稿……" : "正在恢复默认规则……");
     try {
@@ -91,6 +113,8 @@ export default function ItemManagerPage() {
       setSelectedId((current) => data.draft.some((rule) => rule.id === current) ? current : data.draft[0]?.id ?? "");
       setVersion(data.version);
       setPublishedAt(data.publishedAt);
+      setUpdatedAt(data.updatedAt);
+      setSavedSnapshot(JSON.stringify(data.draft));
       setStatus(action === "save-draft" ? "草稿已保存，尚未影响游戏" : `发布成功 · 游戏已切换至 v${data.version}`);
       if (action !== "save-draft") {
         const channel = new BroadcastChannel("xuanhuo-item-manager");
@@ -112,6 +136,7 @@ export default function ItemManagerPage() {
 
   function removeRule() {
     if (!selectedRule || rules.length <= 1) return;
+    if (!window.confirm(`删除草稿规则“${selectedRule.name}”？删除后仍需保存草稿或发布才会写入配置库。`)) return;
     const next = rules.filter((rule) => rule.id !== selectedRule.id);
     setRules(next);
     setSelectedId(next[0]?.id ?? "");
@@ -121,6 +146,7 @@ export default function ItemManagerPage() {
     try {
       const parsed = JSON.parse(jsonText) as RecipeRule[];
       if (!Array.isArray(parsed)) throw new Error("根节点必须是规则数组");
+      if (!parsed.length) throw new Error("至少需要保留一条规则");
       setRules(parsed);
       setSelectedId(parsed[0]?.id ?? "");
       setStatus(`已载入 ${parsed.length} 条结构体，请保存或发布`);
@@ -133,8 +159,9 @@ export default function ItemManagerPage() {
     <main className="im-shell">
       <header className="im-topbar">
         <div>
-          <a href="/">← 返回丹炉</a>
-          <span>玄火丹炉 · 后端配置台</span>
+          <a href="/admin">← 内容中台</a>
+          <a href="/">前台验收 · 槐安一梦</a>
+          <span>炼丹规则 · 可视化配置台</span>
         </div>
         <div className="im-brand"><small>ITEM MANAGER</small><h1>万象配方司</h1></div>
         <div className="im-publish-actions">
@@ -144,8 +171,8 @@ export default function ItemManagerPage() {
       </header>
 
       <section className="im-statusbar">
-        <span className={status.includes("失败") ? "error" : ""}>{status}</span>
-        <span>发布版本 v{version} · {publishedAt}</span>
+        <span className={status.includes("失败") ? "error" : busy ? "busy" : ""}>{status}</span>
+        <span className={dirty ? "dirty" : ""}>{dirty ? `● 有未保存修改 · 上次保存 ${formatTimestamp(updatedAt)}` : `发布版本 v${version} · ${formatTimestamp(publishedAt)}`}</span>
       </section>
 
       <div className="im-workspace">
@@ -164,7 +191,7 @@ export default function ItemManagerPage() {
               );
             })}
           </div>
-          <div className="im-rule-foot"><span>{rules.length} 条草稿规则</span><button onClick={removeRule} disabled={rules.length <= 1}>删除当前</button></div>
+          <div className="im-rule-foot"><span>{rules.length} 条草稿规则{dirty ? " · 未保存" : ""}</span><button onClick={removeRule} disabled={rules.length <= 1 || busy}>删除当前</button></div>
         </aside>
 
         <section className="im-editor">
@@ -221,7 +248,7 @@ export default function ItemManagerPage() {
 
         <aside className="im-ops-panel">
           <div className="im-panel-heading"><div><small>OPERATIONS</small><h2>发布与注入</h2></div></div>
-          <section><h3>即时发布</h3><p>保存草稿不会影响玩家；发布后游戏通过通知和轮询立即读取新版本。</p><button className="wide primary" onClick={() => void submit("publish")} disabled={busy}>发布 v{version + 1}</button></section>
+          <section><h3>即时发布</h3><p>保存草稿不会影响玩家；发布前会再次确认，成功后游戏读取新版本。</p><button className="wide primary" onClick={() => void submit("publish")} disabled={busy}>发布 v{version + 1}</button></section>
           <section><h3>批量结构体</h3><p>可直接注入 RecipeRule[] JSON，适合程序批量生成多对多映射。</p><button className="wide" onClick={() => { setJsonText(JSON.stringify(rules, null, 2)); setShowJson(true); }}>导出当前结构</button><button className="wide" onClick={() => setShowJson((value) => !value)}>导入 JSON</button></section>
           <section><h3>接口入口</h3><code>POST /api/item-manager<br />action: publish<br />rules: RecipeRule[]</code></section>
           <section className="danger"><h3>默认规则</h3><p>恢复内置丹方并立即发布为新版本。</p><button className="wide" onClick={() => window.confirm("确认恢复默认配方？当前草稿和发布规则都会被替换。") && void submit("reset-defaults")} disabled={busy}>恢复默认</button></section>

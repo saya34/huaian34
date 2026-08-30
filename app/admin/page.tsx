@@ -1,28 +1,46 @@
 import Link from "next/link";
 
 const tools = [
-  { href: "/em", title: "剧情事件管理", description: "管理人物、场景、对话、礼物、消息、条件与跨模块效果。" },
-  { href: "/item-manager", title: "炼丹物品管理", description: "维护材料、丹药、法器、配方与发布版本。" },
-  { href: "/battle", title: "秘境与战斗配置", description: "进入秘境，查看卡牌、技能、装备与武器管理能力。" },
-  { href: "/", title: "返回游戏", description: "回到《槐安一梦》主界面检查联动结果。" },
+  { href: "/em", eyebrow: "STORY PIPELINE", title: "剧情事件管理", mark: "事", image: "/assets/characters/shen-qingshuang.webp", description: "以事件脉络、人物档案和场景素材为核心，管理对话、礼物、传音与全局剧情状态。", features: ["事件树", "人物与场景", "条件发布"], tone: "jade" },
+  { href: "/item-manager", eyebrow: "ALCHEMY RULESET", title: "炼丹配方管理", mark: "丹", image: "/assets/xuanhuo-furnace.webp", description: "可视化组合指定材料、五行属性、品质门槛与权重，草稿确认后再发布到游戏。", features: ["配方映射", "规则预览", "版本发布"], tone: "gold" },
+  { href: "/battle", eyebrow: "DUNGEON PREVIEW", title: "秘境战斗验收", mark: "战", image: "/assets/battle/secret-realm.webp", description: "从玩家视角检查卡牌、技能、装备、掉落与关卡图片是否已经正确进入融合流程。", features: ["战斗窗口", "技能卡组", "掉落联动"], tone: "red" },
 ];
 
 export default function AdminPage() {
   return (
-    <main style={{ minHeight: "100dvh", padding: "32px 18px", color: "#f4e7c7", background: "radial-gradient(circle at top, #233a32, #0b1514 58%)" }}>
-      <div style={{ width: "min(920px, 100%)", margin: "0 auto" }}>
-        <p style={{ color: "#d1ae72", letterSpacing: ".22em" }}>HUAIĀN CONTENT CONSOLE</p>
-        <h1 style={{ margin: "8px 0", fontSize: "clamp(28px, 6vw, 48px)" }}>槐安一梦 · 内容后台</h1>
-        <p style={{ maxWidth: 680, color: "#b8c6bd", lineHeight: 1.8 }}>三个原项目的配置入口已汇总到这里。玩家侧使用同一套存档、七级品质、道具、卡牌、技能与副本进度。</p>
-        <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14, marginTop: 28 }}>
-          {tools.map((tool) => (
-            <Link key={tool.href} href={tool.href} style={{ display: "block", padding: 20, minHeight: 150, color: "inherit", textDecoration: "none", border: "1px solid #8a7048", borderRadius: 18, background: "rgba(14, 31, 28, .86)", boxShadow: "0 14px 40px rgba(0,0,0,.24)" }}>
-              <h2 style={{ margin: "0 0 10px", fontSize: 20 }}>{tool.title}</h2>
-              <p style={{ margin: 0, color: "#b8c6bd", lineHeight: 1.65 }}>{tool.description}</p>
-            </Link>
-          ))}
-        </section>
-      </div>
+    <main className="admin-shell">
+      <div className="admin-ornament" aria-hidden="true" />
+      <header className="admin-header">
+        <Link className="admin-home-link" href="/">← 返回游戏</Link>
+        <div className="admin-title-block">
+          <p>HUAI&apos;AN CONTENT CONSOLE</p>
+          <h1>槐安一梦 <span>内容中台</span></h1>
+          <small>剧情、炼丹与秘境使用同一套融合数据；管理操作会明确区分草稿、发布与前台验收。</small>
+        </div>
+        <div className="admin-health" title="管理接口与持久化服务已启用"><i /><div><small>SYSTEM STATUS</small><strong>配置链路在线</strong></div></div>
+      </header>
+
+      <section className="admin-summary" aria-label="管理流程概览">
+        {[['01','编辑','在可视化管理器中调整内容'],['02','校验','检查必填项和引用关系'],['03','发布','确认后写入统一游戏数据'],['04','验收','回到手机端游戏检查效果']].map(([step,title,copy]) => (
+          <article key={step}><span>{step}</span><div><strong>{title}</strong><small>{copy}</small></div></article>
+        ))}
+      </section>
+
+      <section className="admin-grid">
+        {tools.map((tool) => (
+          <Link key={tool.href} href={tool.href} className={`admin-tool-card ${tool.tone}`}>
+            <div className="admin-card-art" style={{ backgroundImage: `url(${tool.image})` }}><span>{tool.mark}</span><small>{tool.eyebrow}</small></div>
+            <div className="admin-card-copy">
+              <div><p>{tool.eyebrow}</p><b>进入管理器 ↗</b></div>
+              <h2>{tool.title}</h2>
+              <p>{tool.description}</p>
+              <ul>{tool.features.map((feature) => <li key={feature}>{feature}</li>)}</ul>
+            </div>
+          </Link>
+        ))}
+      </section>
+
+      <footer className="admin-footer"><span>槐安一梦 · H5 融合项目</span><span>管理端仅用于内容制作与验收，请在修改前确认当前环境。</span></footer>
     </main>
   );
 }

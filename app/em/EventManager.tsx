@@ -102,6 +102,8 @@ export default function EventManager() {
   const [draft, setDraft] = useState<EventDefinition>(() => makeDefaultEvent());
   const [draftStatus, setDraftStatus] = useState<EventStatus>("draft");
   const [jsonText, setJsonText] = useState("");
+  const [editorBaseline, setEditorBaseline] = useState("");
+  const [editorBaselineStatus, setEditorBaselineStatus] = useState<EventStatus>("draft");
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("[]");
   const [errors, setErrors] = useState<string[]>([]);
@@ -213,13 +215,22 @@ export default function EventManager() {
 
   function openNew() {
     const next = makeDefaultEvent(characterId, characterMap, allScenes);
-    setDraft(next); setDraftStatus("draft"); setEditorMode("form"); setJsonText(JSON.stringify(next, null, 2)); setErrors([]); setEditorOpen(true);
+    const snapshot = JSON.stringify(next, null, 2);
+    setDraft(next); setDraftStatus("draft"); setEditorMode("form"); setJsonText(snapshot); setEditorBaseline(snapshot); setEditorBaselineStatus("draft"); setErrors([]); setEditorOpen(true);
   }
 
   function openEvent(item: DisplayEvent) {
     const next = structuredClone(item.definition);
     if (item.origin === "builtin") { next.id = `${next.id}.variant`; next.title = `${next.title}·改编`; }
-    setDraft(next); setDraftStatus(item.status === "published" ? "published" : "draft"); setEditorMode(item.sourceMode === "json" ? "json" : "form"); setJsonText(JSON.stringify(next, null, 2)); setErrors([]); setEditorOpen(true);
+    const snapshot = JSON.stringify(next, null, 2);
+    const status = item.status === "published" ? "published" : "draft";
+    setDraft(next); setDraftStatus(status); setEditorMode(item.sourceMode === "json" ? "json" : "form"); setJsonText(snapshot); setEditorBaseline(snapshot); setEditorBaselineStatus(status); setErrors([]); setEditorOpen(true);
+  }
+
+  function closeEditor() {
+    const current = editorMode === "json" ? jsonText : JSON.stringify(draft, null, 2);
+    if (!saving && (current !== editorBaseline || draftStatus !== editorBaselineStatus) && !window.confirm("当前事件有未保存修改，确定关闭编辑器吗？")) return;
+    setEditorOpen(false);
   }
 
   async function persist(definition: EventDefinition, status: EventStatus, sourceMode: "form" | "json") {
@@ -265,8 +276,14 @@ export default function EventManager() {
 
   async function removeRecord(item: DisplayEvent) {
     if (item.origin !== "managed" || !window.confirm(`确定删除“${item.definition.title}”吗？`)) return;
-    await fetch(`/api/em/events?id=${encodeURIComponent(item.definition.id)}`, { method: "DELETE" });
-    setNotice(`${item.definition.title} 已删除`); await loadEvents();
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/em/events?id=${encodeURIComponent(item.definition.id)}`, { method: "DELETE" });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(data.error ?? "删除失败");
+      setNotice(`${item.definition.title} 已删除`); await loadEvents();
+    } catch (error) { setNotice(error instanceof Error ? error.message : "删除失败"); }
+    finally { setSaving(false); }
   }
 
   function exportEvents() {
@@ -313,8 +330,8 @@ export default function EventManager() {
   return (
     <main className="em-shell">
       <aside className="em-sidebar">
-        <a className="em-brand" href="/"><span>见</span><div><small>云上见卿</small><strong>Event Manager</strong></div></a>
-        <nav><button className={section === "events" ? "active" : ""} onClick={() => setSection("events")}><span>树</span>事件管理</button><button className={section === "dialogues" ? "active" : ""} onClick={() => setSection("dialogues")}><span>言</span>对话管理</button><button className={section === "messages" ? "active" : ""} onClick={() => setSection("messages")}><span>笺</span>传音书信</button><button className={section === "globalKeys" ? "active" : ""} onClick={() => setSection("globalKeys")}><span>钥</span>全局 Key</button><button className={section === "characters" ? "active" : ""} onClick={() => setSection("characters")}><span>人</span>人物管理</button><button className={section === "scenes" ? "active" : ""} onClick={() => setSection("scenes")}><span>景</span>场景管理</button><button className={section === "gifts" ? "active" : ""} onClick={() => setSection("gifts")}><span>礼</span>礼物管理</button><a href="/"><span>游</span>前台演示</a></nav>
+        <a className="em-brand" href="/admin"><span>槐</span><div><small>槐安一梦</small><strong>Event Manager</strong></div></a>
+        <nav><button className={section === "events" ? "active" : ""} onClick={() => setSection("events")}><span>树</span>事件管理</button><button className={section === "dialogues" ? "active" : ""} onClick={() => setSection("dialogues")}><span>言</span>对话管理</button><button className={section === "messages" ? "active" : ""} onClick={() => setSection("messages")}><span>笺</span>传音书信</button><button className={section === "globalKeys" ? "active" : ""} onClick={() => setSection("globalKeys")}><span>钥</span>全局 Key</button><button className={section === "characters" ? "active" : ""} onClick={() => setSection("characters")}><span>人</span>人物管理</button><button className={section === "scenes" ? "active" : ""} onClick={() => setSection("scenes")}><span>景</span>场景管理</button><button className={section === "gifts" ? "active" : ""} onClick={() => setSection("gifts")}><span>礼</span>礼物管理</button><a href="/item-manager"><span>丹</span>配方管理</a><a href="/"><span>游</span>前台验收</a></nav>
         <div className="em-sidebar-note"><small>内容联动</small><p>已发布的事件、对话、人物、场景与礼物会直接进入游戏；草稿只在管理台中保存。</p></div>
       </aside>
 
@@ -352,11 +369,11 @@ export default function EventManager() {
         {section === "dialogues" && <DialogueManager records={dialogueRecords} characters={allCharacters} onReload={loadDialogues} />}
         {section === "messages" && <MessageManager records={messageRecords} characters={allCharacters} events={allEvents.map((item)=>item.definition)} gifts={allGifts} globalKeys={allGlobalKeys} onReload={loadMessages} />}
         {section === "globalKeys" && <WorldKeyManager records={globalKeyRecords} characters={allCharacters} events={allEvents.map((item)=>item.definition)} scenes={allScenes} gifts={allGifts} onReload={loadGlobalKeys} />}
-        <footer className="em-footer"><span className="status-dot" /><p>{notice}</p><span>数据驱动 · D1 持久化</span></footer>
+        <footer className="em-footer" aria-live="polite"><span className="status-dot" /><p>{notice}</p><span>{saving ? "操作处理中…" : "数据驱动 · D1 持久化"}</span></footer>
       </section>
 
-      {editorOpen && <div className="em-overlay" onMouseDown={() => setEditorOpen(false)}><section className="em-editor" onMouseDown={(event) => event.stopPropagation()}>
-        <header><div><p>{records.some((item) => item.id === draft.id) ? "编辑事件" : "创建事件卡"}</p><h2>{draft.title || "未命名事件"}</h2></div><button onClick={() => setEditorOpen(false)}>×</button></header>
+      {editorOpen && <div className="em-overlay" onMouseDown={closeEditor}><section className="em-editor" onMouseDown={(event) => event.stopPropagation()}>
+        <header><div><p>{records.some((item) => item.id === draft.id) ? "编辑事件" : "创建事件卡"}</p><h2>{draft.title || "未命名事件"}</h2></div><button onClick={closeEditor} aria-label="关闭编辑器">×</button></header>
         <div className="em-editor-tabs"><button className={editorMode === "form" ? "active" : ""} onClick={() => setEditorMode("form")}>表单录入</button><button className={editorMode === "json" ? "active" : ""} onClick={() => { setJsonText(JSON.stringify(draft, null, 2)); setEditorMode("json"); }}>结构体注入</button></div>
         {editorMode === "json" ? <div className="em-json-editor"><div><strong>EventDefinition</strong><span>支持直接粘贴完整事件结构体</span></div><textarea value={jsonText} onChange={(event) => setJsonText(event.target.value)} spellCheck={false} /></div> : <div className="em-form">
           <fieldset><legend><span>01</span>基本资料</legend><div className="em-form-grid">
@@ -419,7 +436,7 @@ export default function EventManager() {
           </div></fieldset>}
         </div>}
         {errors.length > 0 && <div className="em-errors"><strong>请先修正以下内容</strong>{errors.map((error, index) => <p key={`${error}-${index}`}>· {error}</p>)}</div>}
-        <footer><div><span className={`em-status-pill ${draftStatus}`}>{draftStatus === "published" ? "发布后进入游戏" : "仅保存到草稿箱"}</span><small>保存前会自动检查节点连线和字段完整性</small></div><div><button className="quiet" onClick={() => setEditorOpen(false)}>取消</button><button className="primary" disabled={saving} onClick={saveEditor}>{saving ? "保存中…" : draftStatus === "published" ? "保存并发布" : "保存草稿"}</button></div></footer>
+        <footer><div><span className={`em-status-pill ${draftStatus}`}>{draftStatus === "published" ? "发布后进入游戏" : "仅保存到草稿箱"}</span><small>保存前会自动检查节点连线和字段完整性</small></div><div><button className="quiet" onClick={closeEditor}>取消</button><button className="primary" disabled={saving} onClick={saveEditor}>{saving ? "保存中…" : draftStatus === "published" ? "保存并发布" : "保存草稿"}</button></div></footer>
       </section></div>}
 
       {bulkOpen && <div className="em-overlay" onMouseDown={() => setBulkOpen(false)}><section className="em-bulk" onMouseDown={(event) => event.stopPropagation()}><header><div><p>结构体批量注入</p><h2>导入事件 JSON</h2></div><button onClick={() => setBulkOpen(false)}>×</button></header><p>支持单个 EventDefinition 对象，或由多个事件组成的数组。导入后默认保存为草稿。</p><label className="em-file-button">选择 JSON 文件<input type="file" accept="application/json,.json" onChange={async (event) => { const file = event.target.files?.[0]; if (file) setBulkText(await file.text()); }} /></label><textarea value={bulkText} onChange={(event) => setBulkText(event.target.value)} spellCheck={false} />{errors.length > 0 && <div className="em-errors">{errors.map((error, index) => <p key={`${error}-${index}`}>· {error}</p>)}</div>}<footer><button className="quiet" onClick={() => setBulkOpen(false)}>取消</button><button className="primary" disabled={saving} onClick={importBulk}>{saving ? "导入中…" : "校验并导入"}</button></footer></section></div>}
