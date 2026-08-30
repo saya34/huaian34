@@ -58,6 +58,7 @@ import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import { CULTIVATOR_PACK_SIZE, organizeEquipment } from "./inventorySystem";
 import type { UnifiedCardInstance, UnifiedRarity } from "../core/types";
 import { MATERIALS as ALCHEMY_MATERIALS } from "../alchemy/item-data";
+import { MainEquipmentPanel } from "../ui/FusionSystemPanel";
 
 type Screen = "loading" | "menu" | "preparing" | "battle" | "result";
 type HeldTreasure = { uid: string; source: ContainerKind | "loot"; treasureId: string };
@@ -173,6 +174,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
   const [toast, setToast] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
   const meta = unifiedState.battle;
+  const metaRef = useRef(meta);
   const [menuPanel, setMenuPanel] = useState<"warehouse" | "upgrades" | "equipment" | "cards" | "character" | "skills" | "wm" | null>(null);
   const [loot, setLoot] = useState<LootOffer | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
@@ -192,6 +194,10 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
   const phaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const partnerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ceremonyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    metaRef.current = meta;
+  }, [meta]);
 
   useEffect(() => {
     if (!heldTreasure) return;
@@ -235,6 +241,10 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
   const menuBackground = "/game-assets/ui/main-menu-xianxia-bg.webp";
   const passiveCardBonuses = useMemo(() => unifiedState.shared.cards.filter((card) => card.mode === "passive").map((card) => card.bonuses), [unifiedState.shared.cards]);
   const permanentAttributes = useMemo(() => addAttributes(computePermanentAttributes(meta), ...passiveCardBonuses), [meta, passiveCardBonuses]);
+
+  useEffect(() => {
+    if (screen === "battle") engineRef.current?.updateBaseAttributes(permanentAttributes);
+  }, [permanentAttributes, screen]);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -287,7 +297,8 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
         setRerolls(remaining);
       },
       onGameOver: (kind, finalSnapshot) => {
-        const settlement = settleExpedition(meta, kind, finalSnapshot.backpack, finalSnapshot.safeBox, finalSnapshot.runEquipment);
+        // 宝匣界面允许在战斗中换装，结算时必须读取最新存档，不能使用开局闭包。
+        const settlement = settleExpedition(metaRef.current, kind, finalSnapshot.backpack, finalSnapshot.safeBox, finalSnapshot.runEquipment);
         const progression = kind === "victory" ? awardClearExperience(settlement.meta, waveId) : { meta: settlement.meta, gained: 0, levelsGained: 0 };
         const bookReward = awardSkillBooks(progression.meta, kind, waveId);
         setMeta(bookReward.meta);
@@ -680,8 +691,13 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
                 ))}
               </div>
             ) : (
-              <div className="loot-pack-layout">
-                <div className="loot-item-list">
+              <div className="loot-command-layout">
+                <section className="loot-field-equipment">
+                  <header><span>战地法器阁</span><strong>佩戴与行囊</strong><small>可卸下、替换、整理或丢弃；属性立即生效</small></header>
+                  <MainEquipmentPanel meta={meta} onChange={setMeta} compact />
+                </section>
+                <div className="loot-pack-layout">
+                  <div className="loot-item-list">
                   {loot.items.map((item) => {
                     const treasure = treasureById(item.treasureId);
                     return (
@@ -704,12 +720,12 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
                   {!loot.items.length && <p className="loot-empty">宝物已经全部收妥。</p>}
                   {(loot.equipment ?? []).map((item) => {
                     const base = equipmentById(item.equipmentId);
-                    return <article key={item.uid} className="loot-equipment" style={{ "--rarity": RARITY_META[item.rarity ?? base.rarity].color } as CSSProperties}><img src={base.art} alt="" /><div><small>随机装备 · {RARITY_META[item.rarity ?? base.rarity].name}</small><strong>{item.name ?? base.name}</strong><p>{formatBonus(item.bonuses ?? base.bonuses).join(" · ")}</p></div><div className="loot-actions"><button onClick={() => engineRef.current?.takeEquipment(item.uid)}>收入装备背包</button></div></article>;
+                    return <article key={item.uid} className="loot-equipment" style={{ "--rarity": RARITY_META[item.rarity ?? base.rarity].color } as CSSProperties}><img src={base.art} alt="" /><div><small>随机装备 · {RARITY_META[item.rarity ?? base.rarity].name}</small><strong>{item.name ?? base.name}</strong><p>{formatBonus(item.bonuses ?? base.bonuses).join(" · ")}</p></div><div className="loot-actions"><button onClick={() => engineRef.current?.takeEquipment(item.uid)}>收入本局战利品</button></div></article>;
                   })}
-                </div>
-                <div className="loot-targets">
-                  <p>拖拽宝物到指定格子，红色格子表示尺寸冲突。</p>
-                  <div className="inventory-columns">
+                  </div>
+                  <div className="loot-targets">
+                    <p>拖拽宝物到指定格子；新拾取法器成功离境后进入法器行囊。</p>
+                    <div className="inventory-columns">
                     <InventoryGrid
                       title="战利品背包"
                       items={snapshot.backpack}
@@ -730,7 +746,8 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
                       onPlace={(uid, source, x, y) => engineRef.current?.placeTreasure(uid, source, "safe", x, y)}
                       onSort={() => engineRef.current?.sortContainer("safe")}
                     />
-                    <RunEquipmentGrid items={snapshot.runEquipment} />
+                      <RunEquipmentGrid items={snapshot.runEquipment} />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -851,7 +868,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
             <header><small>万宝归藏</small><h2>行囊与个人仓库</h2><b>灵石 {meta.spiritStones.toLocaleString()}</b></header>
             <div className="personal-storage-layout">
               <div><button className="inventory-sort" onClick={() => updateMeta(sortTreasureContainer(meta, "backpack"))}>整理 10×4 行囊</button><InventoryGrid title="随身行囊" items={meta.personalBackpack} size={backpackSize(meta.backpackLevel)} actionLabel="存入仓库" onAction={(uid) => { const result = transferTreasure(meta, uid, "warehouse"); updateMeta(result.meta); showToast(result.message); }} /></div>
-              <div><button className="inventory-sort" onClick={() => updateMeta(sortTreasureContainer(meta, "warehouse"))}>整理个人仓库</button><InventoryGrid title="个人仓库" items={meta.warehouse} size={warehouseSize(meta.warehouseLevel)} actionLabel="移入行囊" onAction={(uid) => { const result = transferTreasure(meta, uid, "backpack"); updateMeta(result.meta); showToast(result.message); }} secondaryActionLabel="出售" onSecondaryAction={(uid) => updateMeta(sellTreasure(meta, uid))} /></div>
+              <div><button className="inventory-sort" onClick={() => updateMeta(sortTreasureContainer(meta, "warehouse"))}>整理个人仓库</button><InventoryGrid title="个人仓库" items={meta.warehouse} size={warehouseSize(meta.warehouseLevel, meta.warehouse)} actionLabel="移入行囊" onAction={(uid) => { const result = transferTreasure(meta, uid, "backpack"); updateMeta(result.meta); showToast(result.message); }} secondaryActionLabel="出售" onSecondaryAction={(uid) => updateMeta(sellTreasure(meta, uid))} /></div>
             </div>
             {!meta.warehouse.length && !meta.personalBackpack.length && <p className="warehouse-empty">尚未带回宝物。进入秘境搜寻宝匣并成功撤离。</p>}
           </div>

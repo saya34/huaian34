@@ -100,9 +100,10 @@ export function safeSize(level: number): InventorySize {
   return level >= 2 ? { columns: 3, rows: 3 } : level >= 1 ? { columns: 3, rows: 2 } : { columns: 2, rows: 2 };
 }
 
-export function warehouseSize(level: number): InventorySize {
-  void level;
-  return PERSONAL_STASH_SIZE;
+export function warehouseSize(level: number, items: TreasureItem[] = []): InventorySize {
+  let size = { columns: PERSONAL_STASH_SIZE.columns, rows: PERSONAL_STASH_SIZE.rows + Math.max(0, Math.min(6, level)) * 2 };
+  while (size.rows < 60 && items.length && !placeItems(items, size)) size = { ...size, rows: size.rows + 2 };
+  return size;
 }
 
 export function upgradeCost(kind: "backpack" | "safe" | "warehouse", level: number) {
@@ -149,13 +150,14 @@ export function loadMetaProgress(): MetaProgress {
 
 export function normalizeMetaProgress(parsed: Partial<MetaProgress> | null | undefined): MetaProgress {
   const value = parsed ?? {};
+  const warehouseItems = Array.isArray(value.warehouse) ? value.warehouse : [];
   const legacyStarterCatalog = value.version !== 5 && Array.isArray(value.equipmentBag) && value.equipmentBag.length > 20 && value.equipmentBag.every((item) => item.uid.startsWith("gear-"));
   const equipmentBag = legacyStarterCatalog ? STARTER_EQUIPMENT : Array.isArray(value.equipmentBag) ? value.equipmentBag : STARTER_EQUIPMENT;
   const equipped = legacyStarterCatalog ? {} : value.equipped && typeof value.equipped === "object" ? value.equipped : {};
   return {
     ...cloneDefaultMeta(), ...value, version: 5,
     personalBackpack: normalizeTreasureGrid(value.personalBackpack, CULTIVATOR_PACK_SIZE),
-    warehouse: normalizeTreasureGrid(value.warehouse, PERSONAL_STASH_SIZE),
+    warehouse: normalizeTreasureGrid(warehouseItems, warehouseSize(Number(value.warehouseLevel) || 0, warehouseItems)),
     discovered: Array.isArray(value.discovered) ? value.discovered : [],
     baseAttributes: { ...BASE_HERO_ATTRIBUTES, ...(value.baseAttributes ?? {}) },
     equipmentBag,
@@ -388,6 +390,19 @@ export function identifyEquipment(meta: MetaProgress, uid: string) {
   };
 }
 
+export function discardEquipment(meta: MetaProgress, uid: string) {
+  const item = meta.equipmentBag.find((entry) => entry.uid === uid);
+  if (!item) return { meta, ok: false, message: "法器不存在" };
+  if (Object.values(meta.equipped).includes(uid)) return { meta, ok: false, message: "请先卸下法器，再进行丢弃" };
+  const equipmentPositions = { ...meta.equipmentPositions };
+  delete equipmentPositions[uid];
+  return {
+    meta: { ...meta, equipmentBag: meta.equipmentBag.filter((entry) => entry.uid !== uid), equipmentPositions },
+    ok: true,
+    message: `${item.name ?? equipmentById(item.equipmentId).name}已丢弃`,
+  };
+}
+
 export function equipCard(meta: MetaProgress, cardId: string, slotIndex: number): MetaProgress {
   if (slotIndex < 0 || slotIndex >= meta.cardSlotCount || !meta.ownedCards.includes(cardId) || cardById(cardId).type !== "insert") return meta;
   const cardSlots = meta.cardSlots.map((id) => id === cardId ? null : id);
@@ -414,12 +429,10 @@ export function settleExpedition(
   runEquipment: EquipmentItem[] = [],
 ) {
   const broughtOut = result === "defeat" ? safeBox : [...backpack, ...safeBox];
-  const size = warehouseSize(meta.warehouseLevel);
-  const accepted: TreasureItem[] = [];
-  for (const item of broughtOut) {
-    const normalized = { uid: item.uid, treasureId: item.treasureId };
-    if (placeItems([...meta.warehouse, ...accepted, normalized], size)) accepted.push(normalized);
-  }
+  const accepted: TreasureItem[] = broughtOut.map((item) => ({ uid: item.uid, treasureId: item.treasureId }));
+  const allWarehouseItems = [...meta.warehouse, ...accepted];
+  const size = warehouseSize(meta.warehouseLevel, allWarehouseItems);
+  const organizedWarehouse = organizeTreasures(allWarehouseItems, size) ?? meta.warehouse;
   const discovered = new Set(meta.discovered);
   accepted.forEach((item) => discovered.add(item.treasureId));
   const requestedEquipment = result === "defeat" ? [] : runEquipment;
@@ -433,9 +446,9 @@ export function settleExpedition(
     keptEquipment.push(item);
   }
   return {
-    meta: { ...meta, warehouse: organizeTreasures([...meta.warehouse, ...accepted], size) ?? meta.warehouse, discovered: [...discovered], equipmentBag: [...meta.equipmentBag, ...keptEquipment], equipmentPositions },
+    meta: { ...meta, warehouse: organizedWarehouse, discovered: [...discovered], equipmentBag: [...meta.equipmentBag, ...keptEquipment], equipmentPositions },
     accepted,
-    overflow: broughtOut.filter((item) => !accepted.includes(item)),
+    overflow: [],
     equipmentOverflow: requestedEquipment.filter((item) => !keptEquipment.includes(item)),
   };
 }
@@ -443,9 +456,9 @@ export function settleExpedition(
 export function transferTreasure(meta: MetaProgress, uid: string, target: "backpack" | "warehouse") {
   const from = target === "backpack" ? meta.warehouse : meta.personalBackpack;
   const to = target === "backpack" ? meta.personalBackpack : meta.warehouse;
-  const targetSize = target === "backpack" ? CULTIVATOR_PACK_SIZE : PERSONAL_STASH_SIZE;
   const item = from.find((entry) => entry.uid === uid);
   if (!item) return { meta, ok: false, message: "宝物不存在" };
+  const targetSize = target === "backpack" ? CULTIVATOR_PACK_SIZE : warehouseSize(meta.warehouseLevel, [...to, item]);
   const position = firstTreasurePosition(to, item, targetSize);
   if (!position) return { meta, ok: false, message: target === "backpack" ? "10×4 行囊已满" : "个人仓库已满" };
   const nextFrom = from.filter((entry) => entry.uid !== uid);
@@ -458,8 +471,8 @@ export function transferTreasure(meta: MetaProgress, uid: string, target: "backp
 }
 
 export function sortTreasureContainer(meta: MetaProgress, target: "backpack" | "warehouse") {
-  const size = target === "backpack" ? CULTIVATOR_PACK_SIZE : PERSONAL_STASH_SIZE;
   const items = target === "backpack" ? meta.personalBackpack : meta.warehouse;
+  const size = target === "backpack" ? CULTIVATOR_PACK_SIZE : warehouseSize(meta.warehouseLevel, items);
   const organized = organizeTreasures(items, size);
   if (!organized) return meta;
   return target === "backpack" ? { ...meta, personalBackpack: organized } : { ...meta, warehouse: organized };

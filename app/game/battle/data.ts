@@ -203,8 +203,19 @@ export async function loadGameData(): Promise<GameData> {
   ]);
   if (!manifestResponse.ok) throw new Error("原项目素材索引加载失败");
   const manifest = (await manifestResponse.json()) as AssetManifest;
+  const monsters = [...rows[0]];
+  // 原始第 21 关波次引用了十条未随配置表导出的怪物记录。复用第 20 关的
+  // 完整怪物逻辑并保留第 21 关自己的资源 ID，避免该关生成空波次。
+  const finalWave = rows[10].find((wave) => Number(wave.id) === 21);
+  const previousWave = rows[10].find((wave) => Number(wave.id) === 20);
+  const fallbackIds = Array.isArray(previousWave?.monster) ? previousWave.monster : [];
+  for (const [index, missingId] of (finalWave?.monster ?? []).entries()) {
+    if (monsters.some((monster) => Number(monster.resId) === Number(missingId))) continue;
+    const source = monsters.find((monster) => Number(monster.resId) === Number(fallbackIds[index % Math.max(1, fallbackIds.length)]));
+    if (source) monsters.push({ ...source, resId: Number(missingId), name: `${source.name ?? "妖物"}·终劫` });
+  }
   return {
-    monsters: rows[0],
+    monsters,
     monsterSkills: rows[1],
     monsterSkillTypes: rows[2],
     bullets: rows[3],

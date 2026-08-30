@@ -45,7 +45,14 @@ for (const map of maps) {
   if (candidate) selectedScenes.set(candidate.entry.path, candidate.entry);
 }
 
-const runtimeManifest = { ...manifest, atlases: [...selectedAtlases.values()].slice(0, 18), effects: [], scenes: [...selectedScenes.values()], ui: [] };
+const runtimeManifest = {
+  ...manifest,
+  atlases: [...selectedAtlases.values()],
+  // 技能弹道既可能来自 atlas，也可能来自独立 effect 图片，不能在裁剪时清空。
+  effects: manifest.effects,
+  scenes: [...selectedScenes.values()],
+  ui: [],
+};
 fs.writeFileSync(path.join(root, "asset-manifest.json"), JSON.stringify(runtimeManifest));
 const requiredRefs = ["battleMonsterRef", "battleSkillMonster", "battleSkillTypeMonster", "battleBullet", "battleSkillRef", "battleSkillLevel", "battleSkillEvolutionRef", "battleSupplyRef", "battleSupplyLevelRef", "battleLevelRef", "battleWaveRef", "battleWavePlanRef", "battleWaveNumRef", "battleWaveType", "hero", "mapRef", "modelRef", "fuBenRef", "fuBenCanUseSkillGroupRef", "gameConfig"].map((name) => `ref/${name}.json`);
 const keep = new Set(["asset-manifest.json", ...requiredRefs]);

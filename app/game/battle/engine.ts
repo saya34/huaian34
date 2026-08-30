@@ -660,6 +660,15 @@ export class BattleEngine {
     return true;
   }
 
+  updateBaseAttributes(attributes: HeroAttributes) {
+    const hpRatio = this.player.maxHp > 0 ? this.player.hp / this.player.maxHp : 1;
+    this.baseAttributes = { ...BASE_HERO_ATTRIBUTES, ...attributes };
+    this.player.maxHp = this.baseAttributes.health;
+    this.player.hp = clamp(this.player.maxHp * hpRatio, 1, this.player.maxHp);
+    this.player.speed = this.baseAttributes.moveSpeed;
+    this.emitSnapshot(true);
+  }
+
   sortContainer(container: ContainerKind) {
     const items = container === "safe" ? this.safeBox : this.backpack;
     const size = container === "safe" ? this.safeSize : this.backpackSize;

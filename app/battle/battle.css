@@ -176,6 +176,31 @@ button { font: inherit; }
 
 .wm-treasure-table > header,.wm-treasure-table > article { grid-template-columns: 1.3fr .55fr .6fr .65fr .8fr; }
 
+/* 宝匣打开时并排展示战地法器阁，沿用主界面的装备/卸下/交换逻辑。 */
+.loot-panel{width:min(1540px,100%)}
+.loot-command-layout{display:grid;grid-template-columns:minmax(440px,.86fr) minmax(720px,1.14fr);gap:16px;align-items:start;margin-top:14px}
+.loot-command-layout .loot-pack-layout{margin-top:0}
+.loot-field-equipment{min-width:0;overflow:hidden;border:1px solid rgba(201,169,99,.42);color:#e9dfc8;background:linear-gradient(150deg,#102b24,#071713);box-shadow:inset 0 0 35px rgba(0,0,0,.24)}
+.loot-field-equipment>header{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;align-items:end;padding:11px 13px;border-bottom:1px solid rgba(201,169,99,.2);background:linear-gradient(90deg,rgba(190,135,48,.12),transparent)}
+.loot-field-equipment>header span{grid-row:1/3;display:grid;place-items:center;width:42px;height:42px;border:1px solid #a98b4f;color:#ead087;background:#183d32;font:500 12px "STKaiti",serif}
+.loot-field-equipment>header strong{font:500 18px "STKaiti",serif;letter-spacing:.14em}.loot-field-equipment>header small{color:#91a79b;font-size:8px}
+.loot-field-equipment .compact-field-gear{display:block;max-height:69dvh;overflow:auto}
+.loot-field-equipment .compact-field-gear .main-body-slots{display:grid;grid-template-columns:108px minmax(0,1fr);min-height:205px;border-right:0;border-bottom:1px solid rgba(205,173,102,.16)}
+.loot-field-equipment .compact-field-gear .main-cultivator{position:relative;inset:auto;width:100px;height:150px;margin:10px 0 0 4px}
+.loot-field-equipment .compact-field-gear .main-slot-ring{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-content:start;gap:5px;padding:9px 8px 48px 4px}
+.loot-field-equipment .compact-field-gear .main-slot-ring button,.loot-field-equipment .compact-field-gear .main-slot-ring button:nth-child(n){position:relative;inset:auto;width:100%;height:60px}
+.loot-field-equipment .compact-field-gear .main-slot-ring img{height:39px}
+.loot-field-equipment .compact-field-gear .main-core-stats{left:113px;right:8px;bottom:8px}
+.loot-field-equipment .compact-field-gear .main-core-stats span{padding:4px 2px}.loot-field-equipment .compact-field-gear .main-core-stats b{display:inline;margin-left:3px;font-size:11px}
+.loot-field-equipment .compact-field-gear .main-pack-section{padding:11px}.loot-field-equipment .compact-field-gear .main-pack-section>header p{display:none}
+.loot-field-equipment .compact-field-gear .main-pack-grid{grid-template-columns:repeat(10,minmax(0,1fr));grid-template-rows:repeat(4,43px)}
+.loot-field-equipment .compact-field-gear .main-gear-detail{border-left:0;border-top:1px solid rgba(205,173,102,.16);padding:11px;min-height:185px}
+.loot-field-equipment .compact-field-gear .detail-gear-art{float:left;width:118px;height:140px;margin:0 11px 8px 0}.loot-field-equipment .compact-field-gear .main-gear-detail footer{clear:both}
+.gear-detail-actions{display:flex;gap:5px}.main-gear-detail footer .discard-gear{color:#ffd0c5;border-color:#9d5148;background:#632c28}
+
+@media(max-width:1250px){.loot-command-layout{grid-template-columns:1fr}.loot-field-equipment .compact-field-gear{max-height:none}.loot-panel{width:min(900px,100%)}}
+@media(max-width:620px){.loot-field-equipment>header small{display:none}.loot-field-equipment .compact-field-gear .main-body-slots{grid-template-columns:94px minmax(0,1fr)}.loot-field-equipment .compact-field-gear .main-cultivator{width:88px;height:132px}.loot-field-equipment .compact-field-gear .main-core-stats{left:99px}.loot-field-equipment .compact-field-gear .main-slot-ring{grid-template-columns:repeat(3,minmax(0,1fr))}.loot-field-equipment .compact-field-gear .main-pack-grid{min-width:390px}.loot-command-layout .loot-pack-layout{grid-template-columns:1fr}}
+
 /* Main-menu windows — shared ink, paper, jade and aged-bronze language. */
 .meta-overlay { padding:clamp(10px,2vw,24px); background:linear-gradient(135deg,rgba(17,40,38,.76),rgba(8,27,27,.91)),url('/game-assets/ui/main-menu-xianxia-bg.webp') center/cover; backdrop-filter:blur(8px) saturate(.7); }
 .meta-panel,.help-modal > div { --panel-mark:url('/game-assets/ui/menu-cultivate.webp'); position:relative; border:1px solid rgba(190,166,104,.65); color:#294c45; background:linear-gradient(112deg,rgba(250,247,225,.97),rgba(229,233,211,.94)); box-shadow:0 28px 90px rgba(1,19,17,.62),inset 0 0 0 1px rgba(255,255,255,.72); clip-path:polygon(11px 0,calc(100% - 30px) 0,100% 30px,100% calc(100% - 11px),calc(100% - 11px) 100%,30px 100%,0 calc(100% - 30px),0 11px); scrollbar-color:#a98a50 rgba(42,72,63,.1); }
