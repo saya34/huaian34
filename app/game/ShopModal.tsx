@@ -9,6 +9,7 @@ import { useUnifiedGame } from "./core/UnifiedGameProvider";
 import type { UnifiedItemStack } from "./core/types";
 import { SHOP_GIFTS, SHOP_OFFERS } from "./shop-content";
 import type { EventDefinition, GiftDefinition } from "./types";
+import WeaponMerchantPanel from "./WeaponMerchantPanel";
 
 type ShopModalProps = {
   gifts: GiftDefinition[];
@@ -25,6 +26,7 @@ const RARITY_COLORS = ["#aab5ad", "#7ebf8b", "#5faed0", "#a889ce", "#d59b54", "#
 
 export default function ShopModal({ gifts, events, relationship, onClose, onNotice }: ShopModalProps) {
   const { state, applyEffects, setBattle } = useUnifiedGame();
+  const [department, setDepartment] = useState<"treasure" | "weapons">("treasure");
   const [tab, setTab] = useState<"buy" | "sell">("buy");
   const [message, setMessage] = useState("万物有价，也总有人愿意给它第二个去处。");
   const giftMap = useMemo(() => Object.fromEntries(gifts.map((item) => [item.id, item])), [gifts]);
@@ -35,7 +37,7 @@ export default function ShopModal({ gifts, events, relationship, onClose, onNoti
 
   const sellableStacks = Object.values(state.shared.items).filter((item) => item.amount > 0 && !item.locked && item.itemType !== "card");
   const equippedIds = new Set(Object.values(state.battle.equipped));
-  const sellableEquipment = state.battle.equipmentBag.filter((item) => !equippedIds.has(item.uid));
+  const sellableEquipment = state.battle.equipmentBag.filter((item) => !equippedIds.has(item.uid) && equipmentById(item.equipmentId).slot !== "weapon");
 
   function artStyle(gift: GiftDefinition) {
     return { backgroundImage: `url(${gift.image})`, backgroundPosition: gift.imagePosition ?? "center", backgroundSize: gift.image.includes("ning-shop-goods") ? "300% 200%" : gift.image.includes("gift-atlas") ? "500% 100%" : "cover" };
@@ -101,16 +103,16 @@ export default function ShopModal({ gifts, events, relationship, onClose, onNoti
   return <div className="shop-backdrop" role="presentation" onMouseDown={onClose}>
     <section className="shop-window" role="dialog" aria-modal="true" aria-label="栖珍阁交易" onMouseDown={(event) => event.stopPropagation()}>
       <header className="shop-heading">
-        <div><small>QIZHEN TREASURE HOUSE · 云州常设商铺</small><h2>栖珍阁</h2><p>宁砚书 · 万物皆收，童叟无欺</p></div>
-        <div className="shop-wallet"><small>持有灵石</small><strong>◉ {state.shared.spiritStones.toLocaleString()}</strong><span>{discount < 1 ? `缘分折扣 · ${Math.round(discount * 100)} 折` : "当前为原价"}</span></div>
+        <div className="shop-title-block"><small>QIZHEN TREASURE HOUSE · 云州常设商铺</small><h2>栖珍阁</h2><nav className="shop-departments" aria-label="选择掌柜"><button className={department === "treasure" ? "active" : ""} onClick={() => setDepartment("treasure")}><b>宁砚书</b><span>百宝柜</span></button><button className={department === "weapons" ? "active" : ""} onClick={() => setDepartment("weapons")}><b>霍青翎</b><span>玄锋号</span></button></nav></div>
+        <div className="shop-wallet"><small>持有灵石</small><strong>◉ {state.shared.spiritStones.toLocaleString()}</strong><span>{department === "treasure" ? discount < 1 ? `缘分折扣 · ${Math.round(discount * 100)} 折` : "当前为原价" : "兵刃周货 · 每周一刷新"}</span></div>
         <button type="button" onClick={onClose} aria-label="离开栖珍阁">×</button>
       </header>
-      <div className="shop-body">
-        <aside className="shopkeeper-panel">
-          <img src="/assets/shop/ning-yanshu.svg" alt="栖珍阁老板娘宁砚书" />
-          <div><small>掌柜寄语</small><p>“{message}”</p></div>
+      <div className={`shop-body ${department === "weapons" ? "weapon-department" : ""}`}>
+        <aside className={`shopkeeper-panel ${department === "weapons" ? "weapon-merchant-portrait" : ""}`}>
+          <img src={department === "weapons" ? "/assets/shop/huo-qingling.webp" : "/assets/shop/ning-yanshu.svg"} alt={department === "weapons" ? "玄锋号女商人霍青翎" : "栖珍阁老板娘宁砚书"} />
+          <div><small>{department === "weapons" ? "铸兵行商 · 霍青翎" : "掌柜寄语"}</small><p>“{department === "weapons" ? "兵刃占几格、值几钱，都写在明处；匣中锋芒，买下才与你相见。" : message}”</p></div>
         </aside>
-        <main className="shop-counter">
+        {department === "weapons" ? <main className="shop-counter weapon-shop-counter"><WeaponMerchantPanel onNotice={onNotice} /></main> : <main className="shop-counter">
           <nav className="shop-tabs"><button className={tab === "buy" ? "active" : ""} onClick={() => setTab("buy")}><i>买</i><span><strong>购入常货</strong><small>行旅所需 · 明码标价</small></span></button><button className={tab === "sell" ? "active" : ""} onClick={() => setTab("sell")}><i>卖</i><span><strong>出售所有物品</strong><small>行囊、宝物与法器统一估价</small></span></button></nav>
           {tab === "buy" ? <div className="shop-goods-grid">{SHOP_OFFERS.map((offer) => { const gift = shopGiftMap[offer.itemId]!; const price = Math.max(1, Math.round(offer.price * discount)); return <article key={offer.itemId}>
             <div className="shop-goods-art" style={artStyle(gift)}><span>{gift.icon}</span><b>{offer.stock}</b></div>
@@ -123,9 +125,9 @@ export default function ShopModal({ gifts, events, relationship, onClose, onNoti
             </article>; })}{!sellableStacks.length && <p className="shop-empty">行囊中暂无可出售物品。剧情物品会被自动保护。</p>}</div></section>
             <section><header><div><small>ARTIFACT PACK · 未佩戴</small><h3>法器行囊</h3></div><span>{sellableEquipment.length} 件法器</span></header><div className="shop-sell-list">{sellableEquipment.map((item) => { const base = equipmentById(item.equipmentId); const price = Math.max(1, Math.floor(equipmentValue(item) * .55)); return <article key={item.uid}><div className="shop-sell-art"><img src={base.art} alt="" /></div><div><small>法器 · {item.identified === false ? "未鉴定" : "已鉴定"}</small><strong>{item.name ?? base.name}</strong><p>估值 {equipmentValue(item).toLocaleString()} · 收购 ◉ {price}</p></div><span><button onClick={() => sellEquipment(item.uid)}>售予掌柜</button></span></article>; })}{!sellableEquipment.length && <p className="shop-empty">没有未佩戴的法器可出售；佩戴中的法器不会出现在此处。</p>}</div></section>
           </div>}
-        </main>
+        </main>}
       </div>
-      <footer><span>剧情物品锁定保护</span><i /> <span>已佩戴法器不会误售</span><i /> <span>缘分越深，购买折扣越高</span></footer>
+      <footer>{department === "weapons" ? <><span>周一零点随机换货</span><i /><span>未鉴定商品购入后揭示</span><i /><span>暗黑式多格交易与回购</span></> : <><span>剧情物品锁定保护</span><i /><span>已佩戴法器不会误售</span><i /><span>缘分越深，购买折扣越高</span></>}</footer>
     </section>
   </div>;
 }

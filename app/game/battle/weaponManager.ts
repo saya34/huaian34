@@ -98,32 +98,43 @@ const SUFFIXES = [
   { name: "轻灵", stats: { dexterity: 4, dodge: .012, moveSpeed: 7 }, value: 17 },
 ] satisfies Array<{ name: string; stats: AttributeBonus; value: number }>;
 
-export function rollManagedEquipment(config: WMConfig, waveId: number, chestRarity: TreasureRarity, uidSeed: number): EquipmentItem | null {
+export function rollManagedEquipment(config: WMConfig, waveId: number, chestRarity: TreasureRarity, uidSeed: number, random: () => number = Math.random): EquipmentItem | null {
   const chestRank = RARITY_ORDER.indexOf(chestRarity);
   const candidates = config.equipment.filter((rule) => rule.enabled && waveAllowed(rule.universal, rule.waves, waveId));
   const weights = candidates.map((rule) => rule.dropChance * rarityDropFactor[rule.rarity] * (1 / (1 + Math.abs(RARITY_ORDER.indexOf(rule.rarity) - chestRank))));
   const total = weights.reduce((sum, value) => sum + value, 0);
-  if (!total || Math.random() > Math.min(.72, total / Math.max(1, candidates.length) * 1.8)) return null;
-  let point = Math.random() * total;
+  if (!total || random() > Math.min(.72, total / Math.max(1, candidates.length) * 1.8)) return null;
+  let point = random() * total;
   let rule = candidates[0];
   for (let index = 0; index < candidates.length; index++) if ((point -= weights[index]) <= 0) { rule = candidates[index]; break; }
-  const optional = [...rule.optionalStats].sort(() => Math.random() - .5).slice(0, Math.max(0, rule.optionalPick));
-  const affixes = config.affixes.filter((affix) => rule.affixIds.includes(affix.id) && Math.random() < affix.chance).sort(() => Math.random() - .5).slice(0, Math.max(0, rule.affixCap));
-  const managedBonuses = mergeBonuses(rollStats([...rule.boundStats, ...optional]), ...affixes.map((affix) => rollStats(affix.stats)));
+  const shuffle = <T,>(source: T[]) => {
+    const result = [...source];
+    for (let index = result.length - 1; index > 0; index--) { const swap = Math.floor(random() * (index + 1)); [result[index], result[swap]] = [result[swap], result[index]]; }
+    return result;
+  };
+  const rollWith = (range: WMStatRange) => range.min + random() * (range.max - range.min);
+  const rollStatsWith = (ranges: WMStatRange[]) => {
+    const result: AttributeBonus = {};
+    for (const range of ranges) result[range.key] = (result[range.key] ?? 0) + rollWith(range);
+    return result;
+  };
+  const optional = shuffle(rule.optionalStats).slice(0, Math.max(0, rule.optionalPick));
+  const affixes = shuffle(config.affixes.filter((affix) => rule.affixIds.includes(affix.id) && random() < affix.chance)).slice(0, Math.max(0, rule.affixCap));
+  const managedBonuses = mergeBonuses(rollStatsWith([...rule.boundStats, ...optional]), ...affixes.map((affix) => rollStatsWith(affix.stats)));
   const definition = EQUIPMENT.find((item) => item.id === rule.equipmentId) ?? EQUIPMENT[0];
   // 与 DevilutionX 的生成节奏一致：前缀约四分之一、后缀约三分之二；两者都未命中时至少补一个。
-  let prefix = Math.random() < .25 ? PREFIXES[Math.floor(Math.random() * PREFIXES.length)] : undefined;
-  let suffix = Math.random() < 2 / 3 ? SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)] : undefined;
+  let prefix = random() < .25 ? PREFIXES[Math.floor(random() * PREFIXES.length)] : undefined;
+  let suffix = random() < 2 / 3 ? SUFFIXES[Math.floor(random() * SUFFIXES.length)] : undefined;
   if (!prefix && !suffix) {
-    if (Math.random() < .5) prefix = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
-    else suffix = SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)];
+    if (random() < .5) prefix = PREFIXES[Math.floor(random() * PREFIXES.length)];
+    else suffix = SUFFIXES[Math.floor(random() * SUFFIXES.length)];
   }
   const magicBonuses = mergeBonuses(managedBonuses, prefix?.stats ?? {}, suffix?.stats ?? {});
   const rank = Math.max(0, RARITY_ORDER.indexOf(rule.rarity));
   const weapon = definition.slot === "weapon";
   const twoHanded = weapon && /弓|戟|枪|刀/.test(definition.name);
   const item: EquipmentItem = {
-    uid: `wm-${Date.now().toString(36)}-${uidSeed.toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    uid: `wm-${Date.now().toString(36)}-${uidSeed.toString(36)}-${Math.floor(random() * 0xfffffff).toString(36)}`,
     equipmentId: rule.equipmentId,
     name: `${prefix?.name ?? ""}${affixes.map((affix) => affix.name).join("")}${definition.name}${suffix ? `·${suffix.name}` : ""}`,
     rarity: rule.rarity,

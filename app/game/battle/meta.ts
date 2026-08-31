@@ -18,6 +18,7 @@ import {
 } from "./progression";
 import { CULTIVATOR_PACK_SIZE, PERSONAL_STASH_SIZE, findEquipmentPosition, moveOrSwapEquipment, organizeEquipment } from "./inventorySystem";
 import { DEFAULT_WM_CONFIG, WMConfig, cloneWMConfig, managedTreasureDefinition, mergeWMConfig } from "./weaponManager";
+import { EMPTY_WEAPON_SHOP, normalizeWeaponShop, type WeaponShopState } from "./weaponShop";
 import {
   MAX_SKILL_MASTERY_LEVEL,
   SKILL_BOOK_EXP,
@@ -55,6 +56,7 @@ export interface MetaProgress {
   wmDraft: WMConfig;
   wmPublished: WMConfig;
   wmPublishedAt: number;
+  weaponShop: WeaponShopState;
 }
 
 const STORAGE_KEY = "blcx-expedition-meta-v1";
@@ -89,6 +91,7 @@ export const DEFAULT_META: MetaProgress = {
   wmDraft: cloneWMConfig(DEFAULT_WM_CONFIG),
   wmPublished: cloneWMConfig(DEFAULT_WM_CONFIG),
   wmPublishedAt: 0,
+  weaponShop: { ...EMPTY_WEAPON_SHOP, stock: [], buyback: [] },
 };
 
 export function backpackSize(level: number): InventorySize {
@@ -172,7 +175,7 @@ export function normalizeMetaProgress(parsed: Partial<MetaProgress> | null | und
     attributeAllocation: { ...DEFAULT_META.attributeAllocation, ...(value.attributeAllocation ?? {}) },
     passiveRanks: value.passiveRanks && typeof value.passiveRanks === "object" ? value.passiveRanks : {},
     skillBooks: value.skillBooks === undefined ? DEFAULT_META.skillBooks : Math.max(0, Number(value.skillBooks) || 0),
-    skillMastery: normalizeSkillMastery(value.skillMastery), wmDraft: mergeWMConfig(value.wmDraft), wmPublished: mergeWMConfig(value.wmPublished), wmPublishedAt: Math.max(0, Number(value.wmPublishedAt) || 0),
+    skillMastery: normalizeSkillMastery(value.skillMastery), wmDraft: mergeWMConfig(value.wmDraft), wmPublished: mergeWMConfig(value.wmPublished), wmPublishedAt: Math.max(0, Number(value.wmPublishedAt) || 0), weaponShop: normalizeWeaponShop(value.weaponShop),
   };
 }
 
@@ -192,6 +195,7 @@ function cloneDefaultMeta(): MetaProgress {
     skillMastery: normalizeSkillMastery(DEFAULT_META.skillMastery),
     wmDraft: cloneWMConfig(DEFAULT_META.wmDraft),
     wmPublished: cloneWMConfig(DEFAULT_META.wmPublished),
+    weaponShop: { ...DEFAULT_META.weaponShop, stock: DEFAULT_META.weaponShop.stock.map((item) => ({ ...item })), buyback: DEFAULT_META.weaponShop.buyback.map((item) => ({ ...item })) },
   };
 }
 
