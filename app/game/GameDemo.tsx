@@ -29,6 +29,7 @@ import FortuneModal from "./FortuneModal";
 import CultivationModal from "./CultivationModal";
 import InspectionModal from "./InspectionModal";
 import DrinkingModal from "./DrinkingModal";
+import ShopModal from "./ShopModal";
 import { getProficiencyProfile } from "./proficiency-engine";
 import { getInspectionHints, rollInspectionEvent } from "./inspection-engine";
 import type { CultivationEntry } from "./cultivation-engine";
@@ -85,6 +86,7 @@ export default function GameDemo() {
   const [giftOpen, setGiftOpen] = useState(false);
   const [interactionMenuOpen,setInteractionMenuOpen]=useState(false);
   const [drinkingOpen,setDrinkingOpen]=useState(false);
+  const [shopOpen,setShopOpen]=useState(false);
   const [cultivationOpen,setCultivationOpen]=useState(false);
   const [inspectionReveal,setInspectionReveal]=useState<InspectionReveal|null>(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -675,13 +677,14 @@ export default function GameDemo() {
         {bondFeedback && bondFeedback.amount > 1 && <div key={bondFeedback.id} className={`bond-gain-card ${bondFeedback.source?"fortune-boosted":""}`}><img src={characterMap[bondFeedback.characterId]?.image ?? character.image} alt="" /><div><p><strong>{characterMap[bondFeedback.characterId]?.name ?? bondFeedback.characterId}</strong>{bondFeeling(bondFeedback.amount)}</p><span>好感度提升</span>{bondFeedback.source&&<em>{bondFeedback.source}</em>}</div><b>+{bondFeedback.amount}</b><i>♥</i></div>}
 
         {!game.activeEvent && hasPresentCharacter && (
-          <div className="interaction-dock">
+          <div className={`interaction-dock ${character.id === "ning" ? "has-shop" : ""}`}>
             {canDrink&&interactionMenuOpen&&<div className="interaction-popover"><p>与{character.name}互动</p><button type="button" onClick={()=>{setInteractionMenuOpen(false);setGiftOpen(true)}}><i>礼</i><span><strong>赠予心意</strong><small>从行囊中选择礼物 · 消耗 1 体力</small></span></button><button type="button" onClick={()=>{setInteractionMenuOpen(false);setDrinkingOpen(true)}}><i>酌</i><span><strong>月下共饮</strong><small>{drinkingProficiency.level}阶「{drinkingProficiency.name}」 · 酒兴 {game.interactionCounts[drinkingCountKey]??0}/{drinkingConfig?.specialWinCount}</small></span></button></div>}
             <div className="bond-panel">
               <div><span>缘分 · {currentStage.name}</span><strong>{relationship}</strong></div>
               <div className="bond-track"><i style={{ width: `${relationship}%` }} /></div>
               <p>{nextHint}</p>
             </div>
+            {character.id === "ning" && <button type="button" className="shop-action" onClick={() => setShopOpen(true)}><span className="action-glyph">商</span><span><small>进入</small>栖珍阁</span></button>}
             <button type="button" className="ink-action" onClick={talk}><span className="action-glyph">言</span><span><small>与她</small>交谈</span></button>
             <button type="button" className={`gold-action ${interactionMenuOpen?"active":""}`} onClick={() => canDrink?setInteractionMenuOpen(value=>!value):setGiftOpen(true)}><span className="action-glyph">{canDrink?"互":"礼"}</span><span><small>{canDrink?"展开":"赠予"}</small>{canDrink?"互动":"心意"}</span></button>
           </div>
@@ -737,6 +740,7 @@ export default function GameDemo() {
       {cultivationOpen&&<CultivationModal stamina={game.stamina} experience={game.experience} onClose={()=>setCultivationOpen(false)} onComplete={completeCultivation}/>}
       {inspectionReveal&&<InspectionModal scene={inspectionReveal.scene} event={inspectionReveal.event} onClose={()=>setInspectionReveal(null)} onEnterEvent={enterInspectionEvent}/>}
       {drinkingOpen&&drinkingConfig&&<DrinkingModal character={character} config={drinkingConfig} stamina={game.stamina} initialWins={game.interactionCounts[drinkingCountKey]??0} sceneDifficulty={sceneMap[game.sceneId]?.minigameDifficulty?.drinking??4} proficiencyExperience={game.proficiencyExperience.drinking??0} specialCompleted={Boolean(drinkingConfig.specialEventId&&game.completedEvents.includes(drinkingConfig.specialEventId))} onClose={()=>setDrinkingOpen(false)} onSpendStamina={spendStamina} onPractice={practiceDrinking} onWin={recordDrinkingWin} onSpecial={triggerDrinkingSpecial}/>}
+      {shopOpen&&characterMap.ning&&<ShopModal gifts={gifts} events={eventDefinitions} relationship={game.relationships.ning??4} onClose={()=>setShopOpen(false)} onNotice={setNotice}/>}
 
       {activeExploration?.exploration&&<div className="exploration-backdrop"><section className={`exploration-card ${activeExploration.cardStyle}`} role="dialog" aria-modal="true" aria-label={activeExploration.title}><button type="button" className="exploration-close" onClick={()=>setActiveExploration(null)}>×</button><div className="exploration-image"><img src={activeExploration.exploration.image} alt=""/><span>{activeExploration.cardStyle==="easter_egg"?"偶得":"异光"}</span></div><div className="exploration-content"><p>{activeExploration.cardStyle==="easter_egg"?"HIDDEN TREASURE · 彩蛋发现":"STORY TRACE · 剧情触发"}</p><h3>{activeExploration.title}</h3><blockquote>{activeExploration.exploration.text}</blockquote>{activeExploration.cardStyle==="easter_egg"&&activeExploration.exploration.rewardItem&&<small>发现物品 · {activeExploration.exploration.rewardItem.name}</small>}<button type="button" className="exploration-resolve" onClick={resolveExploration}>{activeExploration.cardStyle==="easter_egg"?`收入藏珍录 · ${activeExploration.exploration.rewardItem?.name??"彩蛋"}`:"循光而入 · 进入剧情"}</button></div></section></div>}
       {eggRewardNotice&&<div className="egg-obtained"><img src={eggRewardNotice.image} alt=""/><span><small>EASTER EGG OBTAINED</small><strong>获得彩蛋物品 · {eggRewardNotice.name}</strong></span></div>}
@@ -766,7 +770,7 @@ export default function GameDemo() {
                 const count = game.inventory[gift.id];
                 return (
                   <article key={gift.id} className={count<=0?"depleted":""}>
-                    <span className="gift-icon gift-art" style={{ backgroundImage: `url(${gift.image})`, backgroundPosition: gift.imagePosition ?? "center", backgroundSize: gift.image.includes("gift-atlas") ? "500% 100%" : "cover" }}>{gift.icon}</span>
+                    <span className="gift-icon gift-art" style={{ backgroundImage: `url(${gift.image})`, backgroundPosition: gift.imagePosition ?? "center", backgroundSize: gift.image.includes("gift-atlas") ? "500% 100%" : gift.image.includes("ning-shop-goods") ? "300% 200%" : "cover" }}>{gift.icon}</span>
                     <span className="gift-copy"><strong>{gift.name}</strong><small>{gift.description}</small><i>{(game.discoveredGiftPreferences[character.id]??[]).includes(gift.id)?`已发现 · ${PREFERENCE_LABELS[character.giftPreferences?.find((item)=>item.giftId===gift.id)?.tier??(character.lovedGift===gift.id?"loved":"neutral")]}`:"偏好未明"} · {gift.tags.join(" · ")}</i></span>
                     <b>× {count}</b>
                     <span className="gift-item-actions">{hasPresentCharacter&&<button type="button" disabled={count<=0} onClick={()=>giveGift(gift.id)}>赠予</button>}{gift.energyRestore&&<button type="button" className="eat-action" disabled={count<=0} onClick={()=>eatGift(gift.id)}>食用 +{gift.energyRestore}</button>}</span>
@@ -782,7 +786,7 @@ export default function GameDemo() {
       {panel && (
         <div className="modal-backdrop panel-backdrop" role="presentation" onMouseDown={() => setPanel(null)}>
           <section className="side-sheet" role="dialog" aria-modal="true" aria-label={panel === "events" ? "事件簿" : "人物谱"} onMouseDown={(event) => event.stopPropagation()}>
-            <div className="sheet-heading"><div><p>{panel === "events" ? `${totalEvents}章 · 数据驱动剧情` : "四人 · 缘分录"}</p><h3>{panel === "events" ? "事件簿" : "人物谱"}</h3></div><button type="button" onClick={() => setPanel(null)} aria-label="关闭">×</button></div>
+            <div className="sheet-heading"><div><p>{panel === "events" ? `${totalEvents}章 · 数据驱动剧情` : `${characters.length}人 · 缘分录`}</p><h3>{panel === "events" ? "事件簿" : "人物谱"}</h3></div><button type="button" onClick={() => setPanel(null)} aria-label="关闭">×</button></div>
             {panel === "characters" ? (
               <div className="character-ledger">
                 {characters.map((item) => (

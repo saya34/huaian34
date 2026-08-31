@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 960" role="img" aria-labelledby="title desc">
+  <title id="title">栖珍阁掌柜宁砚书</title>
+  <desc id="desc">身着青金商装、手持漆面账册的仙侠商店老板娘全身立绘</desc>
+  <defs>
+    <linearGradient id="mist" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f3eee0" stop-opacity=".12"/>
+      <stop offset=".58" stop-color="#c9ddd2" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#879f94" stop-opacity=".08"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="35%" r="54%">
+      <stop offset="0" stop-color="#f5c982" stop-opacity=".48"/>
+      <stop offset=".55" stop-color="#76b7ab" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#274d4d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hair" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#101c22"/>
+      <stop offset=".5" stop-color="#203239"/>
+      <stop offset="1" stop-color="#081013"/>
+    </linearGradient>
+    <linearGradient id="skin" x1=".2" y1="0" x2=".8" y2="1">
+      <stop stop-color="#fff0dc"/>
+      <stop offset=".55" stop-color="#f1c9ad"/>
+      <stop offset="1" stop-color="#dca98f"/>
+    </linearGradient>
+    <linearGradient id="robe" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#183d43"/>
+      <stop offset=".42" stop-color="#245b5e"/>
+      <stop offset="1" stop-color="#102b32"/>
+    </linearGradient>
+    <linearGradient id="robeLight" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#3b8e85"/>
+      <stop offset="1" stop-color="#1d5458"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fff0ac"/>
+      <stop offset=".35" stop-color="#d6a753"/>
+      <stop offset=".7" stop-color="#8e5725"/>
+      <stop offset="1" stop-color="#f0ce78"/>
+    </linearGradient>
+    <linearGradient id="book" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#7c3327"/>
+      <stop offset=".5" stop-color="#3b1719"/>
+      <stop offset="1" stop-color="#1b1115"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-20%" width="160%" height="150%">
+      <feGaussianBlur stdDeviation="15"/>
+    </filter>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <ellipse cx="320" cy="465" rx="286" ry="390" fill="url(#halo)"/>
+  <path d="M38 790C130 737 220 779 310 754c92-25 176-78 292-8v139H38Z" fill="url(#mist)" filter="url(#soft)"/>
+  <ellipse cx="322" cy="900" rx="166" ry="28" fill="#071518" opacity=".33" filter="url(#shadow)"/>
+
+  <!-- hair mass and long back fall -->
+  <path d="M243 221c-47 45-55 142-44 234 8 72-38 197-55 278 35 31 78 24 113-10 18-18 37-64 51-108 16 64 37 112 77 132 39 20 81 4 104-32-48-91-59-178-53-273 7-109-22-192-89-229-36-20-74-13-104 8Z" fill="url(#hair)"/>
+  <path d="M218 310c-22 94 21 187-31 322" fill="none" stroke="#45606a" stroke-width="5" stroke-linecap="round" opacity=".42"/>
+  <path d="M417 307c20 113-15 227 42 351" fill="none" stroke="#3e5960" stroke-width="6" stroke-linecap="round" opacity=".35"/>
+
+  <!-- head, ears and neck -->
+  <path d="M281 347c4 33-3 60-18 80l57 44 57-44c-16-22-20-49-16-81Z" fill="url(#skin)"/>
+  <ellipse cx="247" cy="306" rx="17" ry="27" fill="#e4b296"/>
+  <ellipse cx="391" cy="306" rx="17" ry="27" fill="#e4b296"/>
+  <path d="M255 251c8-51 119-57 131 0l-7 83c-5 55-38 80-60 80-26 0-56-27-62-80Z" fill="url(#skin)"/>
+  <path d="M258 270c-4-46 23-84 61-85 40 0 72 30 70 81-29-5-50-26-62-50-13 30-36 45-69 54Z" fill="url(#hair)"/>
+  <path d="M275 305c11-7 23-7 34 0" fill="none" stroke="#28363a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M331 305c11-7 23-7 34 0" fill="none" stroke="#28363a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M285 310c7 7 14 7 20 0m34 0c8 7 15 7 21 0" fill="none" stroke="#315357" stroke-width="3" stroke-linecap="round"/>
+  <path d="M318 310c-3 14-5 27 2 31" fill="none" stroke="#c98d78" stroke-width="3" stroke-linecap="round"/>
+  <path d="M303 362c12 9 26 9 38 0" fill="none" stroke="#994f53" stroke-width="5" stroke-linecap="round"/>
+  <path d="M269 287c12-9 25-10 39-3m26-1c14-5 28-3 39 5" fill="none" stroke="#26353a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M265 337c-11-3-16-10-18-19m129 19c10-4 14-11 16-20" fill="none" stroke="#e9b397" stroke-width="4" opacity=".65"/>
+
+  <!-- jade hairpin and abacus charm -->
+  <path d="m256 209 143 25" stroke="url(#gold)" stroke-width="9" stroke-linecap="round"/>
+  <path d="M363 218c17-21 43-19 55-1-10 21-33 30-55 1Z" fill="#2eaaa4" stroke="#b7ddca" stroke-width="4" filter="url(#glow)"/>
+  <path d="M397 229c7 20 5 40 0 60" fill="none" stroke="#d8b660" stroke-width="3"/>
+  <rect x="384" y="283" width="29" height="37" rx="6" fill="#3b817c" stroke="#d6b368" stroke-width="3"/>
+  <path d="M390 293h17m-17 8h17m-17 8h17m-11-22v28m8-28v28" stroke="#f0cf77" stroke-width="2"/>
+
+  <!-- legs and shoes -->
+  <path d="M271 718c-4 70-10 129-31 181l54 3 28-173 30 174 55-4c-26-65-30-127-36-187Z" fill="#182d34"/>
+  <path d="M230 890c-22 8-36 22-35 35 33 12 69 12 103 0l-3-33Z" fill="#10191d" stroke="#b2884d" stroke-width="5"/>
+  <path d="M349 892v33c36 12 73 9 101-3-4-15-22-28-44-34Z" fill="#10191d" stroke="#b2884d" stroke-width="5"/>
+
+  <!-- robe body and skirt -->
+  <path d="M252 418c25-13 48-18 68-18s45 5 70 18l34 119-32 179c-42 32-102 42-149 6l-27-186Z" fill="url(#robe)"/>
+  <path d="M280 421 320 489l42-68 25 16-24 302c-26 12-59 12-87-2l-21-297Z" fill="url(#robeLight)"/>
+  <path d="m320 489-65-60-20 26 65 72h40l66-73-19-26Z" fill="#d8c7a0" opacity=".92"/>
+  <path d="m320 489-47-75m47 75 45-76" fill="none" stroke="url(#gold)" stroke-width="8"/>
+  <path d="M296 497h48l-8 49h-32Z" fill="#17363a" stroke="url(#gold)" stroke-width="5"/>
+  <path d="M294 552c-25 75-49 134-51 170 52 34 113 35 149-6-4-50-27-113-47-164Z" fill="#173b40" opacity=".58"/>
+  <path d="M264 696c36 23 78 28 117 3" fill="none" stroke="url(#gold)" stroke-width="6"/>
+  <path d="M283 576c-8 56-10 103-6 139m81-139c8 51 10 92 5 134" fill="none" stroke="#77a89d" stroke-width="3" opacity=".5"/>
+  <path d="M319 548v181" fill="none" stroke="#d2ad65" stroke-width="3" opacity=".7"/>
+
+  <!-- left arm holding ledger -->
+  <path d="M255 431c-42 8-65 34-82 84-13 38-25 77-18 108 14 17 35 19 50 4 18-29 25-75 41-105l37-47Z" fill="url(#robe)"/>
+  <path d="M175 597c15-1 30 8 37 23-7 28-31 43-51 23-15-15-4-37 14-46Z" fill="url(#skin)"/>
+  <path d="M141 523c38-12 82-3 119 21l-8 107c-44-24-81-28-117-15Z" fill="url(#book)" stroke="url(#gold)" stroke-width="7"/>
+  <path d="M198 532v107" stroke="#dcae61" stroke-width="4"/>
+  <path d="M150 550c15-3 29-1 40 4m-42 17c15-3 29-1 42 4m18-16c14-2 27 1 38 7m-38 15c14-2 26 1 37 7" stroke="#d5b77b" stroke-width="3" opacity=".65"/>
+  <path d="M172 612c-9-5-19-4-27 1m59 4c10-4 22 0 29 7" fill="none" stroke="#d99e83" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- right arm welcoming -->
+  <path d="M385 429c42 7 70 37 88 81 14 33 22 59 39 83l-44 37c-26-26-41-55-53-86l-58-65Z" fill="url(#robeLight)"/>
+  <path d="M458 613c22-17 47-39 71-49 14-6 31-3 36 6 5 10-5 18-18 24 18-3 33 0 36 10 4 11-12 18-31 20-27 3-45 16-65 28Z" fill="url(#skin)"/>
+  <path d="M456 599c20 7 35 22 43 43l-30 24c-22-15-35-32-40-53Z" fill="#1d4c50" stroke="url(#gold)" stroke-width="5"/>
+  <path d="M412 493c-5 42 13 80 39 111" fill="none" stroke="#79a99d" stroke-width="4" opacity=".5"/>
+
+  <!-- sash, keys and ornament -->
+  <path d="M242 531c52 18 106 19 159 0l4 37c-58 20-111 18-167-1Z" fill="#112b30" stroke="url(#gold)" stroke-width="5"/>
+  <circle cx="381" cy="562" r="12" fill="none" stroke="#e5c36f" stroke-width="5"/>
+  <path d="M381 574v54m0-22 17 8-8 16m-9-5-15 11" fill="none" stroke="#d8ad58" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M265 544c33 11 69 13 106 2" fill="none" stroke="#76b5aa" stroke-width="3" opacity=".7"/>
+
+  <!-- floating motes -->
+  <g fill="#f4cf78" filter="url(#glow)">
+    <circle cx="109" cy="355" r="4"/><circle cx="500" cy="288" r="5"/><circle cx="534" cy="451" r="3"/><circle cx="94" cy="708" r="5"/>
+  </g>
+  <g fill="none" stroke="#76c4b5" opacity=".55">
+    <path d="M109 355c15-18 24-40 22-65"/><path d="M500 288c17-10 28-25 32-45"/>
+  </g>
+</svg>

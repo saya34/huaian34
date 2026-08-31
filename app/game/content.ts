@@ -1,4 +1,5 @@
 import type { CharacterDefinition, CharacterMessageDefinition, EventDefinition, GiftDefinition, GlobalKeyDefinition, SceneDefinition } from "./types";
+import { SHOP_CHARACTERS, SHOP_EVENTS, SHOP_GIFTS, SHOP_MESSAGES, SHOP_SCENES } from "./shop-content";
 
 export const GLOBAL_KEYS: GlobalKeyDefinition[] = [
   { id: "memory.shen.hid_injury", name: "曾向沈清霜隐瞒伤势", category: "人物记忆", description: "示范由事件选项写入、并在后续对话中被人物提起的长期记忆。", initialValue: false, triggerMode: "manual", autoRules: [] },
@@ -557,6 +558,12 @@ export const EVENTS: EventDefinition[] = [
     nodes:{a:{id:"a",type:"line",speaker:"narrator",text:"第三只酒杯落回桌面，灯花恰在此时轻轻一爆。花照影没有再斟酒，只将自己的杯子推到你面前。",next:"b",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"soft_glow"},b:{id:"b",type:"line",speaker:"hua",text:"三杯都接得这样稳。那我接下来要说的话，你也得稳稳接住。",mood:"微醺",next:"c",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"heartbeat"},c:{id:"c",type:"choice",prompt:"她隔着摇曳灯火看向你。",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"heartbeat",options:[{id:"listen",label:"放下酒杯，认真听她说",next:"d",effects:[{type:"relationship",characterId:"hua",amount:8}]},{id:"closer",label:"将她的酒杯也一并饮尽",next:"e",effects:[{type:"relationship",characterId:"hua",amount:10}]}]},d:{id:"d",type:"line",speaker:"hua",text:"我见过很多人借酒说真话。可你清醒着听，反倒让我更安心。",mood:"动容",next:"end",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"soft_glow"},e:{id:"e",type:"line",speaker:"hua",text:"喝了我的酒，便算应下了。往后醉月楼最后一盏灯，都替你留着。",mood:"含笑",next:"end",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"heartbeat"},end:{id:"end",type:"end",summary:"酒香散尽时，你们之间多了一句不必说破的约定。",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"soft_glow"}},
   },
 ];
+
+SCENES.push(...SHOP_SCENES);
+GIFTS.push(...SHOP_GIFTS);
+CHARACTERS.push(...SHOP_CHARACTERS);
+CHARACTER_MESSAGES.push(...SHOP_MESSAGES);
+EVENTS.push(...SHOP_EVENTS);
 
 export const CHARACTER_MAP = Object.fromEntries(CHARACTERS.map((character) => [character.id, character])) as Record<(typeof CHARACTERS)[number]["id"], CharacterDefinition>;
 export const SCENE_MAP = Object.fromEntries(SCENES.map((scene) => [scene.id, scene])) as Record<(typeof SCENES)[number]["id"], SceneDefinition>;

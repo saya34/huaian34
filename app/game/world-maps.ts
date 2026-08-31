@@ -9,6 +9,7 @@ export const WORLD_MAPS:WorldMapDefinition[]=[
     {id:"lingxiao",name:"凌霄殿",subtitle:"宗门 · 云海之上",x:59,y:19,icon:"殿",sceneId:"lingxiao",unlocked:true},
     {id:"tavern",name:"醉月楼",subtitle:"山下 · 临水酒楼",x:61,y:73,icon:"酒",sceneId:"tavern",unlocked:true},
     {id:"market",name:"云州市集",subtitle:"每月十五 · 百宝云集",x:35,y:58,icon:"市",sceneId:"market",unlocked:true},
+    {id:"treasure-shop",name:"栖珍阁",subtitle:"常设商铺 · 买卖百物",x:43,y:67,icon:"珍",sceneId:"treasure-shop",unlocked:true},
     {id:"bedroom",name:"听云居",subtitle:"居所 · 静室练功",x:42,y:35,icon:"居",sceneId:"bedroom",unlocked:true},
     {id:"to-canglan",name:"沧澜渡",subtitle:"通往东方水域",x:18,y:30,icon:"舟",targetMapId:"canglan",unlocked:true},
     {id:"to-chixia",name:"赤霞关",subtitle:"通往西境荒域",x:82,y:85,icon:"关",targetMapId:"chixia",unlocked:true},

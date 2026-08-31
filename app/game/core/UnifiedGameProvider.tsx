@@ -47,7 +47,14 @@ function mergeSave(saved: UnifiedGameState | null) {
   return {
     ...base, ...saved, version: SAVE_VERSION,
     shared: { ...base.shared, ...saved.shared, items: { ...base.shared.items, ...saved.shared?.items, ...collectedQuestItems(saved.romance?.collectedEasterEggs) }, globalKeys: { ...base.shared.globalKeys, ...saved.shared?.globalKeys } },
-    romance: { ...base.romance, ...saved.romance, activeEvent: null },
+    romance: {
+      ...base.romance,
+      ...saved.romance,
+      relationships: { ...base.romance.relationships, ...saved.romance?.relationships },
+      inventory: { ...base.romance.inventory, ...saved.romance?.inventory },
+      flags: { ...base.romance.flags, ...saved.romance?.flags },
+      activeEvent: null,
+    },
     alchemy: { ...base.alchemy, ...saved.alchemy }, battle: normalizeMetaProgress({ ...base.battle, ...saved.battle }), dungeons: { ...base.dungeons, ...saved.dungeons },
   };
 }
@@ -132,8 +139,20 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
   const applyEffects = useCallback((effects: GameEffect[]) => setState((current) => effects.reduce((next, effect) => {
     if (effect.type === "add_currency") { const spiritStones = Math.max(0, next.shared.spiritStones + effect.amount); return { ...next, shared: { ...next.shared, spiritStones }, romance: { ...next.romance, spiritStones }, battle: { ...next.battle, spiritStones } }; }
     if (effect.type === "spend_stamina") { const stamina = Math.max(0, next.shared.stamina - effect.amount); return { ...next, shared: { ...next.shared, stamina }, romance: { ...next.romance, stamina } }; }
-    if (effect.type === "add_item") { const previous = next.shared.items[effect.item.itemId]; const item = { ...effect.item, amount: (previous?.amount ?? 0) + effect.item.amount }; const isAlchemyMaterial = MATERIALS.some((entry) => entry.id === item.itemId); return { ...next, shared: { ...next.shared, items: { ...next.shared.items, [item.itemId]: item } }, alchemy: isAlchemyMaterial ? { ...next.alchemy, materialCounts: { ...next.alchemy.materialCounts, [item.itemId]: (next.alchemy.materialCounts[item.itemId] ?? 0) + effect.item.amount } } : next.alchemy }; }
-    if (effect.type === "remove_item") { const previous = next.shared.items[effect.itemId]; if (!previous) return next; const amount = Math.max(0, previous.amount - effect.amount); const isAlchemyMaterial = MATERIALS.some((entry) => entry.id === effect.itemId); return { ...next, shared: { ...next.shared, items: { ...next.shared.items, [effect.itemId]: { ...previous, amount } } }, alchemy: isAlchemyMaterial ? { ...next.alchemy, materialCounts: { ...next.alchemy.materialCounts, [effect.itemId]: amount } } : next.alchemy }; }
+    if (effect.type === "add_item") {
+      const previous = next.shared.items[effect.item.itemId];
+      const item = { ...effect.item, amount: (previous?.amount ?? 0) + effect.item.amount };
+      const isAlchemyMaterial = MATERIALS.some((entry) => entry.id === item.itemId);
+      const romance = item.itemType === "gift" ? { ...next.romance, inventory: { ...next.romance.inventory, [item.itemId]: (next.romance.inventory[item.itemId] ?? 0) + effect.item.amount } } : next.romance;
+      return { ...next, romance, shared: { ...next.shared, items: { ...next.shared.items, [item.itemId]: item } }, alchemy: isAlchemyMaterial ? { ...next.alchemy, materialCounts: { ...next.alchemy.materialCounts, [item.itemId]: (next.alchemy.materialCounts[item.itemId] ?? 0) + effect.item.amount } } : next.alchemy };
+    }
+    if (effect.type === "remove_item") {
+      const previous = next.shared.items[effect.itemId]; if (!previous) return next;
+      const amount = Math.max(0, previous.amount - effect.amount);
+      const isAlchemyMaterial = MATERIALS.some((entry) => entry.id === effect.itemId);
+      const romance = previous.itemType === "gift" ? { ...next.romance, inventory: { ...next.romance.inventory, [effect.itemId]: amount } } : next.romance;
+      return { ...next, romance, shared: { ...next.shared, items: { ...next.shared.items, [effect.itemId]: { ...previous, amount } } }, alchemy: isAlchemyMaterial ? { ...next.alchemy, materialCounts: { ...next.alchemy.materialCounts, [effect.itemId]: amount } } : next.alchemy };
+    }
     if (effect.type === "add_card") { const cards = [...next.shared.cards, effect.card]; return { ...next, shared: { ...next.shared, cards }, romance: { ...next.romance, ownedCardIds: cards.map((card) => card.id) } }; }
     if (effect.type === "learn_skill") return { ...next, shared: { ...next.shared, learnedSkills: [...new Set([...next.shared.learnedSkills, effect.skillId])] } };
     if (effect.type === "add_relationship") return { ...next, romance: { ...next.romance, relationships: { ...next.romance.relationships, [effect.characterId]: Math.max(0, (next.romance.relationships[effect.characterId] ?? 0) + effect.amount) } } };
