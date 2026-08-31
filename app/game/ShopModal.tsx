@@ -61,7 +61,7 @@ export default function ShopModal({ gifts, events, relationship, onClose, onNoti
     const treasure = stack.itemType === "treasure" ? treasureById(treasureId) : null;
     const quest = questMap[stack.itemId];
     const name = gift?.name ?? alchemy?.name ?? treasure?.name ?? quest?.name ?? stack.itemId;
-    const image = gift?.image ?? alchemy?.image ?? treasure?.art ?? quest?.image ?? "/assets/shop/ning-shop-goods.png";
+    const image = gift?.image ?? alchemy?.image ?? treasure?.art ?? quest?.image ?? "/assets/shop/ning-shop-goods.jpg";
     const position = gift?.imagePosition;
     const baseValue = alchemy?.value ?? alchemy?.price ?? treasure?.value ?? (stack.rarity * stack.rarity * 45);
     return { name, image, position, value: Math.max(1, Math.floor(baseValue * .58)) };

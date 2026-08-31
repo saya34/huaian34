@@ -6,17 +6,17 @@ export const SHOP_SCENES: SceneDefinition[] = [{
   shortName: "商店",
   description: "云州市集最深处的百宝铺。货架上的灵光明灭有序，柜后那人比每件宝物都更难估价。",
   atmosphere: "灯暖 · 玉鸣",
-  image: "/assets/shop/qizhen-shop.png",
+  image: "/assets/shop/qizhen-shop.jpg",
   characters: ["ning"],
 }];
 
 export const SHOP_GIFTS: GiftDefinition[] = [
-  { id: "travelQiPill", name: "商旅回气丸", description: "走商常备的小丹丸，食用后恢复 3 点体力。", icon: "丹", tags: ["丹药", "恢复"], image: "/assets/shop/ning-shop-goods.png", imagePosition: "0% 0%", initialCount: 0, energyRestore: 3 },
-  { id: "cloudWard", name: "云纹护身符", description: "寻常黄符，纹路却画得一丝不苟。", icon: "符", tags: ["符箓", "平安"], image: "/assets/shop/ning-shop-goods.png", imagePosition: "50% 0%", initialCount: 0 },
-  { id: "jadeAbacusCharm", name: "青金算盘坠", description: "微型算盘珠会在月下自行拨动，似乎算着一笔未清的心账。", icon: "算", tags: ["饰物", "心意"], image: "/assets/shop/ning-shop-goods.png", imagePosition: "100% 0%", initialCount: 0 },
-  { id: "merfolkSilkSachet", name: "鲛绡清梦囊", description: "用一线鲛绡缝成，香气像雨后的远海。", icon: "绡", tags: ["香囊", "清雅"], image: "/assets/shop/ning-shop-goods.png", imagePosition: "0% 100%", initialCount: 0 },
-  { id: "moonwick", name: "月华灯芯", description: "能燃三夜的银白灯芯，适合送给总为人留灯的人。", icon: "灯", tags: ["灯火", "旧约"], image: "/assets/shop/ning-shop-goods.png", imagePosition: "50% 100%", initialCount: 0 },
-  { id: "treasureKeyTag", name: "百宝钥牌", description: "栖珍阁的黄铜钥牌，没有锁，却很适合挂在行囊上。", icon: "钥", tags: ["金石", "纪念"], image: "/assets/shop/ning-shop-goods.png", imagePosition: "100% 100%", initialCount: 0 },
+  { id: "travelQiPill", name: "商旅回气丸", description: "走商常备的小丹丸，食用后恢复 3 点体力。", icon: "丹", tags: ["丹药", "恢复"], image: "/assets/shop/ning-shop-goods.jpg", imagePosition: "0% 0%", initialCount: 0, energyRestore: 3 },
+  { id: "cloudWard", name: "云纹护身符", description: "寻常黄符，纹路却画得一丝不苟。", icon: "符", tags: ["符箓", "平安"], image: "/assets/shop/ning-shop-goods.jpg", imagePosition: "50% 0%", initialCount: 0 },
+  { id: "jadeAbacusCharm", name: "青金算盘坠", description: "微型算盘珠会在月下自行拨动，似乎算着一笔未清的心账。", icon: "算", tags: ["饰物", "心意"], image: "/assets/shop/ning-shop-goods.jpg", imagePosition: "100% 0%", initialCount: 0 },
+  { id: "merfolkSilkSachet", name: "鲛绡清梦囊", description: "用一线鲛绡缝成，香气像雨后的远海。", icon: "绡", tags: ["香囊", "清雅"], image: "/assets/shop/ning-shop-goods.jpg", imagePosition: "0% 100%", initialCount: 0 },
+  { id: "moonwick", name: "月华灯芯", description: "能燃三夜的银白灯芯，适合送给总为人留灯的人。", icon: "灯", tags: ["灯火", "旧约"], image: "/assets/shop/ning-shop-goods.jpg", imagePosition: "50% 100%", initialCount: 0 },
+  { id: "treasureKeyTag", name: "百宝钥牌", description: "栖珍阁的黄铜钥牌，没有锁，却很适合挂在行囊上。", icon: "钥", tags: ["金石", "纪念"], image: "/assets/shop/ning-shop-goods.jpg", imagePosition: "100% 100%", initialCount: 0 },
 ];
 
 export const SHOP_OFFERS = [
