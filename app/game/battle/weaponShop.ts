@@ -1,5 +1,5 @@
-import { RARITY_ORDER, type TreasureRarity } from "./expedition";
-import { CULTIVATOR_PACK_SIZE, findEquipmentPosition, organizeEquipment } from "./inventorySystem";
+import { RARITY_ORDER, type InventorySize, type TreasureRarity } from "./expedition";
+import { findEquipmentPosition, organizeEquipment } from "./inventorySystem";
 import { EQUIPMENT, equipmentById, equipmentValue, type EquipmentItem, type EquipmentPosition, type GearRarity } from "./progression";
 import { rollManagedEquipment, type WMConfig } from "./weaponManager";
 
@@ -10,6 +10,7 @@ export interface WeaponShopState {
 }
 
 export const EMPTY_WEAPON_SHOP: WeaponShopState = { weekKey: "", stock: [], buyback: [] };
+export const WEAPON_SHOP_GRID_SIZE: InventorySize = { columns: 10, rows: 10 };
 
 function hashText(value: string) {
   let hash = 2166136261;
@@ -31,21 +32,16 @@ function seededRandom(seed: number) {
   };
 }
 
-export function weaponShopWeekKey(now = new Date()) {
-  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const weekday = (monday.getDay() + 6) % 7;
-  monday.setDate(monday.getDate() - weekday);
-  const year = monday.getFullYear();
-  const month = String(monday.getMonth() + 1).padStart(2, "0");
-  const day = String(monday.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+export function weaponShopWeekNumber(gameDay: number) {
+  return Math.floor((Math.max(1, Math.floor(gameDay)) - 1) / 7) + 1;
 }
 
-export function nextWeaponShopRefresh(now = new Date()) {
-  const daysUntilMonday = (8 - (now.getDay() || 7)) % 7 || 7;
-  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilMonday);
-  next.setHours(0, 0, 0, 0);
-  return next;
+export function weaponShopWeekKey(gameDay: number) {
+  return `game-week-${weaponShopWeekNumber(gameDay)}`;
+}
+
+export function nextWeaponShopRefreshDay(gameDay: number) {
+  return weaponShopWeekNumber(gameDay) * 7 + 1;
 }
 
 function pickRarity(random: () => number, highestWave: number): TreasureRarity {
@@ -68,14 +64,14 @@ export function generateWeeklyWeaponStock(config: WMConfig, weekKey: string, hig
   };
   const stock: EquipmentItem[] = [];
   const positions: Record<string, EquipmentPosition> = {};
-  const targetCount = 7 + Math.floor(random() * 3);
-  for (let attempt = 0; attempt < 180 && stock.length < targetCount; attempt++) {
+  const targetCount = 20 + Math.floor(random() * 5);
+  for (let attempt = 0; attempt < 420 && stock.length < targetCount; attempt++) {
     const rarity = pickRarity(random, highestWave);
     const item = rollManagedEquipment(weaponConfig, Math.max(1, highestWave), rarity, attempt, random);
     if (!item || equipmentById(item.equipmentId).slot !== "weapon") continue;
     item.uid = `xuanfeng-${weekKey}-${stock.length}-${Math.floor(random() * 0xffffff).toString(36)}`;
     item.identified = random() >= .46;
-    const point = findEquipmentPosition(stock, positions, item, CULTIVATOR_PACK_SIZE);
+    const point = findEquipmentPosition(stock, positions, item, WEAPON_SHOP_GRID_SIZE);
     if (!point) continue;
     positions[item.uid] = point;
     stock.push(item);
@@ -86,8 +82,8 @@ export function generateWeeklyWeaponStock(config: WMConfig, weekKey: string, hig
   return stock;
 }
 
-export function ensureWeeklyWeaponShop(state: WeaponShopState | undefined, config: WMConfig, highestWave: number, playerLevel: number, now = new Date()) {
-  const weekKey = weaponShopWeekKey(now);
+export function ensureWeeklyWeaponShop(state: WeaponShopState | undefined, config: WMConfig, highestWave: number, playerLevel: number, gameDay: number) {
+  const weekKey = weaponShopWeekKey(gameDay);
   if (state?.weekKey === weekKey) return state;
   return { weekKey, stock: generateWeeklyWeaponStock(config, weekKey, highestWave, playerLevel), buyback: [] };
 }
@@ -101,8 +97,8 @@ export function normalizeWeaponShop(value: Partial<WeaponShopState> | null | und
   };
 }
 
-export function weaponGridPositions(items: EquipmentItem[]) {
-  return organizeEquipment(items, CULTIVATOR_PACK_SIZE) ?? {};
+export function weaponGridPositions(items: EquipmentItem[], size: InventorySize = WEAPON_SHOP_GRID_SIZE) {
+  return organizeEquipment(items, size) ?? {};
 }
 
 export function weaponPurchasePrice(item: EquipmentItem, buyback = false) {

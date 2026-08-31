@@ -15,6 +15,7 @@ type ShopModalProps = {
   gifts: GiftDefinition[];
   events: EventDefinition[];
   relationship: number;
+  initialDepartment?: "treasure" | "weapons";
   onClose: () => void;
   onNotice: (message: string) => void;
 };
@@ -24,9 +25,9 @@ const TYPE_LABELS: Record<UnifiedItemStack["itemType"], string> = {
 };
 const RARITY_COLORS = ["#aab5ad", "#7ebf8b", "#5faed0", "#a889ce", "#d59b54", "#e8c56c", "#f2df9b"];
 
-export default function ShopModal({ gifts, events, relationship, onClose, onNotice }: ShopModalProps) {
+export default function ShopModal({ gifts, events, relationship, initialDepartment = "treasure", onClose, onNotice }: ShopModalProps) {
   const { state, applyEffects, setBattle } = useUnifiedGame();
-  const [department, setDepartment] = useState<"treasure" | "weapons">("treasure");
+  const [department, setDepartment] = useState<"treasure" | "weapons">(initialDepartment);
   const [tab, setTab] = useState<"buy" | "sell">("buy");
   const [message, setMessage] = useState("万物有价，也总有人愿意给它第二个去处。");
   const giftMap = useMemo(() => Object.fromEntries(gifts.map((item) => [item.id, item])), [gifts]);

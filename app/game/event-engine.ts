@@ -19,7 +19,7 @@ export const INITIAL_STATE: GameState = {
   experience: 0,
   marketTreasures: {},
   activityNotices: [],
-  relationships: { shen: 4, su: 4, liu: 4, hua: 4, ning: 4 },
+  relationships: { shen: 4, su: 4, liu: 4, hua: 4, ning: 4, huo: 4 },
   inventory: { snowTea: 2, peachWine: 2, herbSachet: 2, goldHairpin: 2, osmanthusCake: 4, travelQiPill: 0, cloudWard: 0, jadeAbacusCharm: 0, merfolkSilkSachet: 0, moonwick: 0, treasureKeyTag: 0 },
   flags: {},
   announcedGlobalKeys: [],
