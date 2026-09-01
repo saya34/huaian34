@@ -7,6 +7,7 @@ import { DUNGEONS, type DungeonDefinition } from "./core/dungeons";
 import { useUnifiedGame } from "./core/UnifiedGameProvider";
 import { ITEM_TABLE, MATERIALS } from "./alchemy/item-data";
 import { fishingLocationById, type FishingLocationId } from "./fishing/fishing";
+import { miningLocationById, type MiningLocationId } from "./mining/mining";
 
 type Props = {
   sceneId: SceneId;
@@ -23,9 +24,10 @@ type Props = {
   onEnterDungeon?: (dungeon: DungeonDefinition) => void;
   onEnterAlchemy?: () => void;
   onEnterFishing?: (locationId: FishingLocationId, randomSpotId: string) => void;
+  onEnterMining?: (locationId: MiningLocationId, randomSpotId?: string) => void;
 };
 
-export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, period, day, inspectionHints, inspectionDays, onClose, onEnterScene, onTriggerMapEvent, onInspectScene, onEnterDungeon, onEnterAlchemy, onEnterFishing }: Props) {
+export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, period, day, inspectionHints, inspectionDays, onClose, onEnterScene, onTriggerMapEvent, onInspectScene, onEnterDungeon, onEnterAlchemy, onEnterFishing, onEnterMining }: Props) {
   const { state } = useUnifiedGame();
   const [currentMapId, setCurrentMapId] = useState<WorldMapId>("yunzhou");
   const [notice, setNotice] = useState("");
@@ -84,6 +86,9 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
         <span className="system-location-art"><img src="/assets/xuanhuo-furnace.webp" alt="" /></span>
         <em><strong>玄火丹炉</strong><small>炼丹 · 委托 · 太虚显化</small></em><b>炉</b>
       </button>}
+      {!inspectionMode && currentMapId === "yunzhou" && <button type="button" className="map-system-location mining-location" style={{ left: "84%", top: "60%" }} onClick={() => onEnterMining?.("yunzhou-mine")}>
+        <span className="system-location-art mining-location-art"><img src="/assets/item-atlases/atlas-ores.webp" alt="" /></span><em><strong>玄铁常明矿窟</strong><small>常驻矿洞 · 游戏日恢复</small></em><b>矿</b>
+      </button>}
       {!inspectionMode && mapDungeons.filter(dungeonIsVisible).map((dungeon) => {
         const locked = dungeon.kind === "permanent" && dungeon.waveId > state.dungeons.highestUnlocked;
         return <button type="button" key={dungeon.id} className={`map-dungeon-location ${dungeon.kind} ${locked ? "locked" : ""}`} style={{ left: `${dungeon.x}%`, top: `${dungeon.y}%` }} disabled={locked} onClick={() => setSelectedDungeon(dungeon)}>
@@ -93,6 +98,9 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
       })}
       {!inspectionMode && state.fishing.randomSpots.filter((spot) => spot.mapId === currentMapId && spot.spawnDay === day).map((spot, index) => { const location = fishingLocationById(spot.locationId); return <button type="button" key={spot.id} className="map-fishing-light" style={{ left: `${spot.x}%`, top: `${spot.y}%`, "--fish-delay": `${index * .24}s` } as React.CSSProperties} onClick={() => onEnterFishing?.(spot.locationId, spot.id)} aria-label={`前往随机钓点：${location?.name ?? "游光灵泉"}`}>
         <span className="map-fishing-flare"><b>渔</b><i /></span><em><strong>{location?.name ?? "游光灵泉"}</strong><small>随机钓点 · 收杆后消失</small></em>
+      </button>; })}
+      {!inspectionMode && state.mining.randomSpots.filter((spot) => spot.mapId === currentMapId && spot.spawnDay === day).map((spot, index) => { const location = miningLocationById(spot.locationId); return <button type="button" key={spot.id} className="map-mining-light" style={{ left: `${spot.x}%`, top: `${spot.y}%`, "--mine-delay": `${index * .2}s` } as React.CSSProperties} onClick={() => onEnterMining?.(spot.locationId, spot.id)} aria-label={`勘探随机矿脉：${location?.name ?? "游光矿脉"}`}>
+        <span className="map-mining-flare"><b>矿</b><i /></span><em><strong>{location?.name ?? "游光矿脉"}</strong><small>随机矿脉 · 耐久 {spot.durability}/{spot.maxDurability}</small></em>
       </button>; })}
       {!inspectionMode && visibleMapEvents.map((event, index) => <button type="button" key={event.id} className="map-event-cursor" style={{ left: `${event.mapEvent!.x}%`, top: `${event.mapEvent!.y}%`, "--event-delay": `${index * .18}s` } as React.CSSProperties} onClick={() => { onClose(); onTriggerMapEvent(event.id); }} aria-label={`触发地图事件：${event.title}`}>
         <span className="map-event-flare"><b>!</b><i /></span><em><strong>{event.title}</strong><small>待解异闻 · 完成前持续驻留</small></em>

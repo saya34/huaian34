@@ -1,5 +1,6 @@
 import { MATERIALS, type ElementType, type GameItem } from "../alchemy/item-data";
 import type { Period } from "../types";
+import { createInitialLivestock, normalizeLivestock, type LivestockProgress } from "./livestock";
 
 export type HerbCropId = "frost-heart" | "jade-lingzhi" | "mystic-algae" | "dragon-nightshade" | "golden-ginseng" | "fated-flower";
 
@@ -42,6 +43,7 @@ export type FarmProgress = {
   lastDewDay: number;
   waterDay: number;
   waterUsed: number;
+  livestock: LivestockProgress;
 };
 
 export type FarmWeather = {
@@ -73,6 +75,7 @@ export function createInitialFarm(): FarmProgress {
     lastDewDay: 0,
     waterDay: 1,
     waterUsed: 0,
+    livestock: createInitialLivestock(),
   };
 }
 
@@ -84,6 +87,7 @@ export function normalizeFarmProgress(value: Partial<FarmProgress> | null | unde
     ...value,
     plots: base.plots.map((plot) => ({ ...plot, ...(storedPlots.find((entry) => entry?.id === plot.id) ?? {}) })),
     seeds: { ...base.seeds, ...(value?.seeds ?? {}) },
+    livestock: normalizeLivestock(value?.livestock),
   };
 }
 

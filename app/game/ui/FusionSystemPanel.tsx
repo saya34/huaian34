@@ -12,6 +12,7 @@ import { SKILL_MANUALS } from "../battle/skillMastery";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import type { UnifiedItemStack, UnifiedItemType } from "../core/types";
 import { fishById } from "../fishing/fishing";
+import { livestockProductById } from "../farm/livestock";
 
 export type FusionPanelId = "profile" | "inventory" | "cards" | "skills" | "equipment";
 
@@ -34,6 +35,8 @@ function itemPresentation(stack: UnifiedItemStack): ItemPresentation {
   }
   const fish = stack.itemType === "fish" ? fishById(stack.itemId) : null;
   if (fish) return { name: fish.name, image: fish.art, description: fish.description, detail: `灵鱼图鉴 · 估值 ${fish.value} 灵石`, position: "center" };
+  const livestock = livestockProductById(stack.itemId);
+  if (livestock) return { name: livestock.productName, image: livestock.productArt, description: livestock.productDescription, detail: `灵兽苑产物 · 估值 ${livestock.productValue} 灵石`, position: "center" };
   return { name: stack.itemId, image: "/assets/xuanhuo-furnace.webp", description: "尚未录入万物志的特殊物品。", detail: TYPE_LABEL[stack.itemType], position: "center" };
 }
 

@@ -20,6 +20,7 @@ import {
   waterPlot,
   type HerbCropId,
 } from "./farm";
+import LivestockPanel from "./LivestockPanel";
 
 type Props = { day: number; period: Period; onNotice: (message: string) => void };
 
@@ -28,6 +29,7 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
   const [selectedCropId, setSelectedCropId] = useState<HerbCropId>("frost-heart");
   const [message, setMessage] = useState("选中种子后点击空田播种；生长期点击田块可浇灌。仙草按游戏内时辰成长。");
   const [seedShopOpen, setSeedShopOpen] = useState(false);
+  const [livestockOpen, setLivestockOpen] = useState(false);
   const tick = gameTick(day, period);
   const weather = getFarmWeather(day);
   const farm = state.farm;
@@ -140,9 +142,12 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
     announce("凝露培土完成 · 灵壤 +2 · 体力 -1");
   }
 
+  if (livestockOpen) return <LivestockPanel day={day} period={period} onBack={() => setLivestockOpen(false)} onNotice={onNotice} />;
+
   return <section className="spirit-farm-panel" aria-label="云岫灵圃">
     <header className="farm-status-bar">
-      <div><small>HERBAL CULTIVATION · 云岫灵圃</small><h3>灵田十二畦</h3></div>
+      <div><small>HERBAL CULTIVATION · 云岫灵圃</small><h3>灵田 · 灵兽苑</h3></div>
+      <nav className="farm-scene-tabs"><button type="button" className="active">灵田十二畦</button><button type="button" onClick={() => setLivestockOpen(true)}>灵兽苑</button></nav>
       <div className="farm-weather"><i>{weather.icon}</i><span><small>今日天时</small><strong>{weather.name}</strong><em>{weather.description}</em></span></div>
       <div className="farm-level"><span>灵圃 {level} 阶</span><b>{farm.experience} 修圃经验</b><i><u style={{ width: `${levelProfile.percentage}%` }} /></i><small>下阶 {levelProfile.current}/{levelProfile.needed}</small></div>
     </header>

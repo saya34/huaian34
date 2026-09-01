@@ -6,6 +6,7 @@ import type { MetaProgress } from "../battle/meta";
 import type { GameState } from "../types";
 import type { FarmProgress } from "../farm/farm";
 import type { FishingProgress } from "../fishing/fishing";
+import type { MiningProgress } from "../mining/mining";
 
 export const SAVE_VERSION = 2 as const;
 
@@ -75,6 +76,7 @@ export type UnifiedGameState = {
   battle: MetaProgress;
   farm: FarmProgress;
   fishing: FishingProgress;
+  mining: MiningProgress;
   dungeons: DungeonProgress;
 };
 

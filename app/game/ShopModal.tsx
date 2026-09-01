@@ -11,6 +11,7 @@ import { SHOP_GIFTS, SHOP_OFFERS } from "./shop-content";
 import type { EventDefinition, GiftDefinition } from "./types";
 import WeaponMerchantPanel from "./WeaponMerchantPanel";
 import { fishById } from "./fishing/fishing";
+import { livestockProductById } from "./farm/livestock";
 
 type ShopModalProps = {
   gifts: GiftDefinition[];
@@ -65,10 +66,11 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
     const treasure = stack.itemType === "treasure" ? treasureById(treasureId) : null;
     const quest = questMap[stack.itemId];
     const fish = stack.itemType === "fish" ? fishById(stack.itemId) : null;
-    const name = gift?.name ?? alchemy?.name ?? treasure?.name ?? quest?.name ?? fish?.name ?? stack.itemId;
-    const image = gift?.image ?? alchemy?.image ?? treasure?.art ?? quest?.image ?? fish?.art ?? "/assets/shop/ning-shop-goods.jpg";
+    const livestock = livestockProductById(stack.itemId);
+    const name = gift?.name ?? alchemy?.name ?? treasure?.name ?? quest?.name ?? fish?.name ?? livestock?.productName ?? stack.itemId;
+    const image = gift?.image ?? alchemy?.image ?? treasure?.art ?? quest?.image ?? fish?.art ?? livestock?.productArt ?? "/assets/shop/ning-shop-goods.jpg";
     const position = gift?.imagePosition;
-    const baseValue = alchemy?.value ?? alchemy?.price ?? treasure?.value ?? fish?.value ?? (stack.rarity * stack.rarity * 45);
+    const baseValue = alchemy?.value ?? alchemy?.price ?? treasure?.value ?? fish?.value ?? livestock?.productValue ?? (stack.rarity * stack.rarity * 45);
     return { name, image, position, value: Math.max(1, Math.floor(baseValue * .58)) };
   }
 
