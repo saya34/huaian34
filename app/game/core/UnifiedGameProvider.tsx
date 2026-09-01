@@ -5,6 +5,7 @@ import { MATERIALS } from "../alchemy/item-data";
 import { DEFAULT_META, normalizeMetaProgress } from "../battle/meta";
 import { EVENTS } from "../content";
 import { INITIAL_STATE } from "../event-engine";
+import { createInitialFarm, normalizeFarmProgress, type FarmProgress } from "../farm/farm";
 import { keyFor, LocalPlayerStateRepository } from "./player-state-repository";
 import { SAVE_VERSION, type AlchemyProgress, type GameEffect, type StateSetter, type UnifiedGameState } from "./types";
 
@@ -37,6 +38,7 @@ function cloneInitial(): UnifiedGameState {
       materialCounts: Object.fromEntries(MATERIALS.map((item) => [item.id, item.count])), productStacks: {}, characterCards: [], mythicRareUses: {}, marketOffers: [], manualRefreshCount: 0, refreshResetAt: 0, soldOutRefreshAt: 0, commissions: [], commissionRefreshAt: 0, discoveredRecipes: [],
     },
     battle: { ...DEFAULT_META, spiritStones: romance.spiritStones, baseAttributes: { ...DEFAULT_META.baseAttributes }, equipmentBag: DEFAULT_META.equipmentBag.map((item) => ({ ...item })), equipmentPositions: { ...DEFAULT_META.equipmentPositions }, personalBackpack: [], warehouse: [], equipped: {}, ownedCards: [], cardSlots: [null, null, null], attributeAllocation: { ...DEFAULT_META.attributeAllocation }, passiveRanks: {}, skillMastery: structuredClone(DEFAULT_META.skillMastery), wmDraft: structuredClone(DEFAULT_META.wmDraft), wmPublished: structuredClone(DEFAULT_META.wmPublished), weaponShop: { ...DEFAULT_META.weaponShop, stock: [], buyback: [] } },
+    farm: createInitialFarm(),
     dungeons: { highestUnlocked: 1, completed: [], randomVisible: [] },
   };
 }
@@ -55,7 +57,7 @@ function mergeSave(saved: UnifiedGameState | null) {
       flags: { ...base.romance.flags, ...saved.romance?.flags },
       activeEvent: null,
     },
-    alchemy: { ...base.alchemy, ...saved.alchemy }, battle: normalizeMetaProgress({ ...base.battle, ...saved.battle }), dungeons: { ...base.dungeons, ...saved.dungeons },
+    alchemy: { ...base.alchemy, ...saved.alchemy }, battle: normalizeMetaProgress({ ...base.battle, ...saved.battle }), farm: normalizeFarmProgress(saved.farm), dungeons: { ...base.dungeons, ...saved.dungeons },
   };
 }
 
@@ -65,6 +67,7 @@ type UnifiedContextValue = {
   setRomance: StateSetter<UnifiedGameState["romance"]>;
   setBattle: StateSetter<UnifiedGameState["battle"]>;
   setAlchemy: StateSetter<AlchemyProgress>;
+  setFarm: StateSetter<FarmProgress>;
   applyEffects: (effects: GameEffect[]) => void;
   resetGame: () => void;
 };
@@ -136,6 +139,11 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     return { ...current, alchemy, shared: { ...current.shared, items }, romance: { ...current.romance, alchemyResults, inventoryRarities: Object.fromEntries(Object.entries(items).map(([id, item]) => [id, item.rarity])) } };
   }), []);
 
+  const setFarm = useCallback<StateSetter<FarmProgress>>((action) => setState((current) => {
+    const farm = typeof action === "function" ? action(current.farm) : action;
+    return farm === current.farm ? current : { ...current, farm };
+  }), []);
+
   const applyEffects = useCallback((effects: GameEffect[]) => setState((current) => effects.reduce((next, effect) => {
     if (effect.type === "add_currency") { const spiritStones = Math.max(0, next.shared.spiritStones + effect.amount); return { ...next, shared: { ...next.shared, spiritStones }, romance: { ...next.romance, spiritStones }, battle: { ...next.battle, spiritStones } }; }
     if (effect.type === "spend_stamina") { const stamina = Math.max(0, next.shared.stamina - effect.amount); return { ...next, shared: { ...next.shared, stamina }, romance: { ...next.romance, stamina } }; }
@@ -177,7 +185,7 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     return next;
   }, current)), []);
 
-  const value = useMemo(() => ({ state, hydrated, setRomance, setBattle, setAlchemy, applyEffects, resetGame: () => setState(cloneInitial()) }), [applyEffects, hydrated, setAlchemy, setBattle, setRomance, state]);
+  const value = useMemo(() => ({ state, hydrated, setRomance, setBattle, setAlchemy, setFarm, applyEffects, resetGame: () => setState(cloneInitial()) }), [applyEffects, hydrated, setAlchemy, setBattle, setFarm, setRomance, state]);
   return <UnifiedGameContext.Provider value={value}>{children}</UnifiedGameContext.Provider>;
 }
 

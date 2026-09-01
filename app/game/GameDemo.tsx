@@ -39,6 +39,7 @@ import type { CharacterDefinition, CharacterId, CharacterMessageDefinition, Dial
 import { useUnifiedGame } from "./core/UnifiedGameProvider";
 import type { DungeonDefinition } from "./core/dungeons";
 import FusionSystemPanel, { type FusionPanelId } from "./ui/FusionSystemPanel";
+import SpiritFarmPanel from "./farm/SpiritFarmPanel";
 
 const PERIODS: Period[] = ["清晨", "黄昏", "夜晚"];
 
@@ -212,7 +213,7 @@ export default function GameDemo() {
     const definitions = [...SCENES.filter((item) => !ids.has(item.id)), ...managedScenes];
     return definitions.map((item) => ({ ...item, characters: characters.filter((character) => character.sceneId === item.id || character.appearances?.some((appearance)=>appearance.sceneId===item.id)).map((character) => character.id) }));
   }, [characters, managedScenes]);
-  const playableScenes = scenes.filter((item) => item.characters.length > 0 || item.id === "bedroom");
+  const playableScenes = scenes.filter((item) => item.characters.length > 0 || item.id === "bedroom" || item.id === "spirit-farm");
   const sceneMap = useMemo(() => Object.fromEntries(scenes.map((item) => [item.id, item])) as Record<string, SceneDefinition>, [scenes]);
   const gifts = useMemo(() => { const ids = new Set(managedGifts.map((item) => item.id)); return [...GIFTS.filter((item) => !ids.has(item.id)), ...managedGifts]; }, [managedGifts]);
   const giftMap = useMemo(() => Object.fromEntries(gifts.map((item) => [item.id, item])) as Record<string, GiftDefinition>, [gifts]);
@@ -648,13 +649,13 @@ export default function GameDemo() {
         ))}
       </section>
 
-      <section className={`stage ${isSpecialEvent ? "special-event-active" : ""} stage-fx-${stageEffect}`} style={{ backgroundImage: `url(${scene.image})` }}>
+      <section className={`stage ${scene.id === "spirit-farm" ? "farm-stage" : ""} ${isSpecialEvent ? "special-event-active" : ""} stage-fx-${stageEffect}`} style={{ backgroundImage: `url(${scene.image})` }}>
         {isSpecialEvent && <div key={`${activeDefinition?.id}-${activeDefinition?.openingEffect}`} className={`special-opening special-opening-${activeDefinition?.openingEffect ?? "none"}`} aria-hidden="true" />}
         <div className="stage-wash" aria-hidden="true" />
         <div className="scene-title"><p>{scene.atmosphere}</p><h2>{scene.name}</h2><span>{scene.description}</span></div>
         {activeFortuneSign&&activeFortuneSign.effect!=="none"&&<div className="fortune-buff-chip"><i>✦</i><span><small>今日金运 · {activeFortuneSign.rank}</small><strong>{activeFortuneSign.title}</strong><em>{fortuneEffectLabel(activeFortuneSign.effect).replace("金运 · ","")}</em></span></div>}
         {!game.activeEvent&&!activeExploration&&explorePoints.map((point)=>{const event=eventDefinitions.find((item)=>item.id===point.eventId);if(!event)return null;const egg=event.cardStyle==="easter_egg";return <button type="button" key={event.id} className={`explore-light ${egg?"easter-light":"trigger-light"}`} style={{left:`${point.x}%`,top:`${point.y}%`}} onClick={()=>setActiveExploration(event)} aria-label={egg?"发现彩蛋光点":"发现剧情光点"}><i/><span>{egg?"拾":"寻"}</span></button>})}
-        <aside className="present-characters" aria-label="当前在场人物">
+        {scene.id !== "spirit-farm" && <aside className="present-characters" aria-label="当前在场人物">
           <p>此间人物</p>
           {!activeCharacters.length && <span className="nobody-present">此时无人</span>}
           {activeCharacters.map((item) => (
@@ -663,7 +664,7 @@ export default function GameDemo() {
             </button>
           ))}
           {!game.activeEvent && <ActivityCards activities={availableActivities} completedIds={activeFortune?["daily-divination"]:[]} onOpen={openActivity} />}
-        </aside>
+        </aside>}
 
         {hasPresentCharacter && !isSpecialEvent && <div className="portrait-wrap" key={character.id}>
           <div className="portrait-halo" style={{ "--accent": character.accent } as React.CSSProperties} />
@@ -672,6 +673,7 @@ export default function GameDemo() {
         {isSpecialEvent && <div className="special-portrait-wrap" key={`${game.activeEvent?.eventId}-${game.activeEvent?.nodeId}`}><div className="special-portrait-aura" /><img src={specialPortrait} alt={`${character.name}特殊事件立绘`} /></div>}
         {hasPresentCharacter && <div className="character-plaque"><p>{character.role}</p><h3>{character.name}</h3><span>{currentStage.name} · 唤你「{currentStage.addressing}」</span></div>}
         {!game.activeEvent&&scene.id==="bedroom"&&<div className="bedroom-practice-card"><div className="bedroom-formation"><i/><i/><span>炁</span></div><p>PRIVATE CULTIVATION · 静室</p><h3>聚灵阵已启</h3><span>每次练功消耗 2 点体力，运转一周天需 1 秒。</span><div><b>修为 {game.experience}</b><b>体力 {game.stamina}/10</b></div><button type="button" disabled={game.stamina<2} onClick={()=>setCultivationOpen(true)}>{game.stamina<2?"体力不足":"入阵练功"}</button></div>}
+        {!game.activeEvent&&scene.id==="spirit-farm"&&<SpiritFarmPanel day={game.day} period={game.period} onNotice={setNotice}/>}
 
         {bondFeedback && bondFeedback.amount === 1 && <div key={bondFeedback.id} className="bond-gain-mini"><span>♥</span> 好感度 +1</div>}
         {bondFeedback && bondFeedback.amount > 1 && <div key={bondFeedback.id} className={`bond-gain-card ${bondFeedback.source?"fortune-boosted":""}`}><img src={characterMap[bondFeedback.characterId]?.image ?? character.image} alt="" /><div><p><strong>{characterMap[bondFeedback.characterId]?.name ?? bondFeedback.characterId}</strong>{bondFeeling(bondFeedback.amount)}</p><span>好感度提升</span>{bondFeedback.source&&<em>{bondFeedback.source}</em>}</div><b>+{bondFeedback.amount}</b><i>♥</i></div>}

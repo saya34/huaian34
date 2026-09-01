@@ -4,6 +4,7 @@ import type { DailyCommission, ProductStack } from "../alchemy/commissions";
 import type { MarketOffer } from "../alchemy/market";
 import type { MetaProgress } from "../battle/meta";
 import type { GameState } from "../types";
+import type { FarmProgress } from "../farm/farm";
 
 export const SAVE_VERSION = 2 as const;
 
@@ -71,6 +72,7 @@ export type UnifiedGameState = {
   romance: GameState;
   alchemy: AlchemyProgress;
   battle: MetaProgress;
+  farm: FarmProgress;
   dungeons: DungeonProgress;
 };
 

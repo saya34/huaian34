@@ -48,6 +48,15 @@ export const SCENES: SceneDefinition[] = [
     image: "/assets/scenes/lingxiao-hall.webp",
     characters: [],
   },
+  {
+    id: "spirit-farm",
+    name: "云岫灵圃",
+    shortName: "灵圃",
+    description: "宗门东麓的十二畦灵田，以山泉、天时与灵壤培育炼丹仙草。",
+    atmosphere: "土润 · 药香",
+    image: "/assets/maps/yunzhou-realm.webp",
+    characters: [],
+  },
 ];
 
 export const GIFTS: GiftDefinition[] = [
