@@ -10,6 +10,7 @@ import type { UnifiedItemStack } from "./core/types";
 import { SHOP_GIFTS, SHOP_OFFERS } from "./shop-content";
 import type { EventDefinition, GiftDefinition } from "./types";
 import WeaponMerchantPanel from "./WeaponMerchantPanel";
+import { fishById } from "./fishing/fishing";
 
 type ShopModalProps = {
   gifts: GiftDefinition[];
@@ -21,7 +22,7 @@ type ShopModalProps = {
 };
 
 const TYPE_LABELS: Record<UnifiedItemStack["itemType"], string> = {
-  gift: "礼物", material: "灵材", pill: "丹药", equipment: "法器", card: "人物卡", treasure: "宝物", quest: "剧情物品",
+  gift: "礼物", material: "灵材", pill: "丹药", equipment: "法器", card: "人物卡", treasure: "宝物", quest: "剧情物品", fish: "灵鱼",
 };
 const RARITY_COLORS = ["#aab5ad", "#7ebf8b", "#5faed0", "#a889ce", "#d59b54", "#e8c56c", "#f2df9b"];
 
@@ -63,10 +64,11 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
     const treasureId = stack.itemId.startsWith("treasure:") ? stack.itemId.slice(9) : stack.itemId;
     const treasure = stack.itemType === "treasure" ? treasureById(treasureId) : null;
     const quest = questMap[stack.itemId];
-    const name = gift?.name ?? alchemy?.name ?? treasure?.name ?? quest?.name ?? stack.itemId;
-    const image = gift?.image ?? alchemy?.image ?? treasure?.art ?? quest?.image ?? "/assets/shop/ning-shop-goods.jpg";
+    const fish = stack.itemType === "fish" ? fishById(stack.itemId) : null;
+    const name = gift?.name ?? alchemy?.name ?? treasure?.name ?? quest?.name ?? fish?.name ?? stack.itemId;
+    const image = gift?.image ?? alchemy?.image ?? treasure?.art ?? quest?.image ?? fish?.art ?? "/assets/shop/ning-shop-goods.jpg";
     const position = gift?.imagePosition;
-    const baseValue = alchemy?.value ?? alchemy?.price ?? treasure?.value ?? (stack.rarity * stack.rarity * 45);
+    const baseValue = alchemy?.value ?? alchemy?.price ?? treasure?.value ?? fish?.value ?? (stack.rarity * stack.rarity * 45);
     return { name, image, position, value: Math.max(1, Math.floor(baseValue * .58)) };
   }
 

@@ -6,6 +6,7 @@ import { DEFAULT_META, normalizeMetaProgress } from "../battle/meta";
 import { EVENTS } from "../content";
 import { INITIAL_STATE } from "../event-engine";
 import { createInitialFarm, normalizeFarmProgress, type FarmProgress } from "../farm/farm";
+import { createInitialFishing, normalizeFishingProgress, type FishingProgress } from "../fishing/fishing";
 import { keyFor, LocalPlayerStateRepository } from "./player-state-repository";
 import { SAVE_VERSION, type AlchemyProgress, type GameEffect, type StateSetter, type UnifiedGameState } from "./types";
 
@@ -39,6 +40,7 @@ function cloneInitial(): UnifiedGameState {
     },
     battle: { ...DEFAULT_META, spiritStones: romance.spiritStones, baseAttributes: { ...DEFAULT_META.baseAttributes }, equipmentBag: DEFAULT_META.equipmentBag.map((item) => ({ ...item })), equipmentPositions: { ...DEFAULT_META.equipmentPositions }, personalBackpack: [], warehouse: [], equipped: {}, ownedCards: [], cardSlots: [null, null, null], attributeAllocation: { ...DEFAULT_META.attributeAllocation }, passiveRanks: {}, skillMastery: structuredClone(DEFAULT_META.skillMastery), wmDraft: structuredClone(DEFAULT_META.wmDraft), wmPublished: structuredClone(DEFAULT_META.wmPublished), weaponShop: { ...DEFAULT_META.weaponShop, stock: [], buyback: [] } },
     farm: createInitialFarm(),
+    fishing: createInitialFishing(),
     dungeons: { highestUnlocked: 1, completed: [], randomVisible: [] },
   };
 }
@@ -57,7 +59,7 @@ function mergeSave(saved: UnifiedGameState | null) {
       flags: { ...base.romance.flags, ...saved.romance?.flags },
       activeEvent: null,
     },
-    alchemy: { ...base.alchemy, ...saved.alchemy }, battle: normalizeMetaProgress({ ...base.battle, ...saved.battle }), farm: normalizeFarmProgress(saved.farm), dungeons: { ...base.dungeons, ...saved.dungeons },
+    alchemy: { ...base.alchemy, ...saved.alchemy }, battle: normalizeMetaProgress({ ...base.battle, ...saved.battle }), farm: normalizeFarmProgress(saved.farm), fishing: normalizeFishingProgress(saved.fishing), dungeons: { ...base.dungeons, ...saved.dungeons },
   };
 }
 
@@ -68,6 +70,7 @@ type UnifiedContextValue = {
   setBattle: StateSetter<UnifiedGameState["battle"]>;
   setAlchemy: StateSetter<AlchemyProgress>;
   setFarm: StateSetter<FarmProgress>;
+  setFishing: StateSetter<FishingProgress>;
   applyEffects: (effects: GameEffect[]) => void;
   resetGame: () => void;
 };
@@ -144,6 +147,11 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     return farm === current.farm ? current : { ...current, farm };
   }), []);
 
+  const setFishing = useCallback<StateSetter<FishingProgress>>((action) => setState((current) => {
+    const fishing = typeof action === "function" ? action(current.fishing) : action;
+    return fishing === current.fishing ? current : { ...current, fishing };
+  }), []);
+
   const applyEffects = useCallback((effects: GameEffect[]) => setState((current) => effects.reduce((next, effect) => {
     if (effect.type === "add_currency") { const spiritStones = Math.max(0, next.shared.spiritStones + effect.amount); return { ...next, shared: { ...next.shared, spiritStones }, romance: { ...next.romance, spiritStones }, battle: { ...next.battle, spiritStones } }; }
     if (effect.type === "spend_stamina") { const stamina = Math.max(0, next.shared.stamina - effect.amount); return { ...next, shared: { ...next.shared, stamina }, romance: { ...next.romance, stamina } }; }
@@ -185,7 +193,7 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     return next;
   }, current)), []);
 
-  const value = useMemo(() => ({ state, hydrated, setRomance, setBattle, setAlchemy, setFarm, applyEffects, resetGame: () => setState(cloneInitial()) }), [applyEffects, hydrated, setAlchemy, setBattle, setFarm, setRomance, state]);
+  const value = useMemo(() => ({ state, hydrated, setRomance, setBattle, setAlchemy, setFarm, setFishing, applyEffects, resetGame: () => setState(cloneInitial()) }), [applyEffects, hydrated, setAlchemy, setBattle, setFarm, setFishing, setRomance, state]);
   return <UnifiedGameContext.Provider value={value}>{children}</UnifiedGameContext.Provider>;
 }
 

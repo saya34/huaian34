@@ -5,11 +5,12 @@ import type { MarketOffer } from "../alchemy/market";
 import type { MetaProgress } from "../battle/meta";
 import type { GameState } from "../types";
 import type { FarmProgress } from "../farm/farm";
+import type { FishingProgress } from "../fishing/fishing";
 
 export const SAVE_VERSION = 2 as const;
 
 export type UnifiedRarity = 1 | 2 | 3 | 4 | 5 | 6 | 7;
-export type UnifiedItemType = "gift" | "material" | "pill" | "equipment" | "card" | "treasure" | "quest";
+export type UnifiedItemType = "gift" | "material" | "pill" | "equipment" | "card" | "treasure" | "quest" | "fish";
 
 export type UnifiedItemStack = {
   itemId: string;
@@ -73,6 +74,7 @@ export type UnifiedGameState = {
   alchemy: AlchemyProgress;
   battle: MetaProgress;
   farm: FarmProgress;
+  fishing: FishingProgress;
   dungeons: DungeonProgress;
 };
 

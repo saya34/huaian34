@@ -40,6 +40,8 @@ import { useUnifiedGame } from "./core/UnifiedGameProvider";
 import type { DungeonDefinition } from "./core/dungeons";
 import FusionSystemPanel, { type FusionPanelId } from "./ui/FusionSystemPanel";
 import SpiritFarmPanel from "./farm/SpiritFarmPanel";
+import FishingModal from "./fishing/FishingModal";
+import { FISHING_LOCATIONS, ensureRandomFishingSpots, type FishingLocationId } from "./fishing/fishing";
 
 const PERIODS: Period[] = ["清晨", "黄昏", "夜晚"];
 
@@ -73,7 +75,7 @@ type ExplorePoint = { eventId: string; x: number; y: number };
 type InspectionReveal = { scene: SceneDefinition; event: EventDefinition | null };
 
 export default function GameDemo() {
-  const { state: unifiedState, setRomance: setGame, applyEffects: applyUnifiedEffects, hydrated, resetGame } = useUnifiedGame();
+  const { state: unifiedState, setRomance: setGame, setFishing, applyEffects: applyUnifiedEffects, hydrated, resetGame } = useUnifiedGame();
   const game = unifiedState.romance;
   const [eventDefinitions, setEventDefinitions] = useState<EventDefinition[]>(EVENTS);
   const [definitionsReady, setDefinitionsReady] = useState(false);
@@ -91,6 +93,7 @@ export default function GameDemo() {
   const [cultivationOpen,setCultivationOpen]=useState(false);
   const [inspectionReveal,setInspectionReveal]=useState<InspectionReveal|null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  const [fishingTarget, setFishingTarget] = useState<{ locationId: FishingLocationId; randomSpotId?: string } | null>(null);
   const [activeModule, setActiveModule] = useState<{ kind: "battle"; dungeon: DungeonDefinition } | { kind: "alchemy" } | null>(null);
   const [systemPanel, setSystemPanel] = useState<FusionPanelId | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -134,6 +137,12 @@ export default function GameDemo() {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = previousBodyOverflow; };
   }, [activeModule]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const timer = window.setTimeout(() => setFishing((current) => ensureRandomFishingSpots(current, game.day, unifiedState.dungeons.highestUnlocked)), 0);
+    return () => window.clearTimeout(timer);
+  }, [game.day, hydrated, setFishing, unifiedState.dungeons.highestUnlocked]);
 
   useEffect(()=>{
     try{const saved=window.localStorage.getItem(FORTUNE_STORAGE_KEY);if(saved)setFortuneHistory(JSON.parse(saved))}catch{/* A malformed fortune record should not block the game. */}
@@ -297,6 +306,7 @@ export default function GameDemo() {
   }, [contentReady, definitionsReady, eventDefinitions, game.activeEvent, game.calendarEventRuns, game.completedEvents, game.day, game.flags, game.period, game.relationships, hydrated]);
 
   const baseScene = sceneMap[game.sceneId] ?? playableScenes[0] ?? scenes[0];
+  const residentFishingLocation = FISHING_LOCATIONS.find((location) => location.kind === "resident" && location.sceneId === game.sceneId);
   const scene = resolveSceneVariant(baseScene, game);
   const presentIds = game.presentCharacters[scene.id] ?? scene.characters.filter((id)=>{const item=characterMap[id];const appearances=item?.appearances?.filter((entry)=>entry.sceneId===scene.id);return appearances?.length?appearances.some((entry)=>entry.mode==="resident"):((item?.presence?.mode??"resident")==="resident")});
   const activeCharacters = presentIds.map((id) => characterMap[id]).filter(Boolean);
@@ -655,6 +665,7 @@ export default function GameDemo() {
         <div className="scene-title"><p>{scene.atmosphere}</p><h2>{scene.name}</h2><span>{scene.description}</span></div>
         {activeFortuneSign&&activeFortuneSign.effect!=="none"&&<div className="fortune-buff-chip"><i>✦</i><span><small>今日金运 · {activeFortuneSign.rank}</small><strong>{activeFortuneSign.title}</strong><em>{fortuneEffectLabel(activeFortuneSign.effect).replace("金运 · ","")}</em></span></div>}
         {!game.activeEvent&&!activeExploration&&explorePoints.map((point)=>{const event=eventDefinitions.find((item)=>item.id===point.eventId);if(!event)return null;const egg=event.cardStyle==="easter_egg";return <button type="button" key={event.id} className={`explore-light ${egg?"easter-light":"trigger-light"}`} style={{left:`${point.x}%`,top:`${point.y}%`}} onClick={()=>setActiveExploration(event)} aria-label={egg?"发现彩蛋光点":"发现剧情光点"}><i/><span>{egg?"拾":"寻"}</span></button>})}
+        {!game.activeEvent && !activeExploration && residentFishingLocation && <button type="button" className="resident-fishing-point" onClick={() => setFishingTarget({ locationId: residentFishingLocation.id })} aria-label={`在${residentFishingLocation.name}钓鱼`}><span><b>钓</b><i /></span><em><strong>{residentFishingLocation.name}</strong><small>常驻钓点 · 今日可钓 {Math.max(0, 6 - (unifiedState.fishing.dailyDay === game.day ? unifiedState.fishing.dailyAttempts : 0))} 竿</small></em></button>}
         {scene.id !== "spirit-farm" && <aside className="present-characters" aria-label="当前在场人物">
           <p>此间人物</p>
           {!activeCharacters.length && <span className="nobody-present">此时无人</span>}
@@ -728,7 +739,8 @@ export default function GameDemo() {
         <button type="button" className={systemPanel === "equipment" ? "active" : ""} onClick={() => setSystemPanel("equipment")}><i>器</i><span>法器阁</span></button>
       </nav>
 
-      {mapOpen && <WorldMapModal sceneId={game.sceneId} sceneEventHints={sceneEventHints} mapEvents={visibleMapEvents} period={game.period} day={game.day} inspectionHints={inspectionHints} inspectionDays={game.sceneInspectionDays} onClose={() => setMapOpen(false)} onEnterScene={enterScene} onTriggerMapEvent={triggerMapEvent} onInspectScene={inspectScene} onEnterDungeon={(dungeon) => { setActiveModule({ kind: "battle", dungeon }); setMapOpen(false); }} onEnterAlchemy={() => { setActiveModule({ kind: "alchemy" }); setMapOpen(false); }} />}
+      {mapOpen && <WorldMapModal sceneId={game.sceneId} sceneEventHints={sceneEventHints} mapEvents={visibleMapEvents} period={game.period} day={game.day} inspectionHints={inspectionHints} inspectionDays={game.sceneInspectionDays} onClose={() => setMapOpen(false)} onEnterScene={enterScene} onTriggerMapEvent={triggerMapEvent} onInspectScene={inspectScene} onEnterDungeon={(dungeon) => { setActiveModule({ kind: "battle", dungeon }); setMapOpen(false); }} onEnterAlchemy={() => { setActiveModule({ kind: "alchemy" }); setMapOpen(false); }} onEnterFishing={(locationId, randomSpotId) => { setFishingTarget({ locationId, randomSpotId }); setMapOpen(false); }} />}
+      {fishingTarget && <FishingModal locationId={fishingTarget.locationId} randomSpotId={fishingTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setFishingTarget(null)} onNotice={setNotice} />}
       {systemPanel && <FusionSystemPanel panel={systemPanel} onClose={() => setSystemPanel(null)} />}
       {activeModule && <div className={`fusion-module-backdrop module-${activeModule.kind}`} role="presentation"><section className="fusion-module-window" role="dialog" aria-modal="true" aria-label={activeModule.kind === "battle" ? `${activeModule.dungeon.name}秘境战斗` : "玄火丹炉"}>
         <header><button type="button" onClick={() => setActiveModule(null)} aria-label="返回当前场景">‹</button><div><small>{activeModule.kind === "battle" ? "山河地图 · 秘境投影" : "云州山河 · 常驻生产场景"}</small><strong>{activeModule.kind === "battle" ? activeModule.dungeon.name : "玄火丹炉"}</strong></div><span><b>{game.period}</b><i />灵石 {unifiedState.shared.spiritStones.toLocaleString()}</span></header>
