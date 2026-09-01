@@ -33,7 +33,17 @@ export type RandomFishingSpot = {
   spawnDay: number;
 };
 
+export type PendingFishingCast = {
+  locationId: FishingLocationId;
+  randomSpotId?: string;
+  baitId: BaitId;
+  fishId: string;
+  castedAtTick: number;
+  seed: string;
+};
+
 export type FishingProgress = {
+  rods: number;
   baits: Record<BaitId, number>;
   dailyDay: number;
   dailyAttempts: number;
@@ -41,6 +51,7 @@ export type FishingProgress = {
   records: Record<string, number>;
   randomSpots: RandomFishingSpot[];
   lastSpawnDay: number;
+  pendingCast: PendingFishingCast | null;
 };
 
 export const DAILY_CAST_LIMIT = 6;
@@ -89,7 +100,7 @@ export const FISHING_LOCATIONS: FishingLocation[] = [
 export const fishingLocationById = (id: string) => FISHING_LOCATIONS.find((location) => location.id === id);
 
 export function createInitialFishing(): FishingProgress {
-  return { baits: { "spirit-worm": 8, "jade-lure": 2, "star-bait": 0 }, dailyDay: 1, dailyAttempts: 0, totalCaught: 0, records: {}, randomSpots: [], lastSpawnDay: 0 };
+  return { rods: 8, baits: { "spirit-worm": 8, "jade-lure": 2, "star-bait": 0 }, dailyDay: 1, dailyAttempts: 0, totalCaught: 0, records: {}, randomSpots: [], lastSpawnDay: 0, pendingCast: null };
 }
 
 export function normalizeFishingProgress(value?: Partial<FishingProgress> | null): FishingProgress {
@@ -149,19 +160,34 @@ export function rollFish(location: FishingLocation, baitId: BaitId, seed: string
   return fishById(pool.at(-1)?.fishId ?? "") ?? FISH[0];
 }
 
-export function resolveFishingAttempt(progress: FishingProgress, day: number, baitId: BaitId, fishId: string, success: boolean, randomSpotId?: string) {
+// Mirrors the reference reducer order: validate the wharf, consume rod + bait,
+// then persist the pending catch. Reeling is a separate transaction.
+export function castFishing(progress: FishingProgress, input: { day: number; tick: number; location: FishingLocation; baitId: BaitId; randomSpotId?: string }) {
+  const { day, tick, location, baitId, randomSpotId } = input;
   const current = resetFishingDay(progress, day);
-  if ((current.baits[baitId] ?? 0) <= 0 || current.dailyAttempts >= DAILY_CAST_LIMIT) return current;
-  return {
-    ...current,
-    baits: { ...current.baits, [baitId]: Math.max(0, current.baits[baitId] - 1) },
-    dailyAttempts: current.dailyAttempts + 1,
-    totalCaught: current.totalCaught + (success ? 1 : 0),
-    records: success ? { ...current.records, [fishId]: (current.records[fishId] ?? 0) + 1 } : current.records,
-    randomSpots: randomSpotId ? current.randomSpots.filter((spot) => spot.id !== randomSpotId) : current.randomSpots,
-  };
+  if (current.pendingCast) return { progress: current, ok: false as const, message: "已有一竿尚未收线" };
+  if (current.dailyAttempts >= DAILY_CAST_LIMIT) return { progress: current, ok: false as const, message: "今日垂钓次数已经用尽" };
+  if (current.rods <= 0) return { progress: current, ok: false as const, message: "灵木钓竿已经用尽" };
+  if ((current.baits[baitId] ?? 0) <= 0) return { progress: current, ok: false as const, message: `没有${BAITS[baitId].name}了` };
+  if (randomSpotId && !current.randomSpots.some((spot) => spot.id === randomSpotId)) return { progress: current, ok: false as const, message: "这处游光钓点已经消散" };
+  const seed = `${day}:${tick}:${location.id}:${current.totalCaught}:${current.dailyAttempts}:${baitId}`;
+  const fish = rollFish(location, baitId, seed);
+  const pendingCast: PendingFishingCast = { locationId: location.id, randomSpotId, baitId, fishId: fish.id, castedAtTick: tick, seed };
+  return { ok: true as const, catch: pendingCast, progress: { ...current, rods: current.rods - 1, baits: { ...current.baits, [baitId]: current.baits[baitId] - 1 }, dailyAttempts: current.dailyAttempts + 1, pendingCast } };
 }
 
-export function commitFishingCatch(progress: FishingProgress, fishId: string) {
-  return { ...progress, totalCaught: progress.totalCaught + 1, records: { ...progress.records, [fishId]: (progress.records[fishId] ?? 0) + 1 } };
+export function reelFishing(progress: FishingProgress, success: boolean) {
+  const pending = progress.pendingCast;
+  if (!pending) return { progress, ok: false as const, message: "当前没有等待收线的鱼竿" };
+  return {
+    ok: true as const,
+    fishId: pending.fishId,
+    progress: {
+      ...progress,
+      pendingCast: null,
+      totalCaught: progress.totalCaught + (success ? 1 : 0),
+      records: success ? { ...progress.records, [pending.fishId]: (progress.records[pending.fishId] ?? 0) + 1 } : progress.records,
+      randomSpots: pending.randomSpotId ? progress.randomSpots.filter((spot) => spot.id !== pending.randomSpotId) : progress.randomSpots,
+    },
+  };
 }

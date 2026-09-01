@@ -6,11 +6,11 @@ import {
   BAITS,
   DAILY_CAST_LIMIT,
   FISH,
-  commitFishingCatch,
+  castFishing,
+  fishById,
   fishingLocationById,
+  reelFishing,
   resetFishingDay,
-  resolveFishingAttempt,
-  rollFish,
   weightedPool,
   type BaitId,
   type FishDefinition,
@@ -42,10 +42,12 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
   const { state, setFishing, applyEffects } = useUnifiedGame();
   const location = fishingLocationById(locationId)!;
   const progress = resetFishingDay(state.fishing, day);
+  const tick = (Math.max(1, day) - 1) * 3 + Math.max(0, ["清晨", "黄昏", "夜晚"].indexOf(period));
+  const resumedCast = progress.pendingCast?.locationId === locationId ? progress.pendingCast : null;
   const [baitId, setBaitId] = useState<BaitId>("spirit-worm");
-  const [phase, setPhase] = useState<Phase>("ready");
-  const [target, setTarget] = useState<FishDefinition | null>(null);
-  const [path, setPath] = useState<number[]>([]);
+  const [phase, setPhase] = useState<Phase>(resumedCast ? "reeling" : "ready");
+  const [target, setTarget] = useState<FishDefinition | null>(resumedCast ? fishById(resumedCast.fishId) ?? null : null);
+  const [path, setPath] = useState<number[]>(resumedCast ? makePath(`${resumedCast.seed}:${resumedCast.fishId}`) : []);
   const [row, setRow] = useState(0);
   const [focus, setFocus] = useState(3);
   const [revealed, setRevealed] = useState<Record<string, "right" | "wrong">>({});
@@ -60,15 +62,23 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
     onNotice(`购得${BAITS[id].name} ×1`);
   }
 
+  function buyRods(quantity: number) {
+    const cost = quantity * 28;
+    if (state.shared.spiritStones < cost) { onNotice(`灵石不足，补充钓竿需要 ${cost} 枚。`); return; }
+    applyEffects([{ type: "add_currency", amount: -cost }]);
+    setFishing((current) => ({ ...current, rods: current.rods + quantity }));
+    onNotice(`补充灵木钓竿 ×${quantity}`);
+  }
+
   function castRod() {
-    if (attemptsLeft <= 0) { onNotice("今日心神已疲，明日再来垂钓。 "); return; }
-    if ((progress.baits[baitId] ?? 0) <= 0) { onNotice(`没有${BAITS[baitId].name}了，可在下方补购。`); return; }
-    const seed = `${day}:${period}:${location.id}:${progress.totalCaught}:${progress.dailyAttempts}:${baitId}`;
-    const fish = rollFish(location, baitId, seed);
+    const cast = castFishing(progress, { day, tick, location, baitId, randomSpotId });
+    if (!cast.ok) { onNotice(cast.message); return; }
+    const fish = fishById(cast.catch.fishId)!;
     setTarget(fish);
-    setPath(makePath(`${seed}:${fish.id}`));
+    setPath(makePath(`${cast.catch.seed}:${fish.id}`));
     setPhase("reeling"); setRow(0); setFocus(3); setRevealed({});
-    setFishing((current) => resolveFishingAttempt(current, day, baitId, fish.id, false, randomSpotId));
+    setFishing(cast.progress);
+    onNotice(`抛竿入水 · 消耗灵木钓竿与${BAITS[baitId].name}各 1`);
   }
 
   function chooseRipple(column: number) {
@@ -80,7 +90,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
       setRevealed(nextRevealed);
       if (row === path.length - 1) {
         setPhase("success");
-        setFishing((current) => commitFishingCatch(current, target.id));
+        setFishing((current) => reelFishing(current, true).progress);
         applyEffects([
           { type: "add_item", item: { itemId: target.id, itemType: "fish", rarity: target.rarity, amount: 1, sourceTags: [location.name, location.kind === "random" ? "游光钓点" : "常驻钓点"] } },
           { type: "add_player_exp", amount: target.rarity * 3 },
@@ -91,7 +101,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
       const nextFocus = focus - 1;
       setRevealed((current) => ({ ...current, [key]: "wrong" }));
       setFocus(nextFocus);
-      if (nextFocus <= 0) { setPhase("failed"); onNotice("灵线三度失衡，鱼影挣脱了。 "); }
+      if (nextFocus <= 0) { setPhase("failed"); setFishing((current) => reelFishing(current, false).progress); onNotice("灵线三度失衡，收杆结算后鱼影挣脱了。 "); }
     }
   }
 
@@ -99,7 +109,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
     <section className="fishing-window" role="dialog" aria-modal="true" aria-label={`${location.name}钓鱼`} onMouseDown={(event) => event.stopPropagation()}>
       <header className="fishing-heading">
         <div><small>SPIRIT ANGLING · {location.kind === "random" ? "游光灵泉" : "常驻鱼场"}</small><h2>{location.name}</h2><p>{location.subtitle} · 第 {day} 日 {period}</p></div>
-        <div className="fishing-attempts"><span>今日定力</span><strong>{attemptsLeft}<small> / {DAILY_CAST_LIMIT}</small></strong></div>
+        <div className="fishing-attempts"><span>今日抛竿</span><strong>{attemptsLeft}<small> / {DAILY_CAST_LIMIT}</small></strong><em>钓竿 {progress.rods}</em></div>
         <button type="button" onClick={onClose} aria-label="离开钓点">×</button>
       </header>
 
@@ -119,7 +129,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
             <div className="fishing-water-orb"><i /><span>钓</span><b /></div>
             <h3>择饵听澜</h3><p>{location.kind === "random" ? "这处游光只容一次抛竿；无论得失，收线后光点都会散去。" : "水面灵息平稳，可以反复垂钓，直到今日定力耗尽。"}</p>
             <div className="bait-selector">{(Object.keys(BAITS) as BaitId[]).map((id) => <button key={id} className={baitId === id ? "active" : ""} onClick={() => setBaitId(id)}><b>{BAITS[id].icon}</b><span><strong>{BAITS[id].name}</strong><small>持有 {progress.baits[id] ?? 0}</small></span></button>)}</div>
-            <button className="cast-rod-button" type="button" disabled={attemptsLeft <= 0 || (progress.baits[baitId] ?? 0) <= 0} onClick={castRod}><span>消耗 1 枚{BAITS[baitId].name}</span><strong>抛 竿 入 境</strong></button>
+            <button className="cast-rod-button" type="button" disabled={attemptsLeft <= 0 || progress.rods <= 0 || (progress.baits[baitId] ?? 0) <= 0} onClick={castRod}><span>消耗钓竿与{BAITS[baitId].name}各 1</span><strong>抛 竿 入 境</strong></button>
           </div>}
 
           {phase === "reeling" && target && <div className="fishing-puzzle">
@@ -138,7 +148,8 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
         </main>
 
         <aside className="bait-shop-panel">
-          <header><span>行脚渔篓</span><small>随时补充鱼饵</small></header>
+          <header><span>行脚渔篓</span><small>补充钓竿与鱼饵</small></header>
+          <article className="rod-supply"><b>竿</b><div><strong>灵木钓竿</strong><p>每次抛竿消耗一柄</p><small>现有 {progress.rods}</small></div><button type="button" onClick={() => buyRods(3)}>◉ 84</button></article>
           {(Object.keys(BAITS) as BaitId[]).map((id) => <article key={id}><b>{BAITS[id].icon}</b><div><strong>{BAITS[id].name}</strong><p>{BAITS[id].description}</p><small>现有 {progress.baits[id] ?? 0}</small></div><button type="button" onClick={() => buyBait(id)}>◉ {BAITS[id].price}</button></article>)}
           <footer><span>当前灵石</span><strong>◉ {state.shared.spiritStones.toLocaleString()}</strong></footer>
         </aside>

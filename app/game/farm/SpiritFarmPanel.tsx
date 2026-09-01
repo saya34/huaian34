@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import type { Period } from "../types";
 import {
-  DAILY_WATER_CHARGES,
   HERB_CROPS,
   cropById,
   cropMaterial,
@@ -16,8 +15,9 @@ import {
   harvestPlot,
   plantPlot,
   plotGrowth,
+  supportedPlotCount,
   unlockedPlotCount,
-  waterPlot,
+  upgradeSpiritWell,
   type HerbCropId,
 } from "./farm";
 import LivestockPanel from "./LivestockPanel";
@@ -27,7 +27,8 @@ type Props = { day: number; period: Period; onNotice: (message: string) => void 
 export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
   const { state, setFarm, applyEffects } = useUnifiedGame();
   const [selectedCropId, setSelectedCropId] = useState<HerbCropId>("frost-heart");
-  const [message, setMessage] = useState("选中种子后点击空田播种；生长期点击田块可浇灌。仙草按游戏内时辰成长。");
+  const [message, setMessage] = useState("选中灵种后直接点击空田播种；成熟后再次点击即可收获。仙草只随游戏内时辰成长。");
+  const [plotFx, setPlotFx] = useState<{ id: string; kind: "plant" | "harvest" | "fertilize" } | null>(null);
   const [seedShopOpen, setSeedShopOpen] = useState(false);
   const [livestockOpen, setLivestockOpen] = useState(false);
   const tick = gameTick(day, period);
@@ -36,7 +37,7 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
   const levelProfile = farmLevelProgress(farm.experience);
   const level = levelProfile.level;
   const unlockedPlots = unlockedPlotCount(level);
-  const waterUsed = farm.waterDay === day ? farm.waterUsed : 0;
+  const supportedPlots = supportedPlotCount(farm.wellLevel);
   const selectedCrop = cropById(selectedCropId);
 
   const readyCount = useMemo(() => farm.plots.filter((plot) => plotGrowth(plot, tick, weather).ready).length, [farm.plots, tick, weather]);
@@ -47,28 +48,27 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
     onNotice(copy);
   }
 
+  function pulsePlot(id: string, kind: "plant" | "harvest" | "fertilize") {
+    setPlotFx({ id, kind });
+    window.setTimeout(() => setPlotFx((current) => current?.id === id ? null : current), 720);
+  }
+
   function plant(plotId: string) {
     const result = plantPlot(farm, plotId, selectedCropId, tick);
     if (!result.ok) { setMessage(result.message); return; }
-    setFarm(result.farm); announce(`${result.message} · ${selectedCrop.growTicks} 时辰内成熟`);
-  }
-
-  function water(plotId: string) {
-    const result = waterPlot(farm, plotId, day);
-    if (!result.ok) { setMessage(result.message); return; }
-    setFarm(result.farm); announce(result.message);
+    setFarm(result.farm); pulsePlot(plotId, "plant"); announce(`${result.message} · ${selectedCrop.growTicks} 时辰内成熟`);
   }
 
   function fertilize(plotId: string) {
     const result = fertilizePlot(farm, plotId);
     if (!result.ok) { setMessage(result.message); return; }
-    setFarm(result.farm); announce(result.message);
+    setFarm(result.farm); pulsePlot(plotId, "fertilize"); announce(result.message);
   }
 
   function harvest(plotId: string) {
     const result = harvestPlot(farm, plotId, tick, day);
     if (!result.ok) { setMessage(result.message); return; }
-    setFarm(result.farm);
+    setFarm(result.farm); pulsePlot(plotId, "harvest");
     applyEffects([{ type: "add_item", item: result.reward }, { type: "add_player_exp", amount: Math.max(1, Math.floor(result.experience / 2)) }]);
     announce(`${result.message} · 灵圃经验 +${result.experience}`);
   }
@@ -77,7 +77,7 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
     const plot = farm.plots.find((entry) => entry.id === plotId);
     if (!plot?.cropId) { plant(plotId); return; }
     if (plotGrowth(plot, tick, weather).ready) { harvest(plotId); return; }
-    water(plotId);
+    setMessage(`这畦正在生长，尚余 ${plotGrowth(plot, tick, weather).remaining} 个游戏时辰。`);
   }
 
   function bulkPlant() {
@@ -93,17 +93,12 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
     setFarm(next); announce(`连作完成 · 种下${selectedCrop.materialName} ${count} 畦`);
   }
 
-  function bulkWater() {
-    let next = farm;
-    let count = 0;
-    for (const plot of farm.plots.slice(0, unlockedPlots)) {
-      if (!plot.cropId || plot.watered || plotGrowth(plot, tick, weather).ready) continue;
-      const result = waterPlot(next, plot.id, day);
-      if (!result.ok) break;
-      next = result.farm; count += 1;
-    }
-    if (!count) { setMessage("没有可浇灌的作物，或今日灵泉水已经用尽。"); return; }
-    setFarm(next); announce(`引泉成渠 · 一次浇灌 ${count} 畦`);
+  function upgradeWell() {
+    const cost = farm.wellLevel * 160;
+    if (state.shared.spiritStones < cost) { setMessage(`疏浚灵泉需要 ${cost} 灵石。`); return; }
+    const result = upgradeSpiritWell(farm, day);
+    if (!result.ok) { setMessage(result.message); return; }
+    setFarm(result.farm); applyEffects([{ type: "add_currency", amount: -cost }]); announce(`${result.message} · 灵石 -${cost}`);
   }
 
   function bulkHarvest() {
@@ -165,22 +160,23 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
       </aside>
 
       <div className="farm-field-wrap">
-        <div className="farm-field-head"><span>已成熟 <b>{readyCount}</b></span><span>生长中 <b>{growingCount}</b></span><span>灵泉 <b>{DAILY_WATER_CHARGES - waterUsed}/{DAILY_WATER_CHARGES}</b></span><span>灵壤 <b>{farm.spiritSoil}</b></span></div>
+        <div className="farm-field-head"><span>已成熟 <b>{readyCount}</b></span><span>生长中 <b>{growingCount}</b></span><span>灵泉润养 <b>{supportedPlots}/{unlockedPlots} 畦</b></span><span>灵壤 <b>{farm.spiritSoil}</b></span></div>
         <div className="farm-plots">{farm.plots.map((plot, index) => {
           const locked = index >= unlockedPlots;
+          const unsupported = !locked && index >= supportedPlots;
           const crop = plot.cropId ? cropById(plot.cropId) : null;
           const material = crop ? cropMaterial(crop) : null;
           const growth = plotGrowth(plot, tick, weather);
           const stage = growth.ready ? "ready" : growth.progress >= 65 ? "almost" : growth.progress >= 25 ? "sprout" : "seedling";
-          return <button type="button" key={plot.id} className={`farm-plot ${locked ? "locked" : ""} ${plot.cropId ? stage : "empty"} ${plot.watered ? "watered" : ""} ${plot.fertilized ? "fertilized" : ""}`} disabled={locked} onClick={() => interactPlot(plot.id)} aria-label={locked ? `第${index + 1}畦未解锁` : crop ? `${crop.materialName}，${growth.ready ? "已成熟" : `还需${growth.remaining}时辰`}` : `第${index + 1}畦空田`}>
+          return <button type="button" key={plot.id} className={`farm-plot ${locked ? "locked" : ""} ${unsupported ? "unsupported" : ""} ${plot.cropId ? stage : "empty"} ${plot.fertilized ? "fertilized" : ""} ${plotFx?.id === plot.id ? `fx-${plotFx.kind}` : ""}`} disabled={locked || unsupported} onClick={() => interactPlot(plot.id)} aria-label={locked ? `第${index + 1}畦未解锁` : unsupported ? `第${index + 1}畦等待灵泉覆盖` : crop ? `${crop.materialName}，${growth.ready ? "已成熟" : `还需${growth.remaining}时辰`}` : `第${index + 1}畦空田`}>
             <span className="farm-soil-lines" />
             {locked ? <span className="farm-lock"><b>封</b><small>{farmLevel(farm.experience) + 1}阶拓地</small></span> : crop && material ? <>
-              <img src={material.image} alt="" style={{ "--crop-scale": Math.min(1, .58 + Math.max(24, growth.progress) / 240), "--crop-saturation": Math.min(1.35, .55 + Math.max(24, growth.progress) / 130), "--crop-color": crop.color } as React.CSSProperties} />
+              <img src={material.image} alt="" style={{ "--crop-progress": Math.max(24, growth.progress), "--crop-color": crop.color } as React.CSSProperties} />
               <span className="farm-crop-label"><strong>{crop.materialName}</strong><small>{growth.ready ? "灵光盈枝 · 可收获" : `${stage === "seedling" ? "初芽" : stage === "sprout" ? "抽叶" : "将熟"} · 尚余 ${growth.remaining} 时辰`}</small></span>
               <span className="farm-crop-progress"><i style={{ width: `${growth.progress}%` }} /></span>
-              <span className="farm-plot-buffs">{(plot.watered || weather.id === "spirit-rain") && <i>润</i>}{plot.fertilized && <i>沃</i>}</span>
+              <span className="farm-plot-buffs"><i>泉</i>{plot.fertilized && <i>沃</i>}</span>
               {!plot.fertilized && !growth.ready && <span role="button" tabIndex={0} className="farm-fertilize" onClick={(event) => { event.stopPropagation(); fertilize(plot.id); }}>壤</span>}
-            </> : <span className="farm-empty-mark"><b>＋</b><small>播种{selectedCrop.materialName}</small></span>}
+            </> : unsupported ? <span className="farm-lock"><b>涸</b><small>疏浚灵泉后覆盖</small></span> : <><span className="farm-empty-mark"><b>＋</b><small>播种{selectedCrop.materialName}</small></span>{!plot.fertilized && <span role="button" tabIndex={0} className="farm-fertilize" onClick={(event) => { event.stopPropagation(); fertilize(plot.id); }}>壤</span>}</>}
           </button>;
         })}</div>
       </div>
@@ -188,7 +184,7 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
       <aside className="farm-actions">
         <div className="farm-selected-crop"><img src={cropMaterial(selectedCrop).image} alt="" /><span><small>当前灵种</small><strong>{selectedCrop.materialName}</strong><em>{selectedCrop.lore}</em></span></div>
         <button type="button" onClick={bulkPlant}><i>耕</i><span><strong>连作空田</strong><small>按现有种子连续播种</small></span></button>
-        <button type="button" onClick={bulkWater}><i>引</i><span><strong>引泉成渠</strong><small>批量浇灌生长作物</small></span></button>
+        <button type="button" disabled={farm.wellLevel >= 3 || farm.wellUpgradedDay === day} onClick={upgradeWell}><i>泉</i><span><strong>疏浚灵泉 · {farm.wellLevel}阶</strong><small>{farm.wellLevel >= 3 ? "已覆盖全部灵田" : `◉ ${farm.wellLevel * 160} · 扩展润养容量`}</small></span></button>
         <button type="button" className={readyCount ? "harvest-ready" : ""} onClick={bulkHarvest}><i>收</i><span><strong>一键收获</strong><small>{readyCount ? `${readyCount} 畦已成熟` : "暂无成熟仙草"}</small></span></button>
         <button type="button" disabled={farm.lastDewDay === day} onClick={gatherDew}><i>露</i><span><strong>凝露培土</strong><small>{farm.lastDewDay === day ? "今日已完成" : "体力 -1 · 灵壤 +2"}</small></span></button>
       </aside>

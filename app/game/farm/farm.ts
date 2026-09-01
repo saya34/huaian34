@@ -41,6 +41,10 @@ export type FarmProgress = {
   totalHarvests: number;
   spiritSoil: number;
   lastDewDay: number;
+  wellLevel: number;
+  wellUpgradedDay: number;
+  // Kept for save compatibility. Water is now a plot-support capacity, as in
+  // Sunflower Land's well model, rather than a per-plot daily click currency.
   waterDay: number;
   waterUsed: number;
   livestock: LivestockProgress;
@@ -57,7 +61,7 @@ export type FarmWeather = {
 
 const WEATHER: FarmWeather[] = [
   { id: "wood-breeze", name: "青木和风", icon: "风", description: "木性仙草收获时额外丰产。", bonusElement: "木", speedBonus: 0 },
-  { id: "spirit-rain", name: "灵雨润畦", icon: "雨", description: "本日所有作物视为已浇灌，生长加快。", bonusElement: "水", speedBonus: 1 },
+  { id: "spirit-rain", name: "灵雨润畦", icon: "雨", description: "本日灵泉充盈，所有作物生长加快。", bonusElement: "水", speedBonus: 1 },
   { id: "sun-warm", name: "金乌晴暖", icon: "晴", description: "火性与金性仙草更易丰收。", bonusElement: "火", speedBonus: 0 },
   { id: "star-dew", name: "星辉凝露", icon: "星", description: "阴性仙草灵变概率提高。", bonusElement: "阴", speedBonus: 0 },
 ];
@@ -73,6 +77,8 @@ export function createInitialFarm(): FarmProgress {
     totalHarvests: 0,
     spiritSoil: 2,
     lastDewDay: 0,
+    wellLevel: 1,
+    wellUpgradedDay: 0,
     waterDay: 1,
     waterUsed: 0,
     livestock: createInitialLivestock(),
@@ -110,6 +116,17 @@ export function unlockedPlotCount(level: number) {
   return Math.min(FARM_PLOT_COUNT, 6 + level * 2);
 }
 
+export function supportedPlotCount(wellLevel: number) {
+  return Math.min(FARM_PLOT_COUNT, 6 + Math.max(1, wellLevel) * 2);
+}
+
+export function upgradeSpiritWell(farm: FarmProgress, day: number) {
+  if (farm.wellLevel >= 3) return { farm, ok: false as const, message: "灵泉井已升至最高阶" };
+  if (farm.wellUpgradedDay === day) return { farm, ok: false as const, message: "今日刚刚疏浚过灵泉，明日再继续" };
+  const nextLevel = farm.wellLevel + 1;
+  return { farm: { ...farm, wellLevel: nextLevel, wellUpgradedDay: day }, ok: true as const, message: `灵泉升至 ${nextLevel} 阶，可润养 ${supportedPlotCount(nextLevel)} 畦灵田` };
+}
+
 export function gameTick(day: number, period: Period) {
   const periods: Period[] = ["清晨", "黄昏", "夜晚"];
   return (Math.max(1, day) - 1) * periods.length + Math.max(0, periods.indexOf(period));
@@ -132,8 +149,7 @@ export function cropMaterial(crop: HerbCropDefinition): GameItem {
 export function plotGrowth(plot: FarmPlot, currentTick: number, weather: FarmWeather) {
   if (!plot.cropId || plot.plantedAtTick === undefined) return { progress: 0, ready: false, remaining: 0, elapsed: 0, required: 0 };
   const crop = cropById(plot.cropId);
-  const watered = plot.watered || weather.id === "spirit-rain";
-  const required = Math.max(1, crop.growTicks - (watered ? 1 : 0) - weather.speedBonus);
+  const required = Math.max(1, crop.growTicks - (plot.fertilized ? 1 : 0) - weather.speedBonus);
   const elapsed = Math.max(0, currentTick - plot.plantedAtTick);
   return { progress: Math.min(100, (elapsed / required) * 100), ready: elapsed >= required, remaining: Math.max(0, required - elapsed), elapsed, required };
 }
@@ -145,10 +161,12 @@ export function plantPlot(farm: FarmProgress, plotId: string, cropId: HerbCropId
   const index = farm.plots.findIndex((plot) => plot.id === plotId);
   if (index < 0 || farm.plots[index].cropId) return { farm, ok: false, message: "这块灵田已经有作物" };
   if (index >= unlockedPlotCount(farmLevel(farm.experience))) return { farm, ok: false, message: "这块灵田尚未解锁" };
+  if (index >= supportedPlotCount(farm.wellLevel)) return { farm, ok: false, message: "灵泉井的润养范围尚未覆盖这块田" };
+  const previous = farm.plots[index];
   return {
     ok: true,
     message: `种下${crop.seedName}`,
-    farm: { ...farm, seeds: { ...farm.seeds, [cropId]: farm.seeds[cropId] - 1 }, plots: farm.plots.map((plot) => plot.id === plotId ? { id: plot.id, cropId, plantedAtTick: currentTick, watered: false, fertilized: false } : plot) },
+    farm: { ...farm, seeds: { ...farm.seeds, [cropId]: farm.seeds[cropId] - 1 }, plots: farm.plots.map((plot) => plot.id === plotId ? { id: plot.id, cropId, plantedAtTick: currentTick, fertilized: previous.fertilized } : plot) },
   };
 }
 
@@ -163,14 +181,8 @@ export function waterPlot(farm: FarmProgress, plotId: string, day: number) {
 export function fertilizePlot(farm: FarmProgress, plotId: string) {
   if (farm.spiritSoil < 1) return { farm, ok: false, message: "灵壤不足，可每日凝露培土获得" };
   const target = farm.plots.find((plot) => plot.id === plotId);
-  if (!target?.cropId || target.fertilized) return { farm, ok: false, message: target?.fertilized ? "这畦已经施过灵壤" : "请先播种" };
-  return { ok: true, message: "灵壤已融入土脉，收获时额外增产", farm: { ...farm, spiritSoil: farm.spiritSoil - 1, plots: farm.plots.map((plot) => plot.id === plotId ? { ...plot, fertilized: true } : plot) } };
-}
-
-function stableRoll(value: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index++) { hash ^= value.charCodeAt(index); hash = Math.imul(hash, 16777619); }
-  return (hash >>> 0) % 100;
+  if (!target || target.fertilized) return { farm, ok: false, message: target?.fertilized ? "这畦已经施过灵壤" : "没有找到这块灵田" };
+  return { ok: true, message: target.cropId ? "灵壤已融入根系，生长加速且收获增产" : "灵壤已翻入空田，下次播种立即生效", farm: { ...farm, spiritSoil: farm.spiritSoil - 1, plots: farm.plots.map((plot) => plot.id === plotId ? { ...plot, fertilized: true } : plot) } };
 }
 
 export function harvestPlot(farm: FarmProgress, plotId: string, currentTick: number, day: number) {
@@ -181,23 +193,20 @@ export function harvestPlot(farm: FarmProgress, plotId: string, currentTick: num
   if (!plotGrowth(plot, currentTick, weather).ready) return { farm, ok: false as const, message: "仙草尚未成熟" };
   const material = cropMaterial(crop);
   const elementFavored = weather.bonusElement === crop.element || (weather.id === "sun-warm" && crop.element === "金");
-  const mutationChance = 12 + (plot.fertilized ? 8 : 0) + (weather.id === "star-dew" && crop.element === "阴" ? 15 : 0);
-  const mutated = stableRoll(`${plot.id}:${plot.plantedAtTick}:${crop.id}:${day}`) < mutationChance;
-  const amount = crop.baseYield + (plot.watered || weather.id === "spirit-rain" ? 1 : 0) + (plot.fertilized ? 1 : 0) + (elementFavored ? 1 : 0) + (mutated ? 1 : 0);
+  const amount = crop.baseYield + (plot.fertilized ? 1 : 0) + (elementFavored ? 1 : 0);
   const experience = crop.growTicks * 2 + amount;
   const nextFarm: FarmProgress = {
     ...farm,
     experience: farm.experience + experience,
     totalHarvests: farm.totalHarvests + amount,
-    seeds: { ...farm.seeds, [crop.id]: farm.seeds[crop.id] + (mutated ? 1 : 0) },
     plots: farm.plots.map((entry) => entry.id === plotId ? { id: entry.id } : entry),
   };
   return {
     farm: nextFarm,
     ok: true as const,
-    message: `收获${material.name} ×${amount}${mutated ? " · 灵变返种" : ""}`,
+    message: `收获${material.name} ×${amount}`,
     reward: { itemId: material.id, itemType: "material" as const, rarity: Math.max(1, Math.min(7, material.rarity)) as 1 | 2 | 3 | 4 | 5 | 6 | 7, amount, sourceTags: ["灵圃", "种植"] },
     experience,
-    mutated,
+    mutated: false,
   };
 }

@@ -87,7 +87,7 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
         <em><strong>玄火丹炉</strong><small>炼丹 · 委托 · 太虚显化</small></em><b>炉</b>
       </button>}
       {!inspectionMode && currentMapId === "yunzhou" && <button type="button" className="map-system-location mining-location" style={{ left: "84%", top: "60%" }} onClick={() => onEnterMining?.("yunzhou-mine")}>
-        <span className="system-location-art mining-location-art"><img src="/assets/item-atlases/atlas-ores.webp" alt="" /></span><em><strong>玄铁常明矿窟</strong><small>常驻矿洞 · 游戏日恢复</small></em><b>矿</b>
+        <span className="system-location-art mining-location-art"><img src="/assets/item-atlases/atlas-ores.webp" alt="" /></span><em><strong>玄铁常明矿窟</strong><small>常驻矿洞 · 矿点按时辰复原</small></em><b>矿</b>
       </button>}
       {!inspectionMode && mapDungeons.filter(dungeonIsVisible).map((dungeon) => {
         const locked = dungeon.kind === "permanent" && dungeon.waveId > state.dungeons.highestUnlocked;

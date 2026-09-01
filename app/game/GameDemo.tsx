@@ -413,7 +413,10 @@ export default function GameDemo() {
   function enterScene(sceneId: SceneId) {
     if (sceneId === game.sceneId || game.activeEvent) return;
     const destination = sceneMap[sceneId];
-    if (!destination || (!destination.characters.length && destination.id!=="bedroom")) return;
+    // Functional scenes such as the farm do not need a resident NPC.  The old
+    // character-only guard made the farm button look clickable while silently
+    // rejecting the transition.
+    if (!destination || (!destination.characters.length && destination.id !== "bedroom" && destination.id !== "spirit-farm")) return;
     setInteractionMenuOpen(false);
     setNotice(`抵达 · ${destination.name}`);
     setGame((state)=>{const base:GameState=applyAutomaticGlobalKeys({...state,sceneId,activeEvent:null},globalKeys);const resolved=resolveScenePresence(base,sceneId,characters,eventDefinitions,true);const selected=resolved.present[0]??destination.characters[0]??state.selectedCharacterId;const ready={...resolved.state,selectedCharacterId:selected};const context:TriggerContext={trigger:"scene_enter",sceneId,characterId:selected};if(resolved.forcedEvent){setNotice(`人物事件触发 · ${resolved.forcedEvent.title}`);return startDefinition(ready,resolved.forcedEvent,context)}return launch(context,ready)});
