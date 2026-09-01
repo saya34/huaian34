@@ -419,6 +419,13 @@ export default function GameDemo() {
     if (!destination || (!destination.characters.length && destination.id !== "bedroom" && destination.id !== "spirit-farm")) return;
     setInteractionMenuOpen(false);
     setNotice(`抵达 · ${destination.name}`);
+    // Production scenes are intentionally characterless. Do not pass them
+    // through character-presence resolution, otherwise an unrelated forced
+    // romance event can hijack the first visit and make the scene look broken.
+    if (destination.id === "spirit-farm") {
+      setGame((state) => applyAutomaticGlobalKeys({ ...state, sceneId, activeEvent: null }, globalKeys));
+      return;
+    }
     setGame((state)=>{const base:GameState=applyAutomaticGlobalKeys({...state,sceneId,activeEvent:null},globalKeys);const resolved=resolveScenePresence(base,sceneId,characters,eventDefinitions,true);const selected=resolved.present[0]??destination.characters[0]??state.selectedCharacterId;const ready={...resolved.state,selectedCharacterId:selected};const context:TriggerContext={trigger:"scene_enter",sceneId,characterId:selected};if(resolved.forcedEvent){setNotice(`人物事件触发 · ${resolved.forcedEvent.title}`);return startDefinition(ready,resolved.forcedEvent,context)}return launch(context,ready)});
   }
 
