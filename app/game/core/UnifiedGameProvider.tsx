@@ -182,6 +182,7 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     if (effect.type === "add_relationship") return { ...next, romance: { ...next.romance, relationships: { ...next.romance.relationships, [effect.characterId]: Math.max(0, (next.romance.relationships[effect.characterId] ?? 0) + effect.amount) } } };
     if (effect.type === "add_player_exp") return { ...next, shared: { ...next.shared, playerExperience: next.shared.playerExperience + effect.amount }, romance: { ...next.romance, experience: next.romance.experience + effect.amount } };
     if (effect.type === "set_global_key") return { ...next, shared: { ...next.shared, globalKeys: { ...next.shared.globalKeys, [effect.key]: effect.value } }, romance: { ...next.romance, flags: { ...next.romance.flags, [effect.key]: effect.value } } };
+    if (effect.type === "reveal_dungeon") return { ...next, dungeons: { ...next.dungeons, randomVisible: [...new Set([...next.dungeons.randomVisible, effect.dungeonId])] } };
     if (effect.type === "complete_dungeon") {
       const completed = effect.result === "victory" ? [...new Set([...next.dungeons.completed, effect.waveId])] : next.dungeons.completed;
       const highestUnlocked = effect.result === "victory" ? Math.max(next.dungeons.highestUnlocked, Math.min(21, effect.waveId + 1)) : next.dungeons.highestUnlocked;

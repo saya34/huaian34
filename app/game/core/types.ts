@@ -90,6 +90,7 @@ export type GameEffect =
   | { type: "add_player_exp"; amount: number }
   | { type: "spend_stamina"; amount: number }
   | { type: "set_global_key"; key: string; value: boolean }
+  | { type: "reveal_dungeon"; dungeonId: string }
   | { type: "complete_dungeon"; waveId: number; result: "victory" | "extracted" | "defeat" };
 
 export type StateSetter<T> = Dispatch<SetStateAction<T>>;

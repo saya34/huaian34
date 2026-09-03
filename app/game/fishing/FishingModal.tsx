@@ -177,11 +177,11 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
             <button className="cast-rod-button" type="button" disabled={attemptsLeft <= 0 || progress.rods <= 0 || (progress.baits[baitId] ?? 0) <= 0} onClick={castRod}><span>消耗钓竿与{BAITS[baitId].name}各 1</span><strong>抛 竿 入 境</strong></button>
           </div>}
 
-          {phase === "reeling" && target && <FishingBar key={`${target.id}-${castRound}`} theme="fish" config={{ maxAttempts: 6 + target.rarity, targetScore: 6 + target.rarity * 2, difficultyLevel: Math.min(9, target.rarity * 2 + (location.kind === "random" ? 1 : 0)), difficultyName: `${RARITY_LABELS[target.rarity - 1]}鱼影` }} onHit={(hit) => setLastHit(hit.zone)} onFinish={finishReeling}>
-            <div className={`fishing-reel-scene reel-${lastHit ?? "waiting"}`}>
+          {phase === "reeling" && target && <FishingBar key={`${target.id}-${castRound}`} theme="fish" config={{ maxAttempts: 6 + target.rarity, targetScore: 6 + target.rarity * 2, difficultyLevel: Math.min(9, target.rarity * 2 + (location.kind === "random" ? 1 : 0)), difficultyName: `${RARITY_LABELS[target.rarity - 1]}鱼影`, rarity:target.rarity }} onHit={(hit) => setLastHit(hit.zone)} onFinish={finishReeling}>
+            <div className={`fishing-reel-scene reel-${lastHit ?? "waiting"} ${target.rarity>=4?`rare-water rarity-${target.rarity}`:""}`}>
               <div className="fishing-night-sky"><i /><i /><i /></div>
               <div className="fishing-far-bank"><i /><i /><i /></div>
-              <div className="fishing-water-stage"><span className="water-current current-one" /><span className="water-current current-two" /><span className="water-current current-three" /><div className={`fish-shadow rarity-${target.rarity}`}><i /><b /></div><div className="hook-ripple"><i /><i /><b /></div></div>
+              <div className="fishing-water-stage"><span className="water-current current-one" /><span className="water-current current-two" /><span className="water-current current-three" />{target.rarity>=4&&<span className="rare-water-runes"><i/><i/><i/><b>{target.rarity===5?"星":"玄"}</b></span>}<div className={`fish-shadow rarity-${target.rarity}`}><i /><b /></div><div className="hook-ripple"><i /><i /><b /></div></div>
               <div className="fishing-angler"><span className="angler-head" /><span className="angler-body" /><i className="angler-rod" /><b className="angler-line" /></div>
               <div className="reel-instruction"><small>灵线已动 · 不要让鱼影挣脱</small><strong>{lastHit === "target" ? "绝佳收线！" : lastHit === "near" ? "顺势拉扯" : lastHit === "miss" ? "鱼影反扑" : "看准红区 · 点击水面收线"}</strong><span>鱼影越稀有，游速与变向越难预测</span></div>
             </div>

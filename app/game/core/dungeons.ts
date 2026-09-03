@@ -9,6 +9,7 @@ export type DungeonDefinition = {
   recommendedPower: number;
   x: number;
   y: number;
+  requiresMap?: boolean;
 };
 
 export const REGIONS = [
@@ -23,7 +24,7 @@ const names: Record<RegionId, string[]> = {
   chixia: ["赤砂矿脉", "焚风古道", "离火妖城", "神墟战场", "烬羽天坑", "血月荒台", "太初火海"],
 };
 
-export const DUNGEONS: DungeonDefinition[] = REGIONS.flatMap((region, regionIndex) => names[region.id].map((name, index) => ({
+export const DUNGEONS: DungeonDefinition[] = [...REGIONS.flatMap((region, regionIndex) => names[region.id].map((name, index) => ({
   id: `${region.id}-${index + 1}`,
   waveId: regionIndex * 7 + index + 1,
   regionId: region.id,
@@ -32,4 +33,4 @@ export const DUNGEONS: DungeonDefinition[] = REGIONS.flatMap((region, regionInde
   recommendedPower: 120 + (regionIndex * 7 + index) * 85,
   x: [24, 42, 66, 78, 33, 58, 73][index],
   y: [58, 35, 48, 69, 73, 24, 38][index],
-})));
+}))), { id:"treasure-map-vault",waveId:7,regionId:"yunzhou",name:"太虚藏宝窟",kind:"random",recommendedPower:980,x:52,y:82,requiresMap:true }];
