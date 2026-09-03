@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
+import FishingBar, { type FishingBarHit, type FishingBarResult } from "../FishingBar";
 import {
   BAITS,
   DAILY_CAST_LIMIT,
@@ -29,15 +30,6 @@ type Props = {
 type Phase = "ready" | "reeling" | "success" | "failed";
 const RARITY_LABELS = ["凡品", "灵品", "珍品", "玄品", "仙品"];
 
-function makePath(seed: string) {
-  let value = 0;
-  for (const character of seed) value = (value * 31 + character.charCodeAt(0)) >>> 0;
-  return Array.from({ length: 5 }, (_, row) => {
-    value = (Math.imul(value ^ (row + 17), 1664525) + 1013904223) >>> 0;
-    return value % 4;
-  });
-}
-
 export default function FishingModal({ locationId, randomSpotId, day, period, onClose, onNotice }: Props) {
   const { state, setFishing, applyEffects } = useUnifiedGame();
   const location = fishingLocationById(locationId)!;
@@ -47,10 +39,8 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
   const [baitId, setBaitId] = useState<BaitId>("spirit-worm");
   const [phase, setPhase] = useState<Phase>(resumedCast ? "reeling" : "ready");
   const [target, setTarget] = useState<FishDefinition | null>(resumedCast ? fishById(resumedCast.fishId) ?? null : null);
-  const [path, setPath] = useState<number[]>(resumedCast ? makePath(`${resumedCast.seed}:${resumedCast.fishId}`) : []);
-  const [row, setRow] = useState(0);
-  const [focus, setFocus] = useState(3);
-  const [revealed, setRevealed] = useState<Record<string, "right" | "wrong">>({});
+  const [castRound, setCastRound] = useState(0);
+  const [lastHit, setLastHit] = useState<FishingBarHit["zone"] | null>(null);
   const pool = useMemo(() => weightedPool(location, baitId), [baitId, location]);
   const attemptsLeft = Math.max(0, DAILY_CAST_LIMIT - progress.dailyAttempts);
 
@@ -75,34 +65,26 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
     if (!cast.ok) { onNotice(cast.message); return; }
     const fish = fishById(cast.catch.fishId)!;
     setTarget(fish);
-    setPath(makePath(`${cast.catch.seed}:${fish.id}`));
-    setPhase("reeling"); setRow(0); setFocus(3); setRevealed({});
+    setPhase("reeling"); setCastRound((value) => value + 1); setLastHit(null);
     setFishing(cast.progress);
     onNotice(`抛竿入水 · 消耗灵木钓竿与${BAITS[baitId].name}各 1`);
   }
 
-  function chooseRipple(column: number) {
-    if (phase !== "reeling" || !target) return;
-    const key = `${row}:${column}`;
-    if (revealed[key]) return;
-    if (path[row] === column) {
-      const nextRevealed = { ...revealed, [key]: "right" as const };
-      setRevealed(nextRevealed);
-      if (row === path.length - 1) {
-        setPhase("success");
-        setFishing((current) => reelFishing(current, true).progress);
-        applyEffects([
-          { type: "add_item", item: { itemId: target.id, itemType: "fish", rarity: target.rarity, amount: 1, sourceTags: [location.name, location.kind === "random" ? "游光钓点" : "常驻钓点"] } },
-          { type: "add_player_exp", amount: target.rarity * 3 },
-        ]);
-        onNotice(`收杆成功 · 获得${target.name}，已收入乾坤行囊。`);
-      } else setRow((value) => value + 1);
-    } else {
-      const nextFocus = focus - 1;
-      setRevealed((current) => ({ ...current, [key]: "wrong" }));
-      setFocus(nextFocus);
-      if (nextFocus <= 0) { setPhase("failed"); setFishing((current) => reelFishing(current, false).progress); onNotice("灵线三度失衡，收杆结算后鱼影挣脱了。 "); }
+  function finishReeling(result: FishingBarResult) {
+    if (!target) return;
+    if (result.success) {
+      setPhase("success");
+      setFishing((current) => reelFishing(current, true).progress);
+      applyEffects([
+        { type: "add_item", item: { itemId: target.id, itemType: "fish", rarity: target.rarity, amount: 1, sourceTags: [location.name, location.kind === "random" ? "游光钓点" : "常驻钓点"] } },
+        { type: "add_player_exp", amount: target.rarity * 3 },
+      ]);
+      onNotice(`收杆成功 · 获得${target.name}，已收入乾坤行囊。`);
+      return;
     }
+    setPhase("failed");
+    setFishing((current) => reelFishing(current, false).progress);
+    onNotice("灵线失衡，鱼影挣脱了。 ");
   }
 
   return <div className="fishing-backdrop" role="presentation" onMouseDown={onClose}>
@@ -113,7 +95,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
         <button type="button" onClick={onClose} aria-label="离开钓点">×</button>
       </header>
 
-      <div className="fishing-content">
+      <div className={`fishing-content ${phase === "reeling" ? "fishing-content-active" : ""}`}>
         <aside className="fish-pool-panel">
           <header><span>本地鱼谱</span><small>鱼饵会改变咬钩权重</small></header>
           <div className="fish-pool-list">{pool.map((entry) => { const fish = FISH.find((item) => item.id === entry.fishId)!; return <article key={fish.id} className={progress.records[fish.id] ? "caught" : "unknown"}>
@@ -132,14 +114,15 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
             <button className="cast-rod-button" type="button" disabled={attemptsLeft <= 0 || progress.rods <= 0 || (progress.baits[baitId] ?? 0) <= 0} onClick={castRod}><span>消耗钓竿与{BAITS[baitId].name}各 1</span><strong>抛 竿 入 境</strong></button>
           </div>}
 
-          {phase === "reeling" && target && <div className="fishing-puzzle">
-            <header><span>灵线已动</span><strong>逐层辨认真实水纹</strong><small>错误会消耗定力 · 剩余 {focus}</small></header>
-            <div className="ripple-grid" aria-label="水纹阵">{Array.from({ length: 5 }, (_, displayRow) => 4 - displayRow).map((gridRow) => <div key={gridRow} className={`ripple-row ${gridRow === row ? "active" : gridRow < row ? "passed" : "locked"}`}>{Array.from({ length: 4 }, (_, column) => {
-              const result = revealed[`${gridRow}:${column}`];
-              return <button type="button" key={column} disabled={gridRow !== row || Boolean(result)} className={result ?? ""} onClick={() => chooseRipple(column)}><i /><span>{result === "right" ? "灵" : result === "wrong" ? "空" : "水"}</span></button>;
-            })}</div>)}</div>
-            <p>从下往上解开五重水纹。鱼影越珍稀，收线成功后的历练越丰厚。</p>
-          </div>}
+          {phase === "reeling" && target && <FishingBar key={`${target.id}-${castRound}`} theme="fish" config={{ maxAttempts: 6 + target.rarity, targetScore: 6 + target.rarity * 2, difficultyLevel: Math.min(9, target.rarity * 2 + (location.kind === "random" ? 1 : 0)), difficultyName: `${RARITY_LABELS[target.rarity - 1]}鱼影` }} onHit={(hit) => setLastHit(hit.zone)} onFinish={finishReeling}>
+            <div className={`fishing-reel-scene reel-${lastHit ?? "waiting"}`}>
+              <div className="fishing-night-sky"><i /><i /><i /></div>
+              <div className="fishing-far-bank"><i /><i /><i /></div>
+              <div className="fishing-water-stage"><span className="water-current current-one" /><span className="water-current current-two" /><span className="water-current current-three" /><div className={`fish-shadow rarity-${target.rarity}`}><i /><b /></div><div className="hook-ripple"><i /><i /><b /></div></div>
+              <div className="fishing-angler"><span className="angler-head" /><span className="angler-body" /><i className="angler-rod" /><b className="angler-line" /></div>
+              <div className="reel-instruction"><small>灵线已动 · 不要让鱼影挣脱</small><strong>{lastHit === "target" ? "绝佳收线！" : lastHit === "near" ? "顺势拉扯" : lastHit === "miss" ? "鱼影反扑" : "看准红区 · 点击水面收线"}</strong><span>鱼影越稀有，游速与变向越难预测</span></div>
+            </div>
+          </FishingBar>}
 
           {(phase === "success" || phase === "failed") && <div className={`fishing-result ${phase}`}>
             {phase === "success" && target ? <><div className="catch-art" style={{ backgroundImage: `url(${target.art})` }}><b>{target.icon}</b></div><small>{RARITY_LABELS[target.rarity - 1]} · 估值 {target.value} 灵石</small><h3>{target.name}</h3><p>{target.description}</p><strong>已收入乾坤行囊</strong></> : <><div className="catch-art escaped"><b>澜</b></div><small>灵线已静</small><h3>鱼影脱钩</h3><p>水纹判断失误，鱼影潜回了深处。常驻鱼场仍可再试，游光钓点则已随波消散。</p></>}

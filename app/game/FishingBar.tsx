@@ -30,11 +30,12 @@ export type FishingBarResult = {
 
 function randomBetween(min:number,max:number){return min+Math.random()*(max-min)}
 
-export default function FishingBar({ config, children, onHit, onFinish }: {
+export default function FishingBar({ config, children, onHit, onFinish, theme = "drink" }: {
   config: FishingBarConfig;
   children?: ReactNode;
   onHit?: (hit:FishingBarHit)=>void;
   onFinish: (result:FishingBarResult)=>void;
+  theme?: "drink" | "fish";
 }) {
   const difficulty=Math.max(1,Math.min(9,Math.round(config.difficultyLevel??4)));
   const targetWidth=config.targetWidth??Math.max(9,20-(difficulty-1)*1.35);
@@ -95,7 +96,8 @@ export default function FishingBar({ config, children, onHit, onFinish }: {
 
   function keyStrike(event:KeyboardEvent<HTMLDivElement>){if(event.key===" "||event.key==="Enter"){event.preventDefault();strike()}}
   const targetStart=targetCenter-targetWidth/2,targetEnd=targetCenter+targetWidth/2,nearStart=targetCenter-nearWidth/2,nearEnd=targetCenter+nearWidth/2;
-  return <div className={`fishing-bar-game hit-${lastHit??"none"}`} role="button" tabIndex={0} onPointerDown={strike} onKeyDown={keyStrike} aria-label="点击判定浮标位置">
+  const actionCopy=theme==="fish"?lastHit==="target"?`灵线绷紧 · +${targetPoints}`:lastHit==="near"?`顺势收线 · +${nearPoints}`:lastHit==="miss"?"鱼影挣动 · MISS":"观察鱼影游速，在浮标进入红区时点击收线":lastHit==="target"?`正中酒意 · +${targetPoints}`:lastHit==="near"?`尚算稳当 · +${nearPoints}`:lastHit==="miss"?"酒意散了 · MISS":"忽快忽慢，等红区出现时落杯";
+  return <div className={`fishing-bar-game bar-theme-${theme} hit-${lastHit??"none"}`} role="button" tabIndex={0} onPointerDown={strike} onKeyDown={keyStrike} aria-label={theme==="fish"?"点击收线，判定浮标位置":"点击判定浮标位置"}>
     <div className="fishing-game-content">{children}</div>
     <aside className="fishing-meter-panel">
       <div className="fishing-score"><span>得分 <b>{score}</b> / {config.targetScore}</span><span>判定 <b>{attempts}</b> / {config.maxAttempts}</span><span className={`fishing-pace ${pace}`}>{pace==="fast"?"骤疾":pace==="slow"?"忽缓":"游移"}</span></div>
@@ -104,7 +106,7 @@ export default function FishingBar({ config, children, onHit, onFinish }: {
         <span className="zone-label target-label" style={{top:`${targetCenter}%`}}>绝佳</span>
       </div>
       <div className="fishing-legend"><span><i className="red"/>目标 +{targetPoints}</span><span><i className="yellow"/>靠近 +{nearPoints}</span><span><i className="green"/>MISS +0</span></div>
-      <p><b>{difficulty}阶 · {config.difficultyName??"动态"}</b>{lastHit==="target"?`正中酒意 · +${targetPoints}`:lastHit==="near"?`尚算稳当 · +${nearPoints}`:lastHit==="miss"?"酒意散了 · MISS":"忽快忽慢，等红区出现时落杯"}</p>
+      <p><b>{difficulty}阶 · {config.difficultyName??"动态"}</b>{actionCopy}</p>
     </aside>
   </div>;
 }
