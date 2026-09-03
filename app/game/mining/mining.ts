@@ -3,9 +3,9 @@ import { MATERIALS, type GameItem } from "../alchemy/item-data";
 export type MiningMapId = "yunzhou" | "canglan" | "chixia";
 export type MiningLocationId = "yunzhou-mine" | "yunzhou-vein" | "canglan-vein" | "chixia-vein";
 export type MiningLocation = { id: MiningLocationId; name: string; subtitle: string; kind: "resident" | "random"; mapId: MiningMapId; x?: number; y?: number; pool: Array<{ materialName: string; weight: number }> };
-export type MiningNode = { id: string; materialName: string; minedAtTick: number; readyAtTick: number; recoveryTicks: number };
+export type MiningNode = { id: string; materialName: string; minedAtTick: number; readyAtTick: number; recoveryTicks: number; tier: 1 | 2 | 3 };
 export type RandomMiningSpot = { id: string; locationId: MiningLocationId; mapId: MiningMapId; x: number; y: number; spawnDay: number; durability: number; maxDurability: number; nodes: MiningNode[] };
-export type MiningProgress = { pickaxes: number; dailyDay: number; residentDurability: number; residentMaxDurability: number; residentNodes: MiningNode[]; randomSpots: RandomMiningSpot[]; lastSpawnDay: number; totalMined: number; records: Record<string, number>; strikeSerial: number };
+export type MiningProgress = { pickaxes: number; pickaxeLevel: 1 | 2 | 3; dailyDay: number; residentDurability: number; residentMaxDurability: number; residentNodes: MiningNode[]; randomSpots: RandomMiningSpot[]; lastSpawnDay: number; totalMined: number; records: Record<string, number>; strikeSerial: number };
 
 export const PICKAXE_PRICE = 36;
 export const MINING_LOCATIONS: MiningLocation[] = [
@@ -19,10 +19,10 @@ export const miningLocationById = (id: string) => MINING_LOCATIONS.find((locatio
 export const miningMaterialByName = (name: string) => MATERIALS.find((item) => item.name === name)!;
 
 function hash(seed: string) { let value = 2166136261; for (let index = 0; index < seed.length; index += 1) value = Math.imul(value ^ seed.charCodeAt(index), 16777619); return (value >>> 0) / 4294967296; }
-function makeNode(id: string, materialName: string, recoveryTicks: number): MiningNode { return { id, materialName, minedAtTick: -1, readyAtTick: 0, recoveryTicks }; }
+function makeNode(id: string, materialName: string, recoveryTicks: number, tier: 1 | 2 | 3 = 1): MiningNode { return { id, materialName, minedAtTick: -1, readyAtTick: 0, recoveryTicks, tier }; }
 function initialResidentNodes() { return [makeNode("resident-iron", "黑曜火铁", 1), makeNode("resident-star", "星陨铁", 2), makeNode("resident-thunder", "雷纹紫晶", 3), makeNode("resident-jade", "太初玉髓", 4)]; }
 
-export function createInitialMining(): MiningProgress { return { pickaxes: 6, dailyDay: 1, residentDurability: 4, residentMaxDurability: 4, residentNodes: initialResidentNodes(), randomSpots: [], lastSpawnDay: 0, totalMined: 0, records: {}, strikeSerial: 0 }; }
+export function createInitialMining(): MiningProgress { return { pickaxes: 6, pickaxeLevel: 1, dailyDay: 1, residentDurability: 4, residentMaxDurability: 4, residentNodes: initialResidentNodes(), randomSpots: [], lastSpawnDay: 0, totalMined: 0, records: {}, strikeSerial: 0 }; }
 
 export function miningPool(location: MiningLocation) { const total = location.pool.reduce((sum, entry) => sum + entry.weight, 0); return location.pool.map((entry) => ({ ...entry, material: miningMaterialByName(entry.materialName), probability: entry.weight / total })); }
 export function rollMiningMaterial(location: MiningLocation, seed: string): GameItem { let roll = hash(seed); const pool = miningPool(location); for (const entry of pool) { roll -= entry.probability; if (roll <= 0) return entry.material; } return pool.at(-1)!.material; }
@@ -32,14 +32,14 @@ function normalizeSpot(spot: Partial<RandomMiningSpot> & Pick<RandomMiningSpot, 
   const location = miningLocationById(spot.locationId)!;
   const count = Math.max(1, spot.maxDurability ?? spot.durability ?? 3);
   const stored = Array.isArray(spot.nodes) ? spot.nodes : [];
-  const nodes = stored.length ? stored : Array.from({ length: count }, (_, index) => makeNode(`${spot.id}-node-${index}`, materialForNode(location, `${spot.id}:${index}`), 0));
+  const nodes = stored.length ? stored.map((node) => ({ ...node, tier: node.tier ?? 1 as const })) : Array.from({ length: count }, (_, index) => makeNode(`${spot.id}-node-${index}`, materialForNode(location, `${spot.id}:${index}`), 0));
   const durability = nodes.filter((node) => node.minedAtTick < 0).length;
   return { id: spot.id, locationId: spot.locationId, mapId: spot.mapId, x: spot.x, y: spot.y, spawnDay: spot.spawnDay, nodes, durability, maxDurability: nodes.length };
 }
 
 export function normalizeMiningProgress(value?: Partial<MiningProgress> | null): MiningProgress {
   const base = createInitialMining();
-  const resident = Array.isArray(value?.residentNodes) && value.residentNodes.length ? value.residentNodes : base.residentNodes;
+  const resident = Array.isArray(value?.residentNodes) && value.residentNodes.length ? value.residentNodes.map((node) => ({ ...node, tier: node.tier ?? 1 as const })) : base.residentNodes;
   const spots = Array.isArray(value?.randomSpots) ? value.randomSpots.map((spot) => normalizeSpot(spot)) : [];
   return { ...base, ...value, residentNodes: resident, residentDurability: resident.length, residentMaxDurability: resident.length, records: { ...base.records, ...value?.records }, randomSpots: spots };
 }
@@ -71,10 +71,12 @@ export function mineNode(progress: MiningProgress, input: { day: number; tick: n
   const nodes = miningNodes(current, input.location, input.randomSpotId);
   const node = nodes.find((entry) => entry.id === input.nodeId);
   if (!node) return { progress: current, ok: false as const, message: "没有找到这处矿点" };
+  if (node.tier > current.pickaxeLevel) return { progress: current, ok: false as const, message: `这处${node.tier}阶矿脉需要更高阶矿镐` };
   if (input.location.kind === "resident" && node.readyAtTick > input.tick) return { progress: current, ok: false as const, message: `矿点正在复原，尚余 ${node.readyAtTick - input.tick} 个游戏时辰` };
   if (input.location.kind === "random" && node.minedAtTick >= 0) return { progress: current, ok: false as const, message: "这处矿点已经采尽" };
-  const critical = hash(`mine-critical:${input.day}:${input.tick}:${node.id}:${current.strikeSerial}`) < .15;
-  const amount = critical ? 2 : 1;
+  const critical = hash(`mine-critical:${input.day}:${input.tick}:${node.id}:${current.strikeSerial}`) < .15 + (current.pickaxeLevel - 1) * .07;
+  const baseAmount = node.tier;
+  const amount = critical ? baseAmount * 2 : baseAmount;
   const material = miningMaterialByName(node.materialName);
   const minedNode = { ...node, minedAtTick: input.tick, readyAtTick: input.location.kind === "resident" ? input.tick + node.recoveryTicks : Number.MAX_SAFE_INTEGER };
   let residentNodes = current.residentNodes;
@@ -88,4 +90,26 @@ export function mineNode(progress: MiningProgress, input: { day: number; tick: n
   }
   const next = { ...current, pickaxes: current.pickaxes - 1, residentNodes, residentDurability: residentNodes.filter((entry) => entry.readyAtTick <= input.tick).length, randomSpots, totalMined: current.totalMined + amount, strikeSerial: current.strikeSerial + 1, records: { ...current.records, [material.id]: (current.records[material.id] ?? 0) + amount } };
   return { progress: next, ok: true as const, material, amount, critical, message: `${critical ? "灵脉共振 · " : "开采成功 · "}${material.name} ×${amount}` };
+}
+
+export function pickaxeUpgradeCost(level: number) {
+  return level === 1 ? { stones: 260, materialName: "黑曜火铁", materialAmount: 3 } : { stones: 680, materialName: "星陨铁", materialAmount: 5 };
+}
+
+export function upgradePickaxe(progress: MiningProgress) {
+  if (progress.pickaxeLevel >= 3) return { progress, ok: false as const, message: "玄铁灵镐已经淬炼至最高阶" };
+  const next = (progress.pickaxeLevel + 1) as 2 | 3;
+  return { progress: { ...progress, pickaxeLevel: next }, ok: true as const, message: `矿镐淬炼至 ${next} 阶，暴击与高阶矿脉能力提升` };
+}
+
+export function nodeUpgradeCost(tier: number) {
+  return tier === 1 ? { stones: 180, materialName: "黑曜火铁", materialAmount: 2 } : { stones: 520, materialName: "雷纹紫晶", materialAmount: 3 };
+}
+
+export function upgradeResidentNode(progress: MiningProgress, nodeId: string) {
+  const node = progress.residentNodes.find((entry) => entry.id === nodeId);
+  if (!node) return { progress, ok: false as const, message: "没有找到这处常驻矿点" };
+  if (node.tier >= 3) return { progress, ok: false as const, message: "这处矿脉已经凝炼至最高阶" };
+  const tier = (node.tier + 1) as 2 | 3;
+  return { progress: { ...progress, residentNodes: progress.residentNodes.map((entry) => entry.id === nodeId ? { ...entry, tier, recoveryTicks: entry.recoveryTicks + 1 } : entry) }, ok: true as const, message: `矿脉凝炼至 ${tier} 阶，每次可析出更多矿材` };
 }

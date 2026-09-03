@@ -40,7 +40,7 @@ function bondTitle(value: number) {
 function FarmMerchant({ kind, day, period, onClose, onNotice }: { kind: MerchantKind; day: number; period: Period; onClose: () => void; onNotice: (message: string) => void }) {
   const { state, setFarm, applyEffects } = useUnifiedGame();
   const [tab, setTab] = useState<"talk" | "shop">("shop");
-  const [message, setMessage] = useState(NPCS[kind].greeting);
+  const [message, setMessage] = useState<string>(NPCS[kind].greeting);
   const npc = NPCS[kind];
   const level = farmLevel(state.farm.experience);
   const bond = state.farm.npcBonds[kind];
@@ -96,7 +96,7 @@ function FarmMerchant({ kind, day, period, onClose, onNotice }: { kind: Merchant
     return <article key={beast.id} className={`farm-goods-card beast-goods ${locked ? "locked" : ""}`}>
       <div className="goods-art"><BeastSprite speciesId={beast.id} />{rotatingItem && <b>限</b>}</div>
       <div><strong>{beast.name}</strong><small>{beast.role} · {beast.productionTicks} 时辰生产</small><em>{locked ? `需${beast.unlockLevel}阶 · 好感${beast.bondRequired}` : `投喂${beast.feedMaterialName}，产出${beast.productName}`}</em></div>
-      <span><b>◉ {beast.price}</b><button type="button" disabled={locked || state.farm.livestock.animals.length >= livestockCapacity(level)} onClick={() => buyBeast(beast)}>迎养</button></span>
+      <span><b>◉ {beast.price}</b><button type="button" disabled={locked || state.farm.livestock.animals.length >= livestockCapacity(level, state.farm.livestock.shelterLevel)} onClick={() => buyBeast(beast)}>迎养</button></span>
     </article>;
   }
 
@@ -106,7 +106,7 @@ function FarmMerchant({ kind, day, period, onClose, onNotice }: { kind: Merchant
       <main>
         <header><div><small>{kind === "seed" ? "SPIRIT SEED EMPORIUM" : "SPIRIT BEAST HOUSE"}</small><h3>{kind === "seed" ? "青禾灵种铺" : "绾秋灵兽苑"}</h3></div><div className="merchant-tabs"><button className={tab === "shop" ? "active" : ""} onClick={() => setTab("shop")}>货架</button><button className={tab === "talk" ? "active" : ""} onClick={() => setTab("talk")}>交谈</button></div><button className="merchant-close" onClick={onClose}>×</button></header>
         {tab === "talk" ? <div className="farm-npc-talk"><div className="talk-seal">{npc.name.slice(0, 1)}</div><p>{message}</p><button type="button" onClick={talk}>{state.farm.npcTalkDays[kind] === day ? "再聊一会" : "请教今日心得"}</button><small>每日首次交谈提升 2 点好感；好感与灵圃等阶共同解锁常驻货品。</small></div> : <div className="farm-merchant-stock">
-          <div className="merchant-ledger"><span>持有灵石 <b>◉ {state.shared.spiritStones}</b></span><span>灵圃 <b>{level} 阶</b></span><span>往来 <b>{bondTitle(bond)}</b></span><span>栏舍 <b>{state.farm.livestock.animals.length}/{livestockCapacity(level)}</b></span></div>
+          <div className="merchant-ledger"><span>持有灵石 <b>◉ {state.shared.spiritStones}</b></span><span>灵圃 <b>{level} 阶</b></span><span>往来 <b>{bondTitle(bond)}</b></span><span>栏舍 <b>{state.farm.livestock.animals.length}/{livestockCapacity(level, state.farm.livestock.shelterLevel)}</b></span></div>
           <section><header><div><b>常驻货架</b><small>随灵圃等阶与好感逐步扩充</small></div><em>{permanent.length} 种</em></header><div className="farm-goods-list">{kind === "seed" ? (permanent as HerbCropDefinition[]).map((item) => renderSeed(item)) : (permanent as SpiritBeastDefinition[]).map((item) => renderBeast(item))}</div></section>
           <section className="rotating-stock"><header><div><b>流光异货 · 第 {cycle + 1} 期</b><small>游戏内每十五日随商队轮换</small></div><em>第 {nextRefresh} 日刷新</em></header><div className="farm-goods-list">{kind === "seed" ? (rotating as HerbCropDefinition[]).map((item) => renderSeed(item, true)) : (rotating as SpiritBeastDefinition[]).map((item) => renderBeast(item, true))}</div></section>
         </div>}

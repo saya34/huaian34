@@ -1,4 +1,5 @@
 export type BaitId = "spirit-worm" | "jade-lure" | "star-bait";
+export type ChumId = "none" | "frost-chum" | "jade-chum" | "fire-chum";
 export type FishingMapId = "yunzhou" | "canglan" | "chixia";
 export type FishingLocationId = "lingxiao-cloudpool" | "tavern-pier" | "yunzhou-wild" | "canglan-wild" | "chixia-wild";
 
@@ -40,7 +41,10 @@ export type PendingFishingCast = {
   fishId: string;
   castedAtTick: number;
   seed: string;
+  chumId: ChumId;
 };
+
+export type AgedFishSlot = { id: string; fishId: string; startedAtTick: number; readyAtTick: number };
 
 export type FishingProgress = {
   rods: number;
@@ -52,6 +56,11 @@ export type FishingProgress = {
   randomSpots: RandomFishingSpot[];
   lastSpawnDay: number;
   pendingCast: PendingFishingCast | null;
+  lastEscape: PendingFishingCast | null;
+  reelPacksBought: number;
+  mapFragments: number;
+  aging: AgedFishSlot[];
+  agingSerial: number;
 };
 
 export const DAILY_CAST_LIMIT = 6;
@@ -60,6 +69,13 @@ export const BAITS: Record<BaitId, { name: string; description: string; price: n
   "spirit-worm": { name: "灵蚯", description: "气息自然，适合常见灵鱼。", price: 12, icon: "虫" },
   "jade-lure": { name: "碧玉拟饵", description: "提高珍稀鱼咬钩的机会。", price: 55, icon: "玉" },
   "star-bait": { name: "星辉饵", description: "大幅提高高阶灵鱼的权重。", price: 180, icon: "星" },
+};
+
+export const CHUMS: Record<ChumId, { name: string; description: string; materialName?: string; icon: string }> = {
+  none: { name: "不用诱鱼散", description: "保持本地鱼群的原始权重。", icon: "澜" },
+  "frost-chum": { name: "霜心诱鱼散", description: "以霜心草揉制，更容易引来寒水与高阶灵鱼。", materialName: "霜心草", icon: "霜" },
+  "jade-chum": { name: "碧芝诱鱼散", description: "碧落灵芝的木灵香气会吸引温顺鱼群。", materialName: "碧落灵芝", icon: "芝" },
+  "fire-chum": { name: "赤霄诱鱼散", description: "赤霄龙葵入水化为暖流，适合炎脉鱼场。", materialName: "赤霄龙葵", icon: "炎" },
 };
 
 export const FISH: FishDefinition[] = [
@@ -100,12 +116,14 @@ export const FISHING_LOCATIONS: FishingLocation[] = [
 export const fishingLocationById = (id: string) => FISHING_LOCATIONS.find((location) => location.id === id);
 
 export function createInitialFishing(): FishingProgress {
-  return { rods: 8, baits: { "spirit-worm": 8, "jade-lure": 2, "star-bait": 0 }, dailyDay: 1, dailyAttempts: 0, totalCaught: 0, records: {}, randomSpots: [], lastSpawnDay: 0, pendingCast: null };
+  return { rods: 8, baits: { "spirit-worm": 8, "jade-lure": 2, "star-bait": 0 }, dailyDay: 1, dailyAttempts: 0, totalCaught: 0, records: {}, randomSpots: [], lastSpawnDay: 0, pendingCast: null, lastEscape: null, reelPacksBought: 0, mapFragments: 0, aging: [], agingSerial: 0 };
 }
 
 export function normalizeFishingProgress(value?: Partial<FishingProgress> | null): FishingProgress {
   const base = createInitialFishing();
-  return { ...base, ...value, baits: { ...base.baits, ...value?.baits }, records: { ...base.records, ...value?.records }, randomSpots: Array.isArray(value?.randomSpots) ? value.randomSpots : [] };
+  const pendingCast = value?.pendingCast ? { ...value.pendingCast, chumId: value.pendingCast.chumId ?? "none" as const } : null;
+  const lastEscape = value?.lastEscape ? { ...value.lastEscape, chumId: value.lastEscape.chumId ?? "none" as const } : null;
+  return { ...base, ...value, pendingCast, lastEscape, baits: { ...base.baits, ...value?.baits }, records: { ...base.records, ...value?.records }, randomSpots: Array.isArray(value?.randomSpots) ? value.randomSpots : [], aging: Array.isArray(value?.aging) ? value.aging : [] };
 }
 
 function hash(seed: string) {
@@ -140,18 +158,19 @@ export function ensureRandomFishingSpots(progress: FishingProgress, day: number,
   return { ...current, randomSpots: spots, lastSpawnDay: day };
 }
 
-export function weightedPool(location: FishingLocation, baitId: BaitId) {
+export function weightedPool(location: FishingLocation, baitId: BaitId, chumId: ChumId = "none") {
   const entries = location.pool.map((entry) => {
     const rarity = fishById(entry.fishId)?.rarity ?? 1;
     const multiplier = baitId === "star-bait" ? (rarity >= 4 ? 2.5 : rarity === 3 ? 1.5 : .8) : baitId === "jade-lure" ? (rarity >= 4 ? 1.7 : rarity === 3 ? 1.3 : .92) : 1;
-    return { ...entry, adjustedWeight: entry.weight * multiplier };
+    const chumMultiplier = chumId === "frost-chum" ? (entry.fishId.includes("frost") || entry.fishId.includes("moon") || rarity >= 4 ? 1.65 : .88) : chumId === "fire-chum" ? (entry.fishId.includes("blazing") || entry.fishId.includes("thunder") || location.mapId === "chixia" ? 1.75 : .86) : chumId === "jade-chum" ? (rarity <= 3 ? 1.32 : 1.08) : 1;
+    return { ...entry, adjustedWeight: entry.weight * multiplier * chumMultiplier };
   });
   const total = entries.reduce((sum, entry) => sum + entry.adjustedWeight, 0);
   return entries.map((entry) => ({ ...entry, probability: entry.adjustedWeight / total }));
 }
 
-export function rollFish(location: FishingLocation, baitId: BaitId, seed: string) {
-  const pool = weightedPool(location, baitId);
+export function rollFish(location: FishingLocation, baitId: BaitId, seed: string, chumId: ChumId = "none") {
+  const pool = weightedPool(location, baitId, chumId);
   let roll = hash(seed);
   for (const entry of pool) {
     roll -= entry.probability;
@@ -162,8 +181,8 @@ export function rollFish(location: FishingLocation, baitId: BaitId, seed: string
 
 // Mirrors the reference reducer order: validate the wharf, consume rod + bait,
 // then persist the pending catch. Reeling is a separate transaction.
-export function castFishing(progress: FishingProgress, input: { day: number; tick: number; location: FishingLocation; baitId: BaitId; randomSpotId?: string }) {
-  const { day, tick, location, baitId, randomSpotId } = input;
+export function castFishing(progress: FishingProgress, input: { day: number; tick: number; location: FishingLocation; baitId: BaitId; chumId?: ChumId; randomSpotId?: string }) {
+  const { day, tick, location, baitId, randomSpotId, chumId = "none" } = input;
   const current = resetFishingDay(progress, day);
   if (current.pendingCast) return { progress: current, ok: false as const, message: "已有一竿尚未收线" };
   if (current.dailyAttempts >= DAILY_CAST_LIMIT) return { progress: current, ok: false as const, message: "今日垂钓次数已经用尽" };
@@ -171,23 +190,65 @@ export function castFishing(progress: FishingProgress, input: { day: number; tic
   if ((current.baits[baitId] ?? 0) <= 0) return { progress: current, ok: false as const, message: `没有${BAITS[baitId].name}了` };
   if (randomSpotId && !current.randomSpots.some((spot) => spot.id === randomSpotId)) return { progress: current, ok: false as const, message: "这处游光钓点已经消散" };
   const seed = `${day}:${tick}:${location.id}:${current.totalCaught}:${current.dailyAttempts}:${baitId}`;
-  const fish = rollFish(location, baitId, seed);
-  const pendingCast: PendingFishingCast = { locationId: location.id, randomSpotId, baitId, fishId: fish.id, castedAtTick: tick, seed };
-  return { ok: true as const, catch: pendingCast, progress: { ...current, rods: current.rods - 1, baits: { ...current.baits, [baitId]: current.baits[baitId] - 1 }, dailyAttempts: current.dailyAttempts + 1, pendingCast } };
+  const fish = rollFish(location, baitId, seed, chumId);
+  const pendingCast: PendingFishingCast = { locationId: location.id, randomSpotId, baitId, fishId: fish.id, castedAtTick: tick, seed, chumId };
+  return { ok: true as const, catch: pendingCast, progress: { ...current, rods: current.rods - 1, baits: { ...current.baits, [baitId]: current.baits[baitId] - 1 }, dailyAttempts: current.dailyAttempts + 1, pendingCast, lastEscape: null } };
 }
 
 export function reelFishing(progress: FishingProgress, success: boolean) {
   const pending = progress.pendingCast;
   if (!pending) return { progress, ok: false as const, message: "当前没有等待收线的鱼竿" };
+  const mapFragment = success && (fishById(pending.fishId)?.rarity ?? 1) >= 4 && hash(`${pending.seed}:map-fragment`) < .28;
   return {
     ok: true as const,
     fishId: pending.fishId,
+    mapFragment,
     progress: {
       ...progress,
       pendingCast: null,
+      lastEscape: success ? null : pending,
+      mapFragments: progress.mapFragments + (mapFragment ? 1 : 0),
       totalCaught: progress.totalCaught + (success ? 1 : 0),
       records: success ? { ...progress.records, [pending.fishId]: (progress.records[pending.fishId] ?? 0) + 1 } : progress.records,
-      randomSpots: pending.randomSpotId ? progress.randomSpots.filter((spot) => spot.id !== pending.randomSpotId) : progress.randomSpots,
+      randomSpots: success && pending.randomSpotId ? progress.randomSpots.filter((spot) => spot.id !== pending.randomSpotId) : progress.randomSpots,
     },
   };
+}
+
+export function retryFishing(progress: FishingProgress) {
+  if (!progress.lastEscape) return { progress, ok: false as const, message: "没有可以追回的鱼影" };
+  return { progress: { ...progress, pendingCast: progress.lastEscape, lastEscape: null }, ok: true as const, catch: progress.lastEscape, message: "循着余波重新锁定了刚才的鱼影" };
+}
+
+export function abandonFishingEscape(progress: FishingProgress) {
+  const escaped = progress.lastEscape;
+  if (!escaped) return progress;
+  return { ...progress, lastEscape: null, randomSpots: escaped.randomSpotId ? progress.randomSpots.filter((spot) => spot.id !== escaped.randomSpotId) : progress.randomSpots };
+}
+
+export function extraReelPackPrice(timesBought: number) {
+  return 120 + Math.min(6, Math.max(0, timesBought)) * 60;
+}
+
+export function startFishAging(progress: FishingProgress, fishId: string, tick: number) {
+  if (progress.aging.length >= 3) return { progress, ok: false as const, message: "听澜鱼篓的三个陈化位都已占用" };
+  const fish = fishById(fishId); if (!fish) return { progress, ok: false as const, message: "没有找到这尾灵鱼" };
+  const serial = progress.agingSerial + 1;
+  const slot = { id: `aged-fish-${serial}`, fishId, startedAtTick: tick, readyAtTick: tick + Math.max(2, fish.rarity + 1) };
+  return { progress: { ...progress, agingSerial: serial, aging: [...progress.aging, slot] }, ok: true as const, slot, message: `${fish.name}收入听澜鱼篓，将在 ${slot.readyAtTick - tick} 个时辰后陈化` };
+}
+
+export function collectAgedFish(progress: FishingProgress, slotId: string, tick: number) {
+  const slot = progress.aging.find((entry) => entry.id === slotId);
+  if (!slot) return { progress, ok: false as const, message: "没有找到这个陈化位" };
+  if (slot.readyAtTick > tick) return { progress, ok: false as const, message: `灵鱼尚需 ${slot.readyAtTick - tick} 个游戏时辰陈化` };
+  const fish = fishById(slot.fishId)!;
+  return { progress: { ...progress, aging: progress.aging.filter((entry) => entry.id !== slotId) }, ok: true as const, fish, message: `${fish.name}完成陈化，灵性与价值都得到提升` };
+}
+
+export function processFishIntoBait(progress: FishingProgress, fishId: string) {
+  const fish = fishById(fishId); if (!fish) return { progress, ok: false as const, message: "没有找到这尾灵鱼" };
+  const baitId: BaitId = fish.rarity >= 4 ? "star-bait" : fish.rarity >= 2 ? "jade-lure" : "spirit-worm";
+  const amount = Math.max(1, fish.rarity - 1);
+  return { progress: { ...progress, baits: { ...progress.baits, [baitId]: progress.baits[baitId] + amount } }, ok: true as const, baitId, amount, message: `${fish.name}制成${BAITS[baitId].name} ×${amount}` };
 }

@@ -19,6 +19,14 @@ export type HerbCropDefinition = {
   lore: string;
 };
 
+export type FertilizerId = "rapid-root" | "bounty-soil" | "five-phase";
+
+export const FERTILIZERS: Record<FertilizerId, { name: string; icon: string; speed: number; yield: number; description: string }> = {
+  "rapid-root": { name: "催生灵露", icon: "露", speed: 1, yield: 0, description: "缩短一个游戏时辰的生长时间。" },
+  "bounty-soil": { name: "丰穗灵壤", icon: "壤", speed: 0, yield: 1, description: "收获时稳定增加一份产物。" },
+  "five-phase": { name: "五行沃土", icon: "阵", speed: 1, yield: 1, description: "兼具催生与增产，并强化天时相合。" },
+};
+
 export const HERB_CROPS: HerbCropDefinition[] = [
   { id: "frost-heart", materialName: "霜心草", seedName: "霜心草籽", element: "水", growTicks: 1, seedPrice: 12, unlockLevel: 1, stockType: "resident", bondRequired: 0, baseYield: 1, color: "#9fd8df", lore: "晨露凝叶，最适合初学者照料。" },
   { id: "jade-lingzhi", materialName: "碧落灵芝", seedName: "碧落芝孢", element: "木", growTicks: 2, seedPrice: 22, unlockLevel: 1, stockType: "resident", bondRequired: 0, baseYield: 1, color: "#6fc28f", lore: "木灵丰沛，是回春丹的常用主材。" },
@@ -40,6 +48,8 @@ export type FarmPlot = {
   plantedAtTick?: number;
   watered?: boolean;
   fertilized?: boolean;
+  fertilizerId?: FertilizerId;
+  wateredAtDay?: number;
 };
 
 export type FarmProgress = {
@@ -48,6 +58,9 @@ export type FarmProgress = {
   experience: number;
   totalHarvests: number;
   spiritSoil: number;
+  fertilizers: Record<FertilizerId, number>;
+  toolLevel: number;
+  harvestSerial: number;
   lastDewDay: number;
   wellLevel: number;
   wellUpgradedDay: number;
@@ -86,6 +99,9 @@ export function createInitialFarm(): FarmProgress {
     experience: 0,
     totalHarvests: 0,
     spiritSoil: 2,
+    fertilizers: { "rapid-root": 2, "bounty-soil": 1, "five-phase": 0 },
+    toolLevel: 1,
+    harvestSerial: 0,
     lastDewDay: 0,
     wellLevel: 1,
     wellUpgradedDay: 0,
@@ -105,6 +121,7 @@ export function normalizeFarmProgress(value: Partial<FarmProgress> | null | unde
     ...value,
     plots: base.plots.map((plot) => ({ ...plot, ...(storedPlots.find((entry) => entry?.id === plot.id) ?? {}) })),
     seeds: { ...base.seeds, ...(value?.seeds ?? {}) },
+    fertilizers: { ...base.fertilizers, ...(value?.fertilizers ?? {}) },
     livestock: normalizeLivestock(value?.livestock),
     npcBonds: { ...base.npcBonds, ...(value?.npcBonds ?? {}) },
     npcTalkDays: { ...base.npcTalkDays, ...(value?.npcTalkDays ?? {}) },
@@ -164,6 +181,12 @@ export function getFarmWeather(day: number) {
   return WEATHER[(Math.max(1, day) - 1) % WEATHER.length];
 }
 
+export function getFarmEvent(day: number) {
+  if (day > 2 && day % 11 === 0) return { id: "frost" as const, name: "寒潮侵畦", icon: "霜", description: "未浇灌的仙草生长延缓一个时辰。" };
+  if (day > 2 && day % 7 === 0) return { id: "spirit-surge" as const, name: "灵潮漫圃", icon: "潮", description: "成熟仙草更容易触发丰收。" };
+  return { id: "calm" as const, name: "灵脉安稳", icon: "和", description: "今日灵圃运转平稳。" };
+}
+
 export function cropById(id: HerbCropId) {
   return HERB_CROPS.find((crop) => crop.id === id)!;
 }
@@ -177,7 +200,11 @@ export function cropMaterial(crop: HerbCropDefinition): GameItem {
 export function plotGrowth(plot: FarmPlot, currentTick: number, weather: FarmWeather) {
   if (!plot.cropId || plot.plantedAtTick === undefined) return { progress: 0, ready: false, remaining: 0, elapsed: 0, required: 0 };
   const crop = cropById(plot.cropId);
-  const required = Math.max(1, crop.growTicks - (plot.fertilized ? 1 : 0) - weather.speedBonus);
+  const fertilizer = plot.fertilizerId ? FERTILIZERS[plot.fertilizerId] : null;
+  const day = Math.floor(currentTick / 3) + 1;
+  const event = getFarmEvent(day);
+  const coldDelay = event.id === "frost" && plot.wateredAtDay !== day ? 1 : 0;
+  const required = Math.max(1, crop.growTicks - (fertilizer?.speed ?? (plot.fertilized ? 1 : 0)) - weather.speedBonus - (plot.watered ? 1 : 0) + coldDelay);
   const elapsed = Math.max(0, currentTick - plot.plantedAtTick);
   return { progress: Math.min(100, (elapsed / required) * 100), ready: elapsed >= required, remaining: Math.max(0, required - elapsed), elapsed, required };
 }
@@ -194,7 +221,7 @@ export function plantPlot(farm: FarmProgress, plotId: string, cropId: HerbCropId
   return {
     ok: true,
     message: `种下${crop.seedName}`,
-    farm: { ...farm, seeds: { ...farm.seeds, [cropId]: farm.seeds[cropId] - 1 }, plots: farm.plots.map((plot) => plot.id === plotId ? { id: plot.id, cropId, plantedAtTick: currentTick, fertilized: previous.fertilized } : plot) },
+    farm: { ...farm, seeds: { ...farm.seeds, [cropId]: farm.seeds[cropId] - 1 }, plots: farm.plots.map((plot) => plot.id === plotId ? { id: plot.id, cropId, plantedAtTick: currentTick, fertilized: previous.fertilized, fertilizerId: previous.fertilizerId } : plot) },
   };
 }
 
@@ -203,14 +230,15 @@ export function waterPlot(farm: FarmProgress, plotId: string, day: number) {
   if (waterUsed >= DAILY_WATER_CHARGES) return { farm, ok: false, message: "今日灵泉水已经用尽" };
   const target = farm.plots.find((plot) => plot.id === plotId);
   if (!target?.cropId || target.watered) return { farm, ok: false, message: target?.watered ? "这畦已经浇灌" : "空田无需浇灌" };
-  return { ok: true, message: "灵泉浇灌完成，成熟提前且产量提升", farm: { ...farm, waterDay: day, waterUsed: waterUsed + 1, plots: farm.plots.map((plot) => plot.id === plotId ? { ...plot, watered: true } : plot) } };
+  return { ok: true, message: "灵泉浇灌完成，成熟提前且产量提升", farm: { ...farm, waterDay: day, waterUsed: waterUsed + 1, plots: farm.plots.map((plot) => plot.id === plotId ? { ...plot, watered: true, wateredAtDay: day } : plot) } };
 }
 
-export function fertilizePlot(farm: FarmProgress, plotId: string) {
-  if (farm.spiritSoil < 1) return { farm, ok: false, message: "灵壤不足，可每日凝露培土获得" };
+export function fertilizePlot(farm: FarmProgress, plotId: string, fertilizerId: FertilizerId = "bounty-soil") {
+  if ((farm.fertilizers[fertilizerId] ?? 0) < 1) return { farm, ok: false, message: `${FERTILIZERS[fertilizerId].name}不足，可向叶青禾购置或在灵圃炼制` };
   const target = farm.plots.find((plot) => plot.id === plotId);
   if (!target || target.fertilized) return { farm, ok: false, message: target?.fertilized ? "这畦已经施过灵壤" : "没有找到这块灵田" };
-  return { ok: true, message: target.cropId ? "灵壤已融入根系，生长加速且收获增产" : "灵壤已翻入空田，下次播种立即生效", farm: { ...farm, spiritSoil: farm.spiritSoil - 1, plots: farm.plots.map((plot) => plot.id === plotId ? { ...plot, fertilized: true } : plot) } };
+  const fertilizer = FERTILIZERS[fertilizerId];
+  return { ok: true, message: target.cropId ? `${fertilizer.name}已融入根系` : `${fertilizer.name}已翻入空田，下次播种立即生效`, farm: { ...farm, spiritSoil: Math.max(0, farm.spiritSoil - (fertilizerId === "bounty-soil" ? 1 : 0)), fertilizers: { ...farm.fertilizers, [fertilizerId]: farm.fertilizers[fertilizerId] - 1 }, plots: farm.plots.map((plot) => plot.id === plotId ? { ...plot, fertilized: true, fertilizerId } : plot) } };
 }
 
 export function harvestPlot(farm: FarmProgress, plotId: string, currentTick: number, day: number) {
@@ -221,20 +249,41 @@ export function harvestPlot(farm: FarmProgress, plotId: string, currentTick: num
   if (!plotGrowth(plot, currentTick, weather).ready) return { farm, ok: false as const, message: "仙草尚未成熟" };
   const material = cropMaterial(crop);
   const elementFavored = weather.bonusElement === crop.element || (weather.id === "sun-warm" && crop.element === "金");
-  const amount = crop.baseYield + (plot.fertilized ? 1 : 0) + (elementFavored ? 1 : 0);
+  const fertilizer = plot.fertilizerId ? FERTILIZERS[plot.fertilizerId] : null;
+  const event = getFarmEvent(day);
+  const seed = `${day}:${plot.id}:${crop.id}:${farm.harvestSerial}`;
+  const roll = seededOrder(day + farm.harvestSerial, seed) / 100000;
+  const critChance = .08 + farm.toolLevel * .02 + (event.id === "spirit-surge" ? .12 : 0) + (plot.fertilizerId === "five-phase" ? .06 : 0);
+  const abundant = roll < critChance;
+  const mutated = roll > .965 && (weather.bonusElement === crop.element || plot.fertilizerId === "five-phase");
+  const amount = crop.baseYield + (fertilizer?.yield ?? (plot.fertilized ? 1 : 0)) + (plot.watered ? 1 : 0) + (elementFavored ? 1 : 0) + (abundant ? 1 + Math.floor(farm.toolLevel / 2) : 0) + (mutated ? 1 : 0);
   const experience = crop.growTicks * 2 + amount;
   const nextFarm: FarmProgress = {
     ...farm,
     experience: farm.experience + experience,
     totalHarvests: farm.totalHarvests + amount,
+    harvestSerial: farm.harvestSerial + 1,
     plots: farm.plots.map((entry) => entry.id === plotId ? { id: entry.id } : entry),
   };
   return {
     farm: nextFarm,
     ok: true as const,
-    message: `收获${material.name} ×${amount}`,
+    message: `${abundant ? "丰收灵光 · " : ""}${mutated ? "灵变异株 · " : ""}收获${material.name} ×${amount}`,
     reward: { itemId: material.id, itemType: "material" as const, rarity: Math.max(1, Math.min(7, material.rarity)) as 1 | 2 | 3 | 4 | 5 | 6 | 7, amount, sourceTags: ["灵圃", "种植"] },
     experience,
-    mutated: false,
+    abundant,
+    mutated,
   };
+}
+
+export function craftFertilizer(farm: FarmProgress, id: FertilizerId) {
+  const cost = id === "five-phase" ? 3 : 2;
+  if (farm.spiritSoil < cost) return { farm, ok: false as const, message: `炼制${FERTILIZERS[id].name}需要 ${cost} 份原生灵壤` };
+  return { farm: { ...farm, spiritSoil: farm.spiritSoil - cost, fertilizers: { ...farm.fertilizers, [id]: farm.fertilizers[id] + 1 } }, ok: true as const, message: `炼成${FERTILIZERS[id].name} ×1` };
+}
+
+export function upgradeFarmTool(farm: FarmProgress) {
+  if (farm.toolLevel >= 3) return { farm, ok: false as const, message: "青木灵锄已经蕴养至最高阶" };
+  const toolLevel = farm.toolLevel + 1;
+  return { farm: { ...farm, toolLevel }, ok: true as const, message: `青木灵锄升至 ${toolLevel} 阶，丰收概率与连作效率提升` };
 }
