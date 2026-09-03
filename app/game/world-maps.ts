@@ -12,6 +12,7 @@ export const WORLD_MAPS:WorldMapDefinition[]=[
     {id:"treasure-shop",name:"栖珍阁",subtitle:"常设商铺 · 买卖百物",x:43,y:67,icon:"珍",sceneId:"treasure-shop",unlocked:true},
     {id:"bedroom",name:"听云居",subtitle:"居所 · 静室练功",x:42,y:35,icon:"居",sceneId:"bedroom",unlocked:true},
     {id:"spirit-farm",name:"云岫灵圃",subtitle:"种植仙草 · 供给丹炉",x:72,y:43,icon:"圃",sceneId:"spirit-farm",unlocked:true},
+    {id:"intelligence-bureau",name:"槐安情报局",subtitle:"诸界闻壁 · 道友论坛",x:24,y:66,icon:"闻",sceneId:"intelligence-bureau",unlocked:true},
     {id:"to-canglan",name:"沧澜渡",subtitle:"通往东方水域",x:18,y:30,icon:"舟",targetMapId:"canglan",unlocked:true},
     {id:"to-chixia",name:"赤霞关",subtitle:"通往西境荒域",x:82,y:85,icon:"关",targetMapId:"chixia",unlocked:true},
   ]},

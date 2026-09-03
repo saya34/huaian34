@@ -57,6 +57,15 @@ export const SCENES: SceneDefinition[] = [
     image: "/assets/maps/yunzhou-realm.webp",
     characters: [],
   },
+  {
+    id: "intelligence-bureau",
+    name: "槐安情报局",
+    shortName: "情报",
+    description: "藏在云州长街深处的消息中枢，万千纸鹤昼夜衔来诸界见闻。",
+    atmosphere: "灯影 · 鹤讯",
+    image: "/assets/scenes/yunzhou-market.webp",
+    characters: ["wenren-fei"],
+  },
 ];
 
 export const GIFTS: GiftDefinition[] = [
@@ -77,6 +86,24 @@ function relationshipStages(addresses: [string,string,string,string]) {
 }
 
 export const CHARACTERS: CharacterDefinition[] = [
+  {
+    id: "wenren-fei",
+    name: "闻人绯",
+    role: "槐安情报局主事",
+    courtesy: "绯掌事",
+    bio: "执掌万象闻壁的情报商。她能从三句闲谈里辨出两句谎话，却始终不肯透露自己的来历。",
+    sceneId: "intelligence-bureau",
+    image: "/assets/characters/wenren-fei-v1.png",
+    accent: "#b9674f",
+    lovedGift: "goldHairpin",
+    relationshipStages: relationshipStages(["来客", "道友", "你", "知己"]),
+    giftPreferences: [{giftId:"goldHairpin",tier:"loved",reaction:"她将金簪抵在灯下看了许久，笑说这份消息值得珍藏。"},{giftId:"peachWine",tier:"liked",reaction:"她收下酒坛，说夜深整理密卷时正用得上。"},{giftId:"snowTea",tier:"neutral",reaction:"她命人换了新水，当场沏了一盏。"}],
+    ambientLines: [
+      "万象闻壁上十条消息里，三条是真，六条是半真——剩下一条最值钱。",
+      "你的名字今日又在问道榜上升了一位。放心，我没有替你买名次。",
+      "情报局不问来路，只问消息能否经得住下一盏茶的推敲。",
+    ],
+  },
   {
     id: "shen",
     name: "沈清霜",
