@@ -22,15 +22,15 @@ import {
 } from "./farm";
 import LivestockPanel from "./LivestockPanel";
 
-type Props = { day: number; period: Period; onNotice: (message: string) => void };
+type Props = { day: number; period: Period; onNotice: (message: string) => void; initialView?: "field" | "livestock"; onClose?: () => void };
 
-export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
+export default function SpiritFarmPanel({ day, period, onNotice, initialView = "field", onClose }: Props) {
   const { state, setFarm, applyEffects } = useUnifiedGame();
   const [selectedCropId, setSelectedCropId] = useState<HerbCropId>("frost-heart");
   const [message, setMessage] = useState("选中灵种后直接点击空田播种；成熟后再次点击即可收获。仙草只随游戏内时辰成长。");
   const [plotFx, setPlotFx] = useState<{ id: string; kind: "plant" | "harvest" | "fertilize" } | null>(null);
-  const [seedShopOpen, setSeedShopOpen] = useState(false);
-  const [livestockOpen, setLivestockOpen] = useState(false);
+  const [floatingInfo, setFloatingInfo] = useState<{ id: string; text: string; tone: "green" | "gold" | "blue" } | null>(null);
+  const [livestockOpen, setLivestockOpen] = useState(initialView === "livestock");
   const tick = gameTick(day, period);
   const weather = getFarmWeather(day);
   const farm = state.farm;
@@ -39,6 +39,7 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
   const unlockedPlots = unlockedPlotCount(level);
   const supportedPlots = supportedPlotCount(farm.wellLevel);
   const selectedCrop = cropById(selectedCropId);
+  const visibleCrops = HERB_CROPS.filter((crop) => crop.stockType === "resident" || (farm.seeds[crop.id] ?? 0) > 0);
 
   const readyCount = useMemo(() => farm.plots.filter((plot) => plotGrowth(plot, tick, weather).ready).length, [farm.plots, tick, weather]);
   const growingCount = farm.plots.filter((plot) => plot.cropId && !plotGrowth(plot, tick, weather).ready).length;
@@ -53,22 +54,27 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
     window.setTimeout(() => setPlotFx((current) => current?.id === id ? null : current), 720);
   }
 
+  function floatPlot(id: string, text: string, tone: "green" | "gold" | "blue") {
+    setFloatingInfo({ id, text, tone });
+    window.setTimeout(() => setFloatingInfo((current) => current?.id === id ? null : current), 1150);
+  }
+
   function plant(plotId: string) {
     const result = plantPlot(farm, plotId, selectedCropId, tick);
     if (!result.ok) { setMessage(result.message); return; }
-    setFarm(result.farm); pulsePlot(plotId, "plant"); announce(`${result.message} · ${selectedCrop.growTicks} 时辰内成熟`);
+    setFarm(result.farm); pulsePlot(plotId, "plant"); floatPlot(plotId, `播种 · ${selectedCrop.materialName}`, "green"); announce(`${result.message} · ${selectedCrop.growTicks} 时辰内成熟`);
   }
 
   function fertilize(plotId: string) {
     const result = fertilizePlot(farm, plotId);
     if (!result.ok) { setMessage(result.message); return; }
-    setFarm(result.farm); pulsePlot(plotId, "fertilize"); announce(result.message);
+    setFarm(result.farm); pulsePlot(plotId, "fertilize"); floatPlot(plotId, "灵壤 -1 · 生长加速", "blue"); announce(result.message);
   }
 
   function harvest(plotId: string) {
     const result = harvestPlot(farm, plotId, tick, day);
     if (!result.ok) { setMessage(result.message); return; }
-    setFarm(result.farm); pulsePlot(plotId, "harvest");
+    setFarm(result.farm); pulsePlot(plotId, "harvest"); floatPlot(plotId, result.message, "gold");
     applyEffects([{ type: "add_item", item: result.reward }, { type: "add_player_exp", amount: Math.max(1, Math.floor(result.experience / 2)) }]);
     announce(`${result.message} · 灵圃经验 +${result.experience}`);
   }
@@ -77,7 +83,9 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
     const plot = farm.plots.find((entry) => entry.id === plotId);
     if (!plot?.cropId) { plant(plotId); return; }
     if (plotGrowth(plot, tick, weather).ready) { harvest(plotId); return; }
-    setMessage(`这畦正在生长，尚余 ${plotGrowth(plot, tick, weather).remaining} 个游戏时辰。`);
+    const growth = plotGrowth(plot, tick, weather);
+    const copy = `成长 ${Math.round(growth.progress)}% · 尚余 ${growth.remaining} 时辰`;
+    setMessage(`这畦正在生长，尚余 ${growth.remaining} 个游戏时辰。`); floatPlot(plotId, copy, "green");
   }
 
   function bulkPlant() {
@@ -119,16 +127,6 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
     announce(`一键收获 · 仙草 ${count} 株 · 灵圃经验 +${experience}`);
   }
 
-  function buySeeds(cropId: HerbCropId, quantity: number) {
-    const crop = cropById(cropId);
-    const cost = crop.seedPrice * quantity;
-    if (level < crop.unlockLevel) { setMessage(`灵圃达到 ${crop.unlockLevel} 阶后开放${crop.seedName}`); return; }
-    if (state.shared.spiritStones < cost) { setMessage(`灵石不足，还差 ${cost - state.shared.spiritStones} 枚。`); return; }
-    setFarm((current) => ({ ...current, seeds: { ...current.seeds, [cropId]: current.seeds[cropId] + quantity } }));
-    applyEffects([{ type: "add_currency", amount: -cost }]);
-    announce(`购得${crop.seedName} ×${quantity} · 灵石 -${cost}`);
-  }
-
   function gatherDew() {
     if (farm.lastDewDay === day) { setMessage("今日已经凝露培土，明日再来。 "); return; }
     if (state.shared.stamina < 1) { setMessage("凝露培土需要 1 点体力。 "); return; }
@@ -137,7 +135,7 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
     announce("凝露培土完成 · 灵壤 +2 · 体力 -1");
   }
 
-  if (livestockOpen) return <LivestockPanel day={day} period={period} onBack={() => setLivestockOpen(false)} onNotice={onNotice} />;
+  if (livestockOpen) return <LivestockPanel day={day} period={period} onBack={() => setLivestockOpen(false)} onClose={onClose} onNotice={onNotice} />;
 
   return <section className="spirit-farm-panel" aria-label="云岫灵圃">
     <header className="farm-status-bar">
@@ -145,18 +143,18 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
       <nav className="farm-scene-tabs"><button type="button" className="active">灵田十二畦</button><button type="button" onClick={() => setLivestockOpen(true)}>灵兽苑</button></nav>
       <div className="farm-weather"><i>{weather.icon}</i><span><small>今日天时</small><strong>{weather.name}</strong><em>{weather.description}</em></span></div>
       <div className="farm-level"><span>灵圃 {level} 阶</span><b>{farm.experience} 修圃经验</b><i><u style={{ width: `${levelProfile.percentage}%` }} /></i><small>下阶 {levelProfile.current}/{levelProfile.needed}</small></div>
+      {onClose && <button type="button" className="farm-panel-close" onClick={onClose} aria-label="返回灵圃场景">×</button>}
     </header>
 
     <div className="farm-main-grid">
       <aside className="farm-seed-rack">
-        <header><span>种匣</span><button type="button" onClick={() => setSeedShopOpen((value) => !value)}>{seedShopOpen ? "收起" : "购种"}</button></header>
-        <div className="farm-seed-list">{HERB_CROPS.map((crop) => {
+        <header><span>种匣</span><small>灵种请向叶青禾购买</small></header>
+        <div className="farm-seed-list">{visibleCrops.map((crop) => {
           const material = cropMaterial(crop); const locked = level < crop.unlockLevel;
           return <button type="button" key={crop.id} className={`${selectedCropId === crop.id ? "active" : ""} ${locked ? "locked" : ""}`} disabled={locked} onClick={() => setSelectedCropId(crop.id)}>
             <img src={material.image} alt="" /><span><strong>{crop.seedName}</strong><small>{locked ? `${crop.unlockLevel}阶解锁` : `${crop.growTicks}时辰 · ${crop.element}行`}</small></span><b>{farm.seeds[crop.id]}</b>
           </button>;
         })}</div>
-        {seedShopOpen && <div className="farm-seed-shop"><p>灵种铺 · 今日常备</p>{HERB_CROPS.map((crop) => <article key={crop.id}><span><strong>{crop.seedName}</strong><small>◉ {crop.seedPrice}/枚</small></span><button disabled={level < crop.unlockLevel} onClick={() => buySeeds(crop.id, 1)}>买1</button><button disabled={level < crop.unlockLevel} onClick={() => buySeeds(crop.id, 5)}>买5</button></article>)}</div>}
       </aside>
 
       <div className="farm-field-wrap">
@@ -175,8 +173,9 @@ export default function SpiritFarmPanel({ day, period, onNotice }: Props) {
               <span className="farm-crop-label"><strong>{crop.materialName}</strong><small>{growth.ready ? "灵光盈枝 · 可收获" : `${stage === "seedling" ? "初芽" : stage === "sprout" ? "抽叶" : "将熟"} · 尚余 ${growth.remaining} 时辰`}</small></span>
               <span className="farm-crop-progress"><i style={{ width: `${growth.progress}%` }} /></span>
               <span className="farm-plot-buffs"><i>泉</i>{plot.fertilized && <i>沃</i>}</span>
+              {floatingInfo?.id === plot.id && <span className={`farm-floating-info ${floatingInfo.tone}`}>{floatingInfo.text}</span>}
               {!plot.fertilized && !growth.ready && <span role="button" tabIndex={0} className="farm-fertilize" onClick={(event) => { event.stopPropagation(); fertilize(plot.id); }}>壤</span>}
-            </> : unsupported ? <span className="farm-lock"><b>涸</b><small>疏浚灵泉后覆盖</small></span> : <><span className="farm-empty-mark"><b>＋</b><small>播种{selectedCrop.materialName}</small></span>{!plot.fertilized && <span role="button" tabIndex={0} className="farm-fertilize" onClick={(event) => { event.stopPropagation(); fertilize(plot.id); }}>壤</span>}</>}
+            </> : unsupported ? <span className="farm-lock"><b>涸</b><small>疏浚灵泉后覆盖</small></span> : <><span className="farm-empty-mark"><b>＋</b><small>播种{selectedCrop.materialName}</small></span>{floatingInfo?.id === plot.id && <span className={`farm-floating-info ${floatingInfo.tone}`}>{floatingInfo.text}</span>}{!plot.fertilized && <span role="button" tabIndex={0} className="farm-fertilize" onClick={(event) => { event.stopPropagation(); fertilize(plot.id); }}>壤</span>}</>}
           </button>;
         })}</div>
       </div>

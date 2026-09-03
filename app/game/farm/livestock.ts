@@ -1,6 +1,6 @@
 import { MATERIALS } from "../alchemy/item-data";
 
-export type SpiritBeastId = "moonfeather-hen" | "jade-antler-deer" | "cloudwool-sheep";
+export type SpiritBeastId = "moonfeather-hen" | "jade-antler-deer" | "cloudwool-sheep" | "jade-frog" | "spirit-moth" | "cloud-hairball";
 
 export type SpiritBeastDefinition = {
   id: SpiritBeastId;
@@ -9,6 +9,8 @@ export type SpiritBeastDefinition = {
   icon: string;
   price: number;
   unlockLevel: number;
+  stockType: "resident" | "random";
+  bondRequired: number;
   feedMaterialName: string;
   productId: string;
   productName: string;
@@ -37,10 +39,19 @@ export type SpiritBeast = {
 export type LivestockProgress = { animals: SpiritBeast[]; totalCollected: number; serial: number };
 
 export const SPIRIT_BEASTS: SpiritBeastDefinition[] = [
-  { id: "moonfeather-hen", name: "月翎灵雉", role: "灵禽栏", icon: "雉", price: 180, unlockLevel: 1, feedMaterialName: "霜心草", productId: "moonfeather-egg", productName: "月翎灵卵", productDescription: "月翎灵雉凝成的温润灵卵，可交易，也适合制成恢复灵膳。", productArt: "/assets/items/item-05.webp", productValue: 72, productRarity: 2, productionTicks: 2 },
-  { id: "cloudwool-sheep", name: "云绒灵羊", role: "灵兽棚", icon: "羊", price: 320, unlockLevel: 2, feedMaterialName: "碧落灵芝", productId: "cloud-spirit-wool", productName: "云灵绒", productDescription: "触感如云的灵绒，是制作护身法衣的上好辅材。", productArt: "/assets/items/item-37.webp", productValue: 138, productRarity: 3, productionTicks: 3 },
-  { id: "jade-antler-deer", name: "青玉灵豚", role: "灵兽棚", icon: "豚", price: 460, unlockLevel: 3, feedMaterialName: "金阳参", productId: "jade-deer-dew", productName: "玉髓香露", productDescription: "灵豚吐纳地气凝成的玉色香露，蕴含温和生机。", productArt: "/assets/items/item-28.webp", productValue: 236, productRarity: 4, productionTicks: 4 },
+  { id: "moonfeather-hen", name: "月翎灵雉", role: "灵禽栏", icon: "雉", price: 180, unlockLevel: 1, stockType: "resident", bondRequired: 0, feedMaterialName: "霜心草", productId: "moonfeather-egg", productName: "月翎灵卵", productDescription: "月翎灵雉凝成的温润灵卵，可交易，也适合制成恢复灵膳。", productArt: "/assets/items/item-05.webp", productValue: 72, productRarity: 2, productionTicks: 2 },
+  { id: "cloudwool-sheep", name: "云绒灵羊", role: "灵兽棚", icon: "羊", price: 320, unlockLevel: 2, stockType: "resident", bondRequired: 8, feedMaterialName: "碧落灵芝", productId: "cloud-spirit-wool", productName: "云灵绒", productDescription: "触感如云的灵绒，是制作护身法衣的上好辅材。", productArt: "/assets/items/item-37.webp", productValue: 138, productRarity: 3, productionTicks: 3 },
+  { id: "jade-antler-deer", name: "青玉灵豚", role: "灵兽棚", icon: "豚", price: 460, unlockLevel: 3, stockType: "resident", bondRequired: 18, feedMaterialName: "金阳参", productId: "jade-deer-dew", productName: "玉髓香露", productDescription: "灵豚吐纳地气凝成的玉色香露，蕴含温和生机。", productArt: "/assets/items/item-28.webp", productValue: 236, productRarity: 4, productionTicks: 4 },
+  { id: "jade-frog", name: "沧露灵蛙", role: "莲池", icon: "蛙", price: 260, unlockLevel: 1, stockType: "random", bondRequired: 0, feedMaterialName: "玄水藻", productId: "azure-dew-pearl", productName: "沧露蛙珠", productDescription: "灵蛙吐纳月露凝成的水珠，触手清凉。", productArt: "/assets/items/item-19.webp", productValue: 116, productRarity: 3, productionTicks: 3 },
+  { id: "spirit-moth", name: "梦粉灵蛾", role: "花廊", icon: "蛾", price: 380, unlockLevel: 2, stockType: "random", bondRequired: 0, feedMaterialName: "碧落灵芝", productId: "dream-moth-dust", productName: "幻梦鳞粉", productDescription: "翅上落下的幻粉，可安神亦可入幻丹。", productArt: "/assets/items/item-30.webp", productValue: 184, productRarity: 4, productionTicks: 4 },
+  { id: "cloud-hairball", name: "云团灵狸", role: "暖棚", icon: "狸", price: 520, unlockLevel: 3, stockType: "random", bondRequired: 0, feedMaterialName: "霜心草", productId: "cloud-core-fleece", productName: "云绒芯", productDescription: "灵狸换下的柔软绒芯，天然蕴含护体罡气。", productArt: "/assets/items/item-36.webp", productValue: 268, productRarity: 4, productionTicks: 5 },
 ];
+
+export function rotatingBeastStock(day: number) {
+  const cycle = Math.floor((Math.max(1, day) - 1) / 15);
+  const score = (id: string) => { let value = cycle * 2654435761; for (const char of id) value = (value ^ char.charCodeAt(0)) * 16777619; return Math.abs(value % 100000); };
+  return SPIRIT_BEASTS.filter((beast) => beast.stockType === "random").sort((a, b) => score(a.id) - score(b.id)).slice(0, 2);
+}
 
 export const spiritBeastById = (id: string) => SPIRIT_BEASTS.find((beast) => beast.id === id);
 export const livestockProductById = (id: string) => SPIRIT_BEASTS.find((beast) => beast.productId === id);

@@ -39,7 +39,7 @@ import type { CharacterDefinition, CharacterId, CharacterMessageDefinition, Dial
 import { useUnifiedGame } from "./core/UnifiedGameProvider";
 import type { DungeonDefinition } from "./core/dungeons";
 import FusionSystemPanel, { type FusionPanelId } from "./ui/FusionSystemPanel";
-import SpiritFarmPanel from "./farm/SpiritFarmPanel";
+import SpiritFarmScene from "./farm/SpiritFarmScene";
 import FishingModal from "./fishing/FishingModal";
 import { FISHING_LOCATIONS, ensureRandomFishingSpots, type FishingLocationId } from "./fishing/fishing";
 import MiningModal from "./mining/MiningModal";
@@ -703,7 +703,7 @@ export default function GameDemo() {
         {isSpecialEvent && <div className="special-portrait-wrap" key={`${game.activeEvent?.eventId}-${game.activeEvent?.nodeId}`}><div className="special-portrait-aura" /><img src={specialPortrait} alt={`${character.name}特殊事件立绘`} /></div>}
         {hasPresentCharacter && <div className="character-plaque"><p>{character.role}</p><h3>{character.name}</h3><span>{currentStage.name} · 唤你「{currentStage.addressing}」</span></div>}
         {!game.activeEvent&&scene.id==="bedroom"&&<div className="bedroom-practice-card"><div className="bedroom-formation"><i/><i/><span>炁</span></div><p>PRIVATE CULTIVATION · 静室</p><h3>聚灵阵已启</h3><span>每次练功消耗 2 点体力，运转一周天需 1 秒。</span><div><b>修为 {game.experience}</b><b>体力 {game.stamina}/10</b></div><button type="button" disabled={game.stamina<2} onClick={()=>setCultivationOpen(true)}>{game.stamina<2?"体力不足":"入阵练功"}</button></div>}
-        {!game.activeEvent&&scene.id==="spirit-farm"&&<SpiritFarmPanel day={game.day} period={game.period} onNotice={setNotice}/>}
+        {!game.activeEvent&&scene.id==="spirit-farm"&&<SpiritFarmScene day={game.day} period={game.period} onNotice={setNotice}/>}
 
         {bondFeedback && bondFeedback.amount === 1 && <div key={bondFeedback.id} className="bond-gain-mini"><span>♥</span> 好感度 +1</div>}
         {bondFeedback && bondFeedback.amount > 1 && <div key={bondFeedback.id} className={`bond-gain-card ${bondFeedback.source?"fortune-boosted":""}`}><img src={characterMap[bondFeedback.characterId]?.image ?? character.image} alt="" /><div><p><strong>{characterMap[bondFeedback.characterId]?.name ?? bondFeedback.characterId}</strong>{bondFeeling(bondFeedback.amount)}</p><span>好感度提升</span>{bondFeedback.source&&<em>{bondFeedback.source}</em>}</div><b>+{bondFeedback.amount}</b><i>♥</i></div>}

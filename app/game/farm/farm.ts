@@ -2,7 +2,7 @@ import { MATERIALS, type ElementType, type GameItem } from "../alchemy/item-data
 import type { Period } from "../types";
 import { createInitialLivestock, normalizeLivestock, type LivestockProgress } from "./livestock";
 
-export type HerbCropId = "frost-heart" | "jade-lingzhi" | "mystic-algae" | "dragon-nightshade" | "golden-ginseng" | "fated-flower";
+export type HerbCropId = "frost-heart" | "jade-lingzhi" | "mystic-algae" | "dragon-nightshade" | "golden-ginseng" | "fated-flower" | "moon-snow-lotus" | "purple-lightning-vine" | "thick-earth-lotus" | "wind-hidden-bamboo" | "blood-jade-fruit" | "sunwheel-flower";
 
 export type HerbCropDefinition = {
   id: HerbCropId;
@@ -12,18 +12,26 @@ export type HerbCropDefinition = {
   growTicks: number;
   seedPrice: number;
   unlockLevel: number;
+  stockType: "resident" | "random";
+  bondRequired: number;
   baseYield: number;
   color: string;
   lore: string;
 };
 
 export const HERB_CROPS: HerbCropDefinition[] = [
-  { id: "frost-heart", materialName: "霜心草", seedName: "霜心草籽", element: "水", growTicks: 1, seedPrice: 12, unlockLevel: 1, baseYield: 1, color: "#9fd8df", lore: "晨露凝叶，最适合初学者照料。" },
-  { id: "jade-lingzhi", materialName: "碧落灵芝", seedName: "碧落芝孢", element: "木", growTicks: 2, seedPrice: 22, unlockLevel: 1, baseYield: 1, color: "#6fc28f", lore: "木灵丰沛，是回春丹的常用主材。" },
-  { id: "mystic-algae", materialName: "玄水藻", seedName: "玄藻灵核", element: "水", growTicks: 3, seedPrice: 34, unlockLevel: 1, baseYield: 2, color: "#57a9bf", lore: "需灵泉润养，成熟后可稳定炉温。" },
-  { id: "dragon-nightshade", materialName: "赤霄龙葵", seedName: "龙葵火籽", element: "火", growTicks: 4, seedPrice: 52, unlockLevel: 2, baseYield: 1, color: "#d76a50", lore: "叶脉藏火，晴暖天气下灵性最盛。" },
-  { id: "golden-ginseng", materialName: "金阳参", seedName: "金阳参种", element: "金", growTicks: 5, seedPrice: 76, unlockLevel: 3, baseYield: 1, color: "#d6ae55", lore: "吸纳日华而生，是高阶筑基丹材。" },
-  { id: "fated-flower", materialName: "星命神花", seedName: "星命花种", element: "阴", growTicks: 8, seedPrice: 240, unlockLevel: 4, baseYield: 1, color: "#b889d9", lore: "花开时命星有感，可唤醒罕见炉灵。" },
+  { id: "frost-heart", materialName: "霜心草", seedName: "霜心草籽", element: "水", growTicks: 1, seedPrice: 12, unlockLevel: 1, stockType: "resident", bondRequired: 0, baseYield: 1, color: "#9fd8df", lore: "晨露凝叶，最适合初学者照料。" },
+  { id: "jade-lingzhi", materialName: "碧落灵芝", seedName: "碧落芝孢", element: "木", growTicks: 2, seedPrice: 22, unlockLevel: 1, stockType: "resident", bondRequired: 0, baseYield: 1, color: "#6fc28f", lore: "木灵丰沛，是回春丹的常用主材。" },
+  { id: "mystic-algae", materialName: "玄水藻", seedName: "玄藻灵核", element: "水", growTicks: 3, seedPrice: 34, unlockLevel: 1, stockType: "resident", bondRequired: 5, baseYield: 2, color: "#57a9bf", lore: "需灵泉润养，成熟后可稳定炉温。" },
+  { id: "dragon-nightshade", materialName: "赤霄龙葵", seedName: "龙葵火籽", element: "火", growTicks: 4, seedPrice: 52, unlockLevel: 2, stockType: "resident", bondRequired: 10, baseYield: 1, color: "#d76a50", lore: "叶脉藏火，晴暖天气下灵性最盛。" },
+  { id: "golden-ginseng", materialName: "金阳参", seedName: "金阳参种", element: "金", growTicks: 5, seedPrice: 76, unlockLevel: 3, stockType: "resident", bondRequired: 20, baseYield: 1, color: "#d6ae55", lore: "吸纳日华而生，是高阶筑基丹材。" },
+  { id: "fated-flower", materialName: "星命神花", seedName: "星命花种", element: "阴", growTicks: 8, seedPrice: 240, unlockLevel: 4, stockType: "resident", bondRequired: 35, baseYield: 1, color: "#b889d9", lore: "花开时命星有感，可唤醒罕见炉灵。" },
+  { id: "moon-snow-lotus", materialName: "月魄雪莲", seedName: "月魄莲子", element: "水", growTicks: 4, seedPrice: 72, unlockLevel: 1, stockType: "random", bondRequired: 0, baseYield: 1, color: "#b8e8ef", lore: "仅在月相合宜时流入灵圃的寒露奇种。" },
+  { id: "purple-lightning-vine", materialName: "紫电藤", seedName: "紫电藤芽", element: "阴", growTicks: 5, seedPrice: 88, unlockLevel: 2, stockType: "random", bondRequired: 0, baseYield: 1, color: "#b985e8", lore: "藤须会追逐雷息，成熟前常有紫芒游走。" },
+  { id: "thick-earth-lotus", materialName: "厚土莲", seedName: "厚土莲房", element: "土", growTicks: 3, seedPrice: 50, unlockLevel: 1, stockType: "random", bondRequired: 0, baseYield: 2, color: "#d0ae72", lore: "扎根极深，可温养贫瘠灵壤。" },
+  { id: "wind-hidden-bamboo", materialName: "风隐竹节", seedName: "风隐竹米", element: "木", growTicks: 4, seedPrice: 68, unlockLevel: 2, stockType: "random", bondRequired: 0, baseYield: 1, color: "#7ed0a0", lore: "无风自鸣，竹影偶会在月下隐去。" },
+  { id: "blood-jade-fruit", materialName: "血玉果", seedName: "血玉果核", element: "火", growTicks: 6, seedPrice: 128, unlockLevel: 3, stockType: "random", bondRequired: 0, baseYield: 1, color: "#e26d69", lore: "果肉蕴含旺盛气血，需以火脉温养。" },
+  { id: "sunwheel-flower", materialName: "日轮花", seedName: "日轮花籽", element: "火", growTicks: 7, seedPrice: 160, unlockLevel: 4, stockType: "random", bondRequired: 0, baseYield: 1, color: "#f0c05d", lore: "花冠循日而转，绽放时如小小金轮。" },
 ];
 
 export type FarmPlot = {
@@ -48,6 +56,8 @@ export type FarmProgress = {
   waterDay: number;
   waterUsed: number;
   livestock: LivestockProgress;
+  npcBonds: { seed: number; ranch: number };
+  npcTalkDays: { seed: number; ranch: number };
 };
 
 export type FarmWeather = {
@@ -72,7 +82,7 @@ export const DAILY_WATER_CHARGES = 6;
 export function createInitialFarm(): FarmProgress {
   return {
     plots: Array.from({ length: FARM_PLOT_COUNT }, (_, index) => ({ id: `plot-${index + 1}` })),
-    seeds: { "frost-heart": 4, "jade-lingzhi": 3, "mystic-algae": 2, "dragon-nightshade": 0, "golden-ginseng": 0, "fated-flower": 0 },
+    seeds: Object.fromEntries(HERB_CROPS.map((crop) => [crop.id, crop.id === "frost-heart" ? 4 : crop.id === "jade-lingzhi" ? 3 : crop.id === "mystic-algae" ? 2 : 0])) as Record<HerbCropId, number>,
     experience: 0,
     totalHarvests: 0,
     spiritSoil: 2,
@@ -82,6 +92,8 @@ export function createInitialFarm(): FarmProgress {
     waterDay: 1,
     waterUsed: 0,
     livestock: createInitialLivestock(),
+    npcBonds: { seed: 0, ranch: 0 },
+    npcTalkDays: { seed: 0, ranch: 0 },
   };
 }
 
@@ -94,7 +106,23 @@ export function normalizeFarmProgress(value: Partial<FarmProgress> | null | unde
     plots: base.plots.map((plot) => ({ ...plot, ...(storedPlots.find((entry) => entry?.id === plot.id) ?? {}) })),
     seeds: { ...base.seeds, ...(value?.seeds ?? {}) },
     livestock: normalizeLivestock(value?.livestock),
+    npcBonds: { ...base.npcBonds, ...(value?.npcBonds ?? {}) },
+    npcTalkDays: { ...base.npcTalkDays, ...(value?.npcTalkDays ?? {}) },
   };
+}
+
+export function halfMonthCycle(day: number) { return Math.floor((Math.max(1, day) - 1) / 15); }
+export function nextHalfMonthDay(day: number) { return (halfMonthCycle(day) + 1) * 15 + 1; }
+
+function seededOrder(seed: number, id: string) {
+  let value = seed * 1103515245 + 12345;
+  for (const char of id) value = (value ^ char.charCodeAt(0)) * 16777619;
+  return Math.abs(value % 100000);
+}
+
+export function rotatingHerbStock(day: number) {
+  const cycle = halfMonthCycle(day);
+  return HERB_CROPS.filter((crop) => crop.stockType === "random").sort((a, b) => seededOrder(cycle + 19, a.id) - seededOrder(cycle + 19, b.id)).slice(0, 3);
 }
 
 export function farmLevel(experience: number) {
