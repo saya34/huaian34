@@ -36,7 +36,9 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
   const itemMap = useMemo(() => Object.fromEntries(ITEM_TABLE.map((item) => [item.id, item])), []);
   const questMap = useMemo(() => Object.fromEntries(events.flatMap((event) => event.exploration?.rewardItem ? [[event.exploration.rewardItem.id, event.exploration.rewardItem]] : [])), [events]);
   const shopGiftMap = useMemo(() => Object.fromEntries(SHOP_GIFTS.map((item) => [item.id, item])), []);
-  const discount = relationship >= 65 ? .82 : relationship >= 35 ? .88 : relationship >= 15 ? .94 : 1;
+  const supplyRestored=Boolean(state.shared.globalKeys.medicine_supply_restored);
+  const bondDiscount = relationship >= 65 ? .82 : relationship >= 35 ? .88 : relationship >= 15 ? .94 : 1;
+  const discount = Math.max(.78,bondDiscount*(supplyRestored ? .92 : 1));
 
   const sellableStacks = Object.values(state.shared.items).filter((item) => item.amount > 0 && !item.locked && item.itemType !== "card");
   const equippedIds = new Set(Object.values(state.battle.equipped));
@@ -118,6 +120,7 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
           <div><small>{department === "weapons" ? "铸兵行商 · 霍青翎" : "掌柜寄语"}</small><p>“{department === "weapons" ? "兵刃占几格、值几钱，都写在明处；匣中锋芒，买下才与你相见。" : message}”</p></div>
         </aside>
         {department === "weapons" ? <main className="shop-counter weapon-shop-counter"><WeaponMerchantPanel onNotice={onNotice} /></main> : <main className="shop-counter">
+          {supplyRestored&&<div className="medicine-supply-banner"><i>药</i><span><small>道途项目结果 · 已生效</small><strong>医馆药路重开，基础补给额外减免</strong></span><b>供给恢复</b></div>}
           <nav className="shop-tabs"><button className={tab === "buy" ? "active" : ""} onClick={() => setTab("buy")}><i>买</i><span><strong>购入常货</strong><small>行旅所需 · 明码标价</small></span></button><button className={tab === "sell" ? "active" : ""} onClick={() => setTab("sell")}><i>卖</i><span><strong>出售所有物品</strong><small>行囊、宝物与法器统一估价</small></span></button></nav>
           {tab === "buy" ? <div className="shop-goods-grid">{SHOP_OFFERS.map((offer) => { const gift = shopGiftMap[offer.itemId]!; const price = Math.max(1, Math.round(offer.price * discount)); return <article key={offer.itemId}>
             <div className="shop-goods-art" style={artStyle(gift)}><span>{gift.icon}</span><b>{offer.stock}</b></div>

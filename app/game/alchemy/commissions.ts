@@ -17,7 +17,7 @@ export type FuzzyCommission = {
 };
 export type DailyCommission = SpecificCommission | FuzzyCommission;
 
-export const COMMISSION_REFRESH_MS = 60_000;
+export const COMMISSION_REFRESH_TICKS = 6;
 export const COMMISSION_QUALITY_WEIGHTS: Record<ItemQuality, number> = { 凡品: 48, 良品: 30, 珍品: 14, 极品: 6, 神品: 2, 神话: 0 };
 const QUALITY_ORDER: ItemQuality[] = ["凡品", "良品", "珍品", "极品", "神品", "神话"];
 
@@ -63,7 +63,7 @@ export function generateCommissions(materials: GameItem[], products: GameItem[],
   const specific: SpecificCommission[] = specificItems.map((item, index) => {
     const quantity = item.itemType === "material" ? (item.rarity <= 2 ? 3 : 2) : 1;
     const base = item.itemType === "material" ? getMarketPrice(item) : item.price;
-    return { id: `specific-${Date.now()}-${index}`, kind: "specific", itemId: item.id, quantity, reward: Math.round(base * quantity * (item.itemType === "material" ? 1.45 : 1.7) / 10) * 10 };
+    return { id: `specific-${Date.now()}-${index}`, kind: "specific", itemId: item.id, quantity, reward: Math.round(base * quantity * (item.itemType === "material" ? .8 : 1.7) / 10) * 10 };
   });
   const elements: ElementType[] = ["火", "水", "木", "金", "土", "阴"];
   const element = elements[Math.floor(random() * elements.length)];

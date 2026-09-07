@@ -65,7 +65,7 @@ export const feedMaterialFor = (speciesId: SpiritBeastId) => MATERIALS.find((ite
 export const favoriteFeedFor = (speciesId: SpiritBeastId) => MATERIALS.find((item) => item.name === spiritBeastById(speciesId)?.favoriteMaterialName)!;
 
 export function createInitialLivestock(): LivestockProgress { return { animals: [], totalCollected: 0, serial: 0, shelterLevel: 1 }; }
-export function normalizeLivestock(value?: Partial<LivestockProgress> | null): LivestockProgress { const base = createInitialLivestock(); return { ...base, ...value, animals: Array.isArray(value?.animals) ? value.animals.map((animal) => ({ ...animal, state: animal.state ?? (animal.readyDay > 0 ? "sleeping" : "idle"), asleepAtTick: animal.asleepAtTick ?? 0, readyAtTick: animal.readyAtTick ?? (animal.readyDay > 0 ? Math.max(1, (animal.readyDay - 1) * 3) : 0), lovedAtTick: animal.lovedAtTick ?? 0, loveCount: animal.loveCount ?? (animal.lovedAtTick ? 1 : 0), productionCount: animal.productionCount ?? 0, sick: animal.sick ?? false, interactionNeed: animal.interactionNeed ?? "pet" })) : [] }; }
+export function normalizeLivestock(value?: Partial<LivestockProgress> | null): LivestockProgress { const base = createInitialLivestock(); return { ...base, ...value, animals: Array.isArray(value?.animals) ? value.animals.map((animal) => ({ ...animal, state: animal.state ?? (animal.readyDay > 0 ? "sleeping" : "idle"), asleepAtTick: animal.asleepAtTick ?? 0, readyAtTick: animal.readyAtTick ?? (animal.readyDay > 0 ? Math.max(1, (animal.readyDay - 1) * 6) : 0), lovedAtTick: animal.lovedAtTick ?? 0, loveCount: animal.loveCount ?? (animal.lovedAtTick ? 1 : 0), productionCount: animal.productionCount ?? 0, sick: animal.sick ?? false, interactionNeed: animal.interactionNeed ?? "pet" })) : [] }; }
 export function livestockCapacity(farmLevel: number, shelterLevel = 1) { return Math.min(12, 1 + farmLevel + Math.max(1, shelterLevel) * 2); }
 export function experienceForBeastLevel(level: number) { return Math.max(0, (level - 1) * level * 14); }
 export function beastLevel(experience: number) { let level = 1; while (level < 15 && experience >= experienceForBeastLevel(level + 1)) level += 1; return level; }
@@ -76,7 +76,7 @@ export function buySpiritBeast(progress: LivestockProgress, speciesId: SpiritBea
   if (farmLevel < definition.unlockLevel) return { progress, ok: false as const, message: `灵圃达到 ${definition.unlockLevel} 阶后方可饲养${definition.name}` };
   if (progress.animals.length >= livestockCapacity(farmLevel, progress.shelterLevel)) return { progress, ok: false as const, message: "灵兽苑容量已满，请提升栏舍或出售灵兽" };
   const serial = progress.serial + 1;
-  const animal: SpiritBeast = { uid: `spirit-beast-${serial}`, speciesId, experience: 0, createdDay: Math.floor(currentTick / 3) + 1, lastFedDay: 0, readyDay: 0, lastLovedDay: 0, mood: "idle", state: "idle", asleepAtTick: 0, readyAtTick: 0, lovedAtTick: 0, loveCount: 0, productionCount: 0, sick: false, interactionNeed: "pet" };
+  const animal: SpiritBeast = { uid: `spirit-beast-${serial}`, speciesId, experience: 0, createdDay: Math.floor(currentTick / 6) + 1, lastFedDay: 0, readyDay: 0, lastLovedDay: 0, mood: "idle", state: "idle", asleepAtTick: 0, readyAtTick: 0, lovedAtTick: 0, loveCount: 0, productionCount: 0, sick: false, interactionNeed: "pet" };
   return { progress: { ...progress, serial, animals: [...progress.animals, animal] }, ok: true as const, message: `${definition.name}已入住${definition.role}` };
 }
 
@@ -91,9 +91,9 @@ export function feedSpiritBeast(progress: LivestockProgress, uid: string, curren
   if (animal.sick) return { progress, ok: false as const, message: "灵兽染恙，需要先请宁绾秋施药诊治" };
   const definition = spiritBeastById(animal.speciesId)!;
   const readyAtTick = currentTick + definition.productionTicks;
-  const day = Math.floor(currentTick / 3) + 1;
+  const day = Math.floor(currentTick / 6) + 1;
   const interactionNeed = (["pet", "brush", "music"] as const)[(animal.productionCount + definition.productionTicks) % 3];
-  return { progress: { ...progress, animals: progress.animals.map((entry) => entry.uid === uid ? { ...entry, lastFedDay: day, readyDay: Math.floor(readyAtTick / 3) + 1, asleepAtTick: currentTick, readyAtTick, lovedAtTick: 0, loveCount: 0, interactionNeed, state: "sleeping" as const, experience: entry.experience + (favorite ? 20 : 12), mood: favorite ? "happy" as const : "fed" as const } : entry) }, ok: true as const, requiredQuantity: favorite ? 1 : definition.feedQuantity, materialName: favorite ? definition.favoriteMaterialName : definition.feedMaterialName, message: `${favorite ? "喜食投喂 · " : "喂养完成 · "}${definition.productionTicks} 个游戏时辰后凝成产物` };
+  return { progress: { ...progress, animals: progress.animals.map((entry) => entry.uid === uid ? { ...entry, lastFedDay: day, readyDay: Math.floor(readyAtTick / 6) + 1, asleepAtTick: currentTick, readyAtTick, lovedAtTick: 0, loveCount: 0, interactionNeed, state: "sleeping" as const, experience: entry.experience + (favorite ? 20 : 12), mood: favorite ? "happy" as const : "fed" as const } : entry) }, ok: true as const, requiredQuantity: favorite ? 1 : definition.feedQuantity, materialName: favorite ? definition.favoriteMaterialName : definition.feedMaterialName, message: `${favorite ? "喜食投喂 · " : "喂养完成 · "}${definition.productionTicks} 个游戏阶段后凝成产物` };
 }
 
 export function loveSpiritBeast(progress: LivestockProgress, uid: string, currentTick: number, tool: "pet" | "brush" | "music" = "pet") {
@@ -104,7 +104,7 @@ export function loveSpiritBeast(progress: LivestockProgress, uid: string, curren
   if (animal.loveCount >= 2) return { progress, ok: false as const, message: "本轮生产已经完成两次亲和照料" };
   if (animal.lovedAtTick === currentTick) return { progress, ok: false as const, message: "这个时辰已经照料过它" };
   if (tool !== animal.interactionNeed) return { progress, ok: false as const, message: `它此刻更需要${animal.interactionNeed === "brush" ? "梳理毛羽" : animal.interactionNeed === "music" ? "听一段安神曲" : "轻轻抚摸"}` };
-  const day = Math.floor(currentTick / 3) + 1;
+  const day = Math.floor(currentTick / 6) + 1;
   return { progress: { ...progress, animals: progress.animals.map((entry) => entry.uid === uid ? { ...entry, lastLovedDay: day, lovedAtTick: currentTick, loveCount: entry.loveCount + 1, interactionNeed: (["pet", "brush", "music"] as const)[(["pet", "brush", "music"] as const).indexOf(entry.interactionNeed) === 2 ? 0 : (["pet", "brush", "music"] as const).indexOf(entry.interactionNeed) + 1], experience: entry.experience + 8, mood: "happy" as const } : entry) }, ok: true as const, message: `亲和照料成功 · 本轮 ${animal.loveCount + 1}/2` };
 }
 

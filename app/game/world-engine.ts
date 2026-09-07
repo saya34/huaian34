@@ -7,6 +7,11 @@ function roll(seed: string) {
   return (hash>>>0)%10000/100;
 }
 
+function matchesPeriod(periods: GameState["period"][], period: GameState["period"]) {
+  const legacyEquivalent: Partial<Record<GameState["period"], GameState["period"]>> = { 上午: "清晨", 午后: "黄昏", 深夜: "夜晚" };
+  return periods.includes(period) || Boolean(legacyEquivalent[period] && periods.includes(legacyEquivalent[period]!));
+}
+
 export function resolveScenePresence(state: GameState, sceneId: SceneId, characters: CharacterDefinition[], events: EventDefinition[], incrementVisit = true) {
   const visit=(state.sceneVisits[sceneId]??0)+(incrementVisit?1:0); const used=new Set(state.appearanceTriggersUsed); const present:CharacterId[]=[]; let forcedEvent:EventDefinition|undefined;
   for(const character of characters){
@@ -16,7 +21,7 @@ export function resolveScenePresence(state: GameState, sceneId: SceneId, charact
     const context:TriggerContext={trigger:"scene_enter",sceneId,characterId:character.id};
     const guarantee=relevant.flatMap(item=>item.guaranteedRules.map(rule=>({appearance:item,rule}))).find(({rule})=>!used.has(`${character.id}:${sceneId}:${rule.id}`)&&rule.conditions.every(condition=>checkCondition(condition,state,context)));
     if(guarantee){present.push(character.id);used.add(`${character.id}:${sceneId}:${guarantee.rule.id}`);if(guarantee.rule.triggerEventId&&!forcedEvent){const candidate=events.find(item=>item.id===guarantee.rule.triggerEventId);if(candidate&&!state.completedEvents.includes(candidate.id))forcedEvent=candidate}continue}
-    const random=relevant.some(appearance=>appearance.randomRules.some(rule=>rule.periods.includes(state.period)&&rule.conditions.every(condition=>checkCondition(condition,state,context))&&roll(`${state.day}:${state.period}:${sceneId}:${character.id}:${visit}:${rule.id}`)<rule.probability));
+    const random=relevant.some(appearance=>appearance.randomRules.some(rule=>matchesPeriod(rule.periods,state.period)&&rule.conditions.every(condition=>checkCondition(condition,state,context))&&roll(`${state.day}:${state.period}:${sceneId}:${character.id}:${visit}:${rule.id}`)<rule.probability));
     if(random)present.push(character.id);
   }
   return { state:{...state,presentCharacters:{...state.presentCharacters,[sceneId]:present},appearanceTriggersUsed:[...used],sceneVisits:{...state.sceneVisits,[sceneId]:visit}}, present, forcedEvent };
@@ -41,7 +46,7 @@ export function getEligibleMessages(state: GameState, messages: CharacterMessage
 
 export function resolveSeekingEncounter(state: GameState, characters: CharacterDefinition[], events: EventDefinition[]) {
   const candidates=characters.flatMap((character)=>(character.seekingRules??[]).map((rule)=>({character,rule})))
-    .filter(({rule})=>rule.periods.includes(state.period))
+    .filter(({rule})=>matchesPeriod(rule.periods,state.period))
     .filter(({rule})=>state.day-(state.seekingEncounterDays[rule.id]??-999)>=Math.max(0,rule.cooldownDays))
     .filter(({rule})=>rule.conditions.every((condition)=>checkAutoCondition(condition,state)))
     .filter(({rule})=>roll(`seek:${state.day}:${state.period}:${rule.id}`)<rule.probability)

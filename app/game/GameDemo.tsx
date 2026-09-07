@@ -46,8 +46,11 @@ import MiningModal from "./mining/MiningModal";
 import { ensureRandomMiningSpots, type MiningLocationId } from "./mining/mining";
 import IntelligenceBureauScene from "./forum/IntelligenceBureauScene";
 import ForumModal from "./forum/ForumModal";
+import PathProjectPanel, { PathProjectTracker } from "./projects/PathProjectPanel";
 
-const PERIODS: Period[] = ["清晨", "黄昏", "夜晚"];
+const PERIODS: Period[] = ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"];
+
+function advanceOneStage(state:GameState){const current=Math.max(0,PERIODS.indexOf(state.period)),wrapped=current===PERIODS.length-1;return{...state,period:PERIODS[(current+1)%PERIODS.length],day:state.day+(wrapped?1:0),shortRestDay:wrapped?state.day+1:state.shortRestDay,shortRestCount:wrapped?0:state.shortRestCount};}
 
 function bondTitle(value: number) {
   if (value >= 70) return "同心";
@@ -100,6 +103,8 @@ export default function GameDemo() {
   const [fishingTarget, setFishingTarget] = useState<{ locationId: FishingLocationId; randomSpotId?: string } | null>(null);
   const [miningTarget, setMiningTarget] = useState<{ locationId: MiningLocationId; randomSpotId?: string } | null>(null);
   const [forumOpen,setForumOpen]=useState(false);
+  const [projectOpen,setProjectOpen]=useState(false);
+  const [timeMenuOpen,setTimeMenuOpen]=useState(false);
   const [activeModule, setActiveModule] = useState<{ kind: "battle"; dungeon: DungeonDefinition } | { kind: "alchemy" } | null>(null);
   const [systemPanel, setSystemPanel] = useState<FusionPanelId | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -320,7 +325,10 @@ export default function GameDemo() {
   const baseScene = sceneMap[game.sceneId] ?? playableScenes[0] ?? scenes[0];
   const residentFishingLocation = FISHING_LOCATIONS.find((location) => location.kind === "resident" && location.sceneId === game.sceneId);
   const scene = resolveSceneVariant(baseScene, game);
-  const presentIds = game.presentCharacters[scene.id] ?? scene.characters.filter((id)=>{const item=characterMap[id];const appearances=item?.appearances?.filter((entry)=>entry.sceneId===scene.id);return appearances?.length?appearances.some((entry)=>entry.mode==="resident"):((item?.presence?.mode??"resident")==="resident")});
+  const scheduledPresentIds = game.presentCharacters[scene.id] ?? scene.characters.filter((id)=>{const item=characterMap[id];const appearances=item?.appearances?.filter((entry)=>entry.sceneId===scene.id);return appearances?.length?appearances.some((entry)=>entry.mode==="resident"):((item?.presence?.mode??"resident")==="resident")});
+  const restoredClinic=Boolean(game.flags.medicine_supply_restored);
+  const liuClinicScene=characterMap.liu?.sceneId;
+  const presentIds = restoredClinic&&scene.id===liuClinicScene&&["清晨","上午","午后"].includes(game.period)?["liu",...scheduledPresentIds.filter(id=>id!=="liu")]:scheduledPresentIds;
   const activeCharacters = presentIds.map((id) => characterMap[id]).filter(Boolean);
   const hasPresentCharacter = activeCharacters.length > 0;
   const character = characterMap[game.selectedCharacterId] ?? activeCharacters[0] ?? characters[0];
@@ -386,15 +394,11 @@ export default function GameDemo() {
       setNotice(`事件触发 · ${chosen.title}`);
       return startDefinition(base, chosen, context);
     }
-    if ((fallback === "talk" || fallback === "gift") && base.stamina < 1) {
-      setNotice("体力已耗尽 · 请推移到下一个时辰，或食用糕点恢复体力");
-      return base;
-    }
     if (fallback === "talk" && context.characterId) {
       const target = characterMap[context.characterId];
       const countKey = `${base.day}:${base.period}:${target.id}`;
       const nextCount = (base.talkCounts[countKey] ?? 0) + 1;
-      const counted = { ...base, stamina: base.stamina - 1, talkCounts: { ...base.talkCounts, [countKey]: nextCount } };
+      const counted = { ...advanceOneStage(base), talkCounts: { ...base.talkCounts, [countKey]: nextCount } };
       const profile = dialogueProfiles.find((item) => item.characterId === target.id);
       const rule = profile?.rules.filter((item) => item.period === base.period && (base.relationships[target.id] ?? 0) >= item.minRelationship && (base.relationships[target.id] ?? 0) <= item.maxRelationship).sort((a,b) => b.minRelationship - a.minRelationship)[0];
       const closing = Boolean(rule && nextCount > rule.closingAfter);
@@ -407,7 +411,7 @@ export default function GameDemo() {
       const gift = giftMap[context.giftId];
       const preference=target.giftPreferences?.find((item)=>item.giftId===gift.id);const tier=preference?.tier??(target.lovedGift===gift.id?"loved":"neutral");
       setNotice(tier==="loved"?"正合她的心意":tier==="liked"?"她看起来很喜欢":tier==="disliked"?"这似乎并不合她心意":"她收下了礼物");
-      const spent=applyEffects({...base,stamina:base.stamina-1},[{type:"consume_gift",giftId:context.giftId,amount:1}]);
+      const spent=applyEffects(advanceOneStage(base),[{type:"consume_gift",giftId:context.giftId,amount:1}]);
       return startTransient(spent, buildGiftFallback(target, gift.name, tier, preference?.reaction), context);
     }
     return base;
@@ -466,15 +470,16 @@ export default function GameDemo() {
     setGame((state) => {const discovered=state.discoveredGiftPreferences[character.id]??[];const remembered={...state,discoveredGiftPreferences:{...state.discoveredGiftPreferences,[character.id]:discovered.includes(giftId)?discovered:[...discovered,giftId]}};return launch(context, remembered, "gift")});
   }
 
-  function advanceTime() {
+  function advanceTime(mode:"wait"|"rest"|"sleep"="wait") {
     if (game.activeEvent) return;
-    const current = PERIODS.indexOf(game.period);
-    const wrapped = current === PERIODS.length - 1;
-    const period = PERIODS[(current + 1) % PERIODS.length];
+    const current = PERIODS.indexOf(game.period),wrapped = current === PERIODS.length - 1;
+    const period = mode==="sleep"?"清晨":PERIODS[(current + 1) % PERIODS.length];
+    const targetDay=mode==="sleep"?game.day+1:wrapped?game.day+1:game.day;
     const context: TriggerContext = { trigger: "time_change", sceneId: game.sceneId };
-    setInteractionMenuOpen(false);
-    setNotice(wrapped ? `第${game.day+1}日 · ${period}` : `时辰推移 · ${period}`);
-    setGame((state)=>{const base=applyAutomaticGlobalKeys({...state,period,day:wrapped?state.day+1:state.day,stamina:10},globalKeys);const resolved=resolveScenePresence(base,state.sceneId,characters,eventDefinitions,false);const ready={...resolved.state,selectedCharacterId:resolved.present[0]??state.selectedCharacterId};if(resolved.forcedEvent){const eventContext:TriggerContext={trigger:"scene_enter",sceneId:state.sceneId,characterId:resolved.present[0]};setNotice(`人物事件触发 · ${resolved.forcedEvent.title}`);return startDefinition(ready,resolved.forcedEvent,eventContext)}const seeking=resolveSeekingEncounter(ready,characters,eventDefinitions);if(seeking){setNotice(`主动相遇 · ${seeking.rule.intro}`);const seekingContext:TriggerContext={trigger:"time_change",sceneId:ready.sceneId,characterId:seeking.character.id};return seeking.event?startDefinition(seeking.state,seeking.event,seekingContext):seeking.state}return launch({...context,characterId:ready.selectedCharacterId},ready)});
+    setInteractionMenuOpen(false);setTimeMenuOpen(false);
+    const restCount=game.shortRestDay===game.day?game.shortRestCount:0,restGain=Math.max(1,3-restCount);
+    setNotice(mode==="sleep"?`安睡至第${targetDay}日 · 体力恢复`:mode==="rest"?`短休一时段 · 体力 +${Math.min(restGain,10-game.stamina)}`:targetDay>game.day?`第${targetDay}日 · ${period}`:`等待至 · ${period}`);
+    setGame((state)=>{const currentRest=state.shortRestDay===state.day?state.shortRestCount:0;const gain=Math.max(1,3-currentRest);const stamina=mode==="sleep"?10:mode==="rest"?Math.min(10,state.stamina+gain):state.stamina;const base=applyAutomaticGlobalKeys({...state,period,day:mode==="sleep"?state.day+1:PERIODS.indexOf(state.period)===PERIODS.length-1?state.day+1:state.day,stamina,shortRestDay:mode==="sleep"||wrapped?targetDay:state.day,shortRestCount:mode==="sleep"||wrapped?0:mode==="rest"?currentRest+1:currentRest},globalKeys);const resolved=resolveScenePresence(base,state.sceneId,characters,eventDefinitions,false);const ready={...resolved.state,selectedCharacterId:resolved.present[0]??state.selectedCharacterId};if(resolved.forcedEvent){const eventContext:TriggerContext={trigger:"scene_enter",sceneId:state.sceneId,characterId:resolved.present[0]};setNotice(`人物事件触发 · ${resolved.forcedEvent.title}`);return startDefinition(ready,resolved.forcedEvent,eventContext)}const seeking=resolveSeekingEncounter(ready,characters,eventDefinitions);if(seeking){setNotice(`主动相遇 · ${seeking.rule.intro}`);const seekingContext:TriggerContext={trigger:"time_change",sceneId:ready.sceneId,characterId:seeking.character.id};return seeking.event?startDefinition(seeking.state,seeking.event,seekingContext):seeking.state}return launch({...context,characterId:ready.selectedCharacterId},ready)});
   }
 
   function currentInitialState(): GameState {
@@ -667,7 +672,8 @@ export default function GameDemo() {
           <button type="button" onClick={() => setGalleryOpen(true)}>展馆 <b>{unlockedAudioEvents.length}/{audioEvents.length}</b></button>
           <button type="button" onClick={()=>setCollectionOpen(true)}>藏珍 <b>{game.collectedEasterEggs.length}/{easterEggEvents.length}</b></button>
           <button type="button" onClick={()=>setGiftOpen(true)}>行囊</button>
-          <button type="button" className="time-button" onClick={advanceTime}>推移时辰</button>
+          <button type="button" className="path-project-entry" onClick={()=>setProjectOpen(true)}>道途 <b>{game.medicineShortage.status==="completed"?"成":"!"}</b></button>
+          <div className="time-control"><button type="button" className="time-button" onClick={()=>setTimeMenuOpen(value=>!value)}>安排时辰</button>{timeMenuOpen&&<div className="time-action-menu"><button onClick={()=>advanceTime("wait")}><i>候</i><span><b>等待</b><small>推进一个阶段 · 不恢复体力</small></span></button><button onClick={()=>advanceTime("rest")}><i>憩</i><span><b>短休</b><small>推进一个阶段 · 今日第 {(game.shortRestDay===game.day?game.shortRestCount:0)+1} 次</small></span></button><button onClick={()=>advanceTime("sleep")}><i>眠</i><span><b>结束今日</b><small>进入次日清晨 · 恢复全部体力</small></span></button></div>}</div>
         </nav>
       </header>
 
@@ -685,6 +691,8 @@ export default function GameDemo() {
         {isSpecialEvent && <div key={`${activeDefinition?.id}-${activeDefinition?.openingEffect}`} className={`special-opening special-opening-${activeDefinition?.openingEffect ?? "none"}`} aria-hidden="true" />}
         <div className="stage-wash" aria-hidden="true" />
         <div className="scene-title"><p>{scene.atmosphere}</p><h2>{scene.name}</h2><span>{scene.description}</span></div>
+        {!game.activeEvent&&<PathProjectTracker onOpen={()=>setProjectOpen(true)}/>}
+        {restoredClinic&&!game.activeEvent&&<div className="clinic-restored-chip"><i>医</i><span><small>道途结果已生效</small><strong>医馆药路重开</strong></span></div>}
         {activeFortuneSign&&activeFortuneSign.effect!=="none"&&<div className="fortune-buff-chip"><i>✦</i><span><small>今日金运 · {activeFortuneSign.rank}</small><strong>{activeFortuneSign.title}</strong><em>{fortuneEffectLabel(activeFortuneSign.effect).replace("金运 · ","")}</em></span></div>}
         {!game.activeEvent&&!activeExploration&&explorePoints.map((point)=>{const event=eventDefinitions.find((item)=>item.id===point.eventId);if(!event)return null;const egg=event.cardStyle==="easter_egg";return <button type="button" key={event.id} className={`explore-light ${egg?"easter-light":"trigger-light"}`} style={{left:`${point.x}%`,top:`${point.y}%`}} onClick={()=>setActiveExploration(event)} aria-label={egg?"发现彩蛋光点":"发现剧情光点"}><i/><span>{egg?"拾":"寻"}</span></button>})}
         {!game.activeEvent && !activeExploration && residentFishingLocation && <button type="button" className="resident-fishing-point" onClick={() => setFishingTarget({ locationId: residentFishingLocation.id })} aria-label={`在${residentFishingLocation.name}钓鱼`}><span><b>钓</b><i /></span><em><strong>{residentFishingLocation.name}</strong><small>常驻钓点 · 今日可钓 {Math.max(0, 6 - (unifiedState.fishing.dailyDay === game.day ? unifiedState.fishing.dailyAttempts : 0))} 竿</small></em></button>}
@@ -763,6 +771,7 @@ export default function GameDemo() {
       </nav>
 
       {mapOpen && <WorldMapModal sceneId={game.sceneId} sceneEventHints={sceneEventHints} mapEvents={visibleMapEvents} period={game.period} day={game.day} inspectionHints={inspectionHints} inspectionDays={game.sceneInspectionDays} onClose={() => setMapOpen(false)} onEnterScene={enterScene} onTriggerMapEvent={triggerMapEvent} onInspectScene={inspectScene} onEnterDungeon={(dungeon) => { setActiveModule({ kind: "battle", dungeon }); setMapOpen(false); }} onEnterAlchemy={() => { setActiveModule({ kind: "alchemy" }); setMapOpen(false); }} onEnterFishing={(locationId, randomSpotId) => { setFishingTarget({ locationId, randomSpotId }); setMapOpen(false); }} onEnterMining={(locationId, randomSpotId) => { setMiningTarget({ locationId, randomSpotId }); setMapOpen(false); }} />}
+      {projectOpen&&<PathProjectPanel onClose={()=>setProjectOpen(false)} onNotice={setNotice}/>}
       {forumOpen&&<ForumModal day={game.day} period={game.period} onClose={()=>setForumOpen(false)} player={{name:"槐安行者",title:"云州新秀",level:unifiedState.shared.playerLevel,cultivation:game.experience,dungeons:unifiedState.dungeons.completed.length,bondName:characters.reduce((best,item)=>(game.relationships[item.id]??0)>(game.relationships[best.id]??0)?item:best,characters[0]).name,bond:Math.max(...characters.map(item=>game.relationships[item.id]??0))}}/>}
       {fishingTarget && <FishingModal locationId={fishingTarget.locationId} randomSpotId={fishingTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setFishingTarget(null)} onNotice={setNotice} />}
       {miningTarget && <MiningModal locationId={miningTarget.locationId} randomSpotId={miningTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setMiningTarget(null)} onNotice={setNotice} />}

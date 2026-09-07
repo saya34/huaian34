@@ -186,7 +186,7 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     if (effect.type === "complete_dungeon") {
       const completed = effect.result === "victory" ? [...new Set([...next.dungeons.completed, effect.waveId])] : next.dungeons.completed;
       const highestUnlocked = effect.result === "victory" ? Math.max(next.dungeons.highestUnlocked, Math.min(21, effect.waveId + 1)) : next.dungeons.highestUnlocked;
-      const periods = ["清晨", "黄昏", "夜晚"] as const;
+      const periods = ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"] as const;
       const currentPeriodIndex = Math.max(0, periods.indexOf(next.romance.period));
       const wrapsToNextDay = currentPeriodIndex === periods.length - 1;
       const period = periods[(currentPeriodIndex + 1) % periods.length];
@@ -194,8 +194,8 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
       return {
         ...next,
         dungeons: { ...next.dungeons, completed, highestUnlocked, lastSettlement: effect.result },
-        shared: { ...next.shared, stamina: 10 },
-        romance: { ...next.romance, day, period, stamina: 10, completedDungeons: completed },
+        shared: { ...next.shared, stamina: Math.max(0, next.shared.stamina - 3) },
+        romance: { ...next.romance, day, period, stamina: Math.max(0, next.romance.stamina - 3), completedDungeons: completed, medicineShortage: effect.result === "victory" && next.romance.medicineShortage.status === "active" ? { ...next.romance.medicineShortage, battleVictories: next.romance.medicineShortage.battleVictories + 1 } : next.romance.medicineShortage },
         battle: { ...next.battle, highestUnlockedWave: highestUnlocked },
       };
     }

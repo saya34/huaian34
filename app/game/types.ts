@@ -3,7 +3,19 @@ import type { AudioFrameId } from "./audio-frames";
 export type SceneId = string;
 export type CharacterId = string;
 export type GiftId = string;
-export type Period = "清晨" | "黄昏" | "夜晚";
+export type Period = "清晨" | "上午" | "午后" | "黄昏" | "夜晚" | "深夜";
+
+export type PathProjectRoute = "production" | "relationship" | "battle";
+export type MedicineShortageProject = {
+  status: "offered" | "active" | "completed";
+  acceptedDay?: number;
+  deadlineDay?: number;
+  route?: PathProjectRoute;
+  battleVictories: number;
+  farmHarvestsAtAccept?: number;
+  completedDay?: number;
+  outcome?: "stabilized" | "recovered";
+};
 export type TriggerType = "scene_enter" | "talk" | "gift" | "time_change" | "map_event" | "calendar_event" | "inspection" | "interaction";
 export type EventCardStyle = "normal" | "special" | "audio" | "easter_egg" | "trigger_point";
 export type OpeningEffect = "none" | "flash_white" | "flash_black";
@@ -194,6 +206,9 @@ export type GameState = {
   sceneInspectionDays: Record<SceneId, number>;
   interactionCounts: Record<string, number>;
   proficiencyExperience: Record<string, number>;
+  shortRestDay: number;
+  shortRestCount: number;
+  medicineShortage: MedicineShortageProject;
   activeEvent: ActiveEvent | null;
   lastContext: TriggerContext | null;
   playerLevel?: number;

@@ -173,7 +173,7 @@ export function upgradeSpiritWell(farm: FarmProgress, day: number) {
 }
 
 export function gameTick(day: number, period: Period) {
-  const periods: Period[] = ["清晨", "黄昏", "夜晚"];
+  const periods: Period[] = ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"];
   return (Math.max(1, day) - 1) * periods.length + Math.max(0, periods.indexOf(period));
 }
 
@@ -201,7 +201,7 @@ export function plotGrowth(plot: FarmPlot, currentTick: number, weather: FarmWea
   if (!plot.cropId || plot.plantedAtTick === undefined) return { progress: 0, ready: false, remaining: 0, elapsed: 0, required: 0 };
   const crop = cropById(plot.cropId);
   const fertilizer = plot.fertilizerId ? FERTILIZERS[plot.fertilizerId] : null;
-  const day = Math.floor(currentTick / 3) + 1;
+  const day = Math.floor(currentTick / 6) + 1;
   const event = getFarmEvent(day);
   const coldDelay = event.id === "frost" && plot.wateredAtDay !== day ? 1 : 0;
   const required = Math.max(1, crop.growTicks - (fertilizer?.speed ?? (plot.fertilized ? 1 : 0)) - weather.speedBonus - (plot.watered ? 1 : 0) + coldDelay);

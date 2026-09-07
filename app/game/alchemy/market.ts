@@ -7,8 +7,8 @@ export type MarketOffer = {
 };
 
 export const MARKET_SIZE = 6;
-export const MARKET_RESET_MS = 120_000;
-export const SOLD_OUT_REFRESH_MS = 10_000;
+export const MARKET_RESET_TICKS = 6;
+export const SOLD_OUT_REFRESH_TICKS = 1;
 export const STARTING_GOLD = 50_000;
 
 export const MARKET_QUALITY_WEIGHTS: Record<ItemQuality, number> = {

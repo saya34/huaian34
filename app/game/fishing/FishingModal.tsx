@@ -43,7 +43,8 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
   const { state, setFishing, applyEffects } = useUnifiedGame();
   const location = fishingLocationById(locationId)!;
   const progress = resetFishingDay(state.fishing, day);
-  const tick = (Math.max(1, day) - 1) * 3 + Math.max(0, ["清晨", "黄昏", "夜晚"].indexOf(period));
+  const periods=["清晨","上午","午后","黄昏","夜晚","深夜"];
+  const tick = (Math.max(1, day) - 1) * periods.length + Math.max(0, periods.indexOf(period));
   const resumedCast = progress.pendingCast?.locationId === locationId ? progress.pendingCast : null;
   const [baitId, setBaitId] = useState<BaitId>("spirit-worm");
   const [chumId, setChumId] = useState<ChumId>(resumedCast?.chumId ?? "none");

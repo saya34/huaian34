@@ -39,6 +39,9 @@ export const INITIAL_STATE: GameState = {
   sceneInspectionDays: {},
   interactionCounts: {},
   proficiencyExperience: {},
+  shortRestDay: 1,
+  shortRestCount: 0,
+  medicineShortage: { status: "offered", battleVictories: 0 },
   activeEvent: null,
   lastContext: null,
 };

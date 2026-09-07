@@ -31,13 +31,13 @@ import {
   getManualRefreshPrice,
   getMarketPrice,
   MARKET_QUALITY_WEIGHTS,
-  MARKET_RESET_MS,
+  MARKET_RESET_TICKS,
   MarketOffer,
   rollMarketOffers,
-  SOLD_OUT_REFRESH_MS,
+  SOLD_OUT_REFRESH_TICKS,
 } from "./market";
 import {
-  COMMISSION_REFRESH_MS,
+  COMMISSION_REFRESH_TICKS,
   DailyCommission,
   generateCommissions,
   getMutationValue,
@@ -79,9 +79,9 @@ const INVENTORY_MATERIALS = [
   ...MATERIALS.filter((item) => !isMythicScroll(item)).slice(5),
 ];
 
-function formatCountdown(milliseconds: number) {
-  const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
-  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+function formatGameTicks(ticks: number) {
+  const value=Math.max(0,Math.ceil(ticks));
+  return value<=0?"本阶段":`${value} 个游戏阶段`;
 }
 
 function playTone(kind: "drop" | "ignite" | "reveal") {
@@ -149,7 +149,8 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
   const setRefreshResetAt = (value: SetStateAction<number>) => setField("refreshResetAt", value);
   const soldOutRefreshAt = alchemy.soldOutRefreshAt;
   const setSoldOutRefreshAt = (value: SetStateAction<number>) => setField("soldOutRefreshAt", value);
-  const [marketClock, setMarketClock] = useState(0);
+  const periodOrder=["清晨","上午","午后","黄昏","夜晚","深夜"] as const;
+  const marketClock=(Math.max(1,unifiedState.romance.day)-1)*periodOrder.length+Math.max(0,periodOrder.indexOf(unifiedState.romance.period));
   const marketReady = true;
   const [marketTab, setMarketTab] = useState<"goods" | "commissions">("goods");
   const productStacks = alchemy.productStacks;
@@ -256,20 +257,19 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
   useEffect(() => setInventoryPage(0), [filter, seriesFilter, qualityFilter, elementFilter, characterFilter]);
 
   useEffect(() => {
-    const now = Date.now();
-    setMarketClock(now);
     setAlchemy((current) => {
       const validOffers = current.marketOffers.filter((offer) => MATERIALS.some((item) => item.id === offer.itemId)).slice(0, 6);
-      const resetExpired = !current.refreshResetAt || current.refreshResetAt <= now;
-      const pendingSoldOut = validOffers.length === 6 && validOffers.every((offer) => offer.sold) ? current.soldOutRefreshAt || now + SOLD_OUT_REFRESH_MS : 0;
-      const marketOffers = validOffers.length === 6 && !(pendingSoldOut > 0 && pendingSoldOut <= now) ? validOffers : rollMarketOffers(MATERIALS);
-      const validCommissions = current.commissions.length === 7 && current.commissions.every((commission) => commission.kind !== "fuzzy" || commission.pricingMode === "fixed" || commission.pricingMode === "dynamic") && current.commissionRefreshAt > now;
+      const refreshResetAt=current.refreshResetAt>1_000_000?0:current.refreshResetAt;
+      const soldOutRefreshAt=current.soldOutRefreshAt>1_000_000?0:current.soldOutRefreshAt;
+      const commissionRefreshAt=current.commissionRefreshAt>1_000_000?0:current.commissionRefreshAt;
+      const resetExpired = !refreshResetAt || refreshResetAt <= marketClock;
+      const pendingSoldOut = validOffers.length === 6 && validOffers.every((offer) => offer.sold) ? soldOutRefreshAt || marketClock + SOLD_OUT_REFRESH_TICKS : 0;
+      const marketOffers = validOffers.length === 6 && !(pendingSoldOut > 0 && pendingSoldOut <= marketClock) ? validOffers : rollMarketOffers(MATERIALS);
+      const validCommissions = current.commissions.length === 7 && current.commissions.every((commission) => commission.kind !== "fuzzy" || commission.pricingMode === "fixed" || commission.pricingMode === "dynamic") && commissionRefreshAt > marketClock;
       const rareDefaults = Object.fromEntries(MYTHIC_CARD_OPTIONS.filter((option) => option.tier === "rare").map((option) => [option.id, Math.max(0, Math.min(MYTHIC_RARE_MAX_USES, current.mythicRareUses[option.id] ?? MYTHIC_RARE_MAX_USES))]));
-      return { ...current, marketOffers, manualRefreshCount: resetExpired ? 0 : current.manualRefreshCount, refreshResetAt: resetExpired ? 0 : current.refreshResetAt, soldOutRefreshAt: pendingSoldOut, commissions: validCommissions ? current.commissions : generateCommissions(MATERIALS, PRODUCTS), commissionRefreshAt: validCommissions ? current.commissionRefreshAt : now + COMMISSION_REFRESH_MS, mythicRareUses: rareDefaults };
+      return { ...current, marketOffers, manualRefreshCount: resetExpired ? 0 : current.manualRefreshCount, refreshResetAt: resetExpired ? 0 : refreshResetAt, soldOutRefreshAt: pendingSoldOut, commissions: validCommissions ? current.commissions : generateCommissions(MATERIALS, PRODUCTS), commissionRefreshAt: validCommissions ? commissionRefreshAt : marketClock + COMMISSION_REFRESH_TICKS, mythicRareUses: rareDefaults };
     });
-    const clock = window.setInterval(() => setMarketClock(Date.now()), 250);
-    return () => window.clearInterval(clock);
-  }, [setAlchemy]);
+  }, [marketClock,setAlchemy]);
 
   useEffect(() => {
     if (!marketReady) return;
@@ -290,7 +290,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
     setCommissions(generateCommissions(MATERIALS, PRODUCTS));
     setFuzzySelections({});
     setPickerCommissionId(null);
-    setCommissionRefreshAt(Date.now() + COMMISSION_REFRESH_MS);
+    setCommissionRefreshAt(marketClock + COMMISSION_REFRESH_TICKS);
     setToast("仙门收购榜已刷新，新委托现已张榜");
   }, [commissionReady, commissionRefreshAt, marketClock]);
 
@@ -711,7 +711,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
     setMaterialCounts((current) => ({ ...current, [item.id]: (current[item.id] ?? 0) + 1 }));
     setMarketOffers((current) => {
       const next = current.map((candidate) => candidate.id === offerId ? { ...candidate, sold: true } : candidate);
-      if (next.every((candidate) => candidate.sold)) setSoldOutRefreshAt(Date.now() + SOLD_OUT_REFRESH_MS);
+      if (next.every((candidate) => candidate.sold)) setSoldOutRefreshAt(marketClock + SOLD_OUT_REFRESH_TICKS);
       return next;
     });
     setToast(`${item.name} ×1 已收入乾坤灵囊`);
@@ -727,7 +727,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
     if (price > 0) setGold((current) => current - price);
     setMarketOffers(rollMarketOffers(MATERIALS));
     setManualRefreshCount((current) => current + 1);
-    setRefreshResetAt(Date.now() + MARKET_RESET_MS);
+    setRefreshResetAt(marketClock + MARKET_RESET_TICKS);
     setSoldOutRefreshAt(0);
     setToast(price === 0 ? "免费刷新完成，云商已换上新货" : `消耗 ${price.toLocaleString()} 灵石刷新集市`);
   }
@@ -1223,7 +1223,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
                 {!marketReady && <div className="market-loading">云商正在布置货架……</div>}
               </div>
               <footer className="market-footer">
-                <div className="market-rule-copy"><strong>{marketSoldOut ? `全场售罄 · ${formatCountdown(soldOutRemaining)} 后自动补货` : "货品一经购入，将直接进入乾坤灵囊"}</strong><small>{manualRefreshCount > 0 ? `${formatCountdown(manualResetRemaining)} 后刷新费用恢复免费` : "当前拥有一次免费刷新机会"}</small></div>
+                <div className="market-rule-copy"><strong>{marketSoldOut ? `全场售罄 · ${formatGameTicks(soldOutRemaining)} 后自动补货` : "货品一经购入，将直接进入乾坤灵囊"}</strong><small>{manualRefreshCount > 0 ? `${formatGameTicks(manualResetRemaining)} 后刷新费用恢复免费` : "当前拥有一次免费刷新机会"}</small></div>
                 <button className="market-refresh" onClick={refreshMarketManually} disabled={!marketReady}><span>↻</span><b>刷新货架</b><small>{manualRefreshPrice === 0 ? "本次免费" : `${manualRefreshPrice.toLocaleString()} 灵石`}</small></button>
               </footer>
             </> : <>
@@ -1238,7 +1238,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
                     return <article key={commission.id} className={`commission-card ${commission.kind}`}>
                       <span className="commission-index">{String(index + 1).padStart(2, "0")}</span>
                       <div className="commission-icon">{item ? <img src={item.image} alt="" /> : <span>{commission.kind === "fuzzy" && commission.requirement === "element" ? commission.element : "品"}</span>}</div>
-                      <div className="commission-copy"><small>{commission.kind === "specific" ? `${item?.itemType === "material" ? "材料" : "丹药"}指定收购` : `模糊丹药委托 · ${commission.pricingMode === "dynamic" ? "动态价格" : "仙门定价"}`}</small><strong>{name} ×{commission.quantity}</strong><em>{commission.kind === "fuzzy" ? `已装填 ${stock}/${commission.quantity}` : `持有 ${stock}/${commission.quantity}`}</em></div>
+                      <div className="commission-copy"><small>{commission.kind === "specific" ? `${item?.itemType === "material" ? "材料救急回收" : "丹药加工委托"}` : `模糊丹药委托 · ${commission.pricingMode === "dynamic" ? "动态价格" : "仙门定价"}`}</small><strong>{name} ×{commission.quantity}</strong><em>{commission.kind === "fuzzy" ? `已装填 ${stock}/${commission.quantity}` : `持有 ${stock}/${commission.quantity}`}</em></div>
                       {commission.kind === "fuzzy" && <div className="fuzzy-item-slots" aria-label={`${commission.title}物品框`}>
                         {Array.from({ length: commission.quantity }).map((_, slotIndex) => {
                           const entry = selectedEntries[slotIndex];
@@ -1247,7 +1247,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
                           </button>;
                         })}
                       </div>}
-                      <div className="commission-reward"><small>{commission.kind === "fuzzy" && commission.pricingMode === "dynamic" ? "总估值 ×1.5" : "仙门定价"}</small><strong>◉ {reward.toLocaleString()}</strong></div>
+                      <div className="commission-reward"><small>{commission.kind === "specific"&&item?.itemType==="material"?"救急档回收":commission.kind === "fuzzy" && commission.pricingMode === "dynamic" ? "总估值 ×1.5" : "完整劳作奖励"}</small><strong>◉ {reward.toLocaleString()}</strong></div>
                       <button onClick={() => deliverCommission(commission)} disabled={stock < commission.quantity}>交 付</button>
                     </article>;
                   })}
@@ -1259,7 +1259,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
                   {productStackList.length === 0 && <p>尚无成品，先去丹炉炼制一炉。</p>}
                 </aside>
               </div>
-              <footer className="market-footer commission-footer"><div className="market-rule-copy"><strong>委托榜将在 {formatCountdown(commissionRemaining)} 后刷新</strong><small>模糊委托由你自由配货；动态价格按装填物总估值 ×1.5 结算</small></div><span className="commission-seal">仙门收购 · 概不赊欠</span></footer>
+              <footer className="market-footer commission-footer"><div className="market-rule-copy"><strong>委托榜将在 {formatGameTicks(commissionRemaining)} 后刷新</strong><small>纯采购仅按救急价回收；炼制、品质与调查委托才提供完整奖励</small></div><span className="commission-seal">劳动留痕 · 价格锁定</span></footer>
             </>}
           </div>
         </div>
