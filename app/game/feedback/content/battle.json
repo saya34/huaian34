@@ -13,5 +13,16 @@
   "battle.victoryTitle": "秘境肃清",
   "battle.victoryBody": "本次带出的战利品已经归入主界面行囊。",
   "battle.extractTitle": "携宝归来",
-  "battle.extractBody": "你选择及时撤离，已保住本次收获。"
+  "battle.extractBody": "你选择及时撤离，已保住本次收获。",
+  "battle.skillDetail": "点击术法可查看等级与当前蜕变状态；战斗期间只展示信息，不会打断走位。",
+  "battle.skillState": "术法状态",
+  "battle.supplyTitle": "随身助法",
+  "battle.supplyBody": "助法会持续影响本局战斗，提升后效果同步增强。",
+  "battle.settlementAccepted": "成功带离",
+  "battle.settlementOverflow": "空间溢出",
+  "battle.settlementCost": "本局斩妖",
+  "battle.settlementProject": "项目贡献",
+  "battle.hudTitle": "战斗状态",
+  "battle.hudBody": "生命、修为、增益与异常均为本局实时状态；离境后临时强化会重置。",
+  "battle.healthLabel": "当前生命"
 }

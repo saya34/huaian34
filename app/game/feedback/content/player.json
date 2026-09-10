@@ -12,5 +12,20 @@
   "player.currencyLabel": "灵石",
   "player.currencyBody": "灵石用于交易、旅行、制造与服务，也是世界工程的重要投入。",
   "player.proficiencyLabel": "酒艺",
-  "player.proficiencyBody": "酒艺会影响共饮事件的容错、特殊对话与部分关系结果。"
+  "player.proficiencyBody": "酒艺会影响共饮事件的容错、特殊对话与部分关系结果。",
+  "player.skillLearned": "术法领悟",
+  "player.skillLearnedBody": "已领悟术法编号 {id}，可在人物修行与秘境配置中查看。",
+  "player.profileTitle": "修士总览",
+  "player.profileBody": "人物等级、永久修为、体力与战斗属性共用同一份主角数据。",
+  "player.attributeSummary": "核心属性",
+  "player.skillsTitle": "万法详解",
+  "player.skillsBody": "术法的解锁来源、场外熟练度与入境后的候选效果如下。",
+  "player.cardsTitle": "太虚命契",
+  "player.cardsBody": "人物卡来源、主动召灵与被动叠加共用同一名册。",
+  "player.learnedCount": "已习术法",
+  "player.masterySummary": "外修熟练",
+  "player.nextEffect": "下一阶效果",
+  "player.cardSource": "卡片来源",
+  "player.cardActive": "主动人物卡",
+  "player.cardPassive": "被动人物卡"
 }

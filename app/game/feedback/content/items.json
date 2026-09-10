@@ -27,5 +27,9 @@
   "items.discardBody": "「{name}」将被永久丢弃，此操作无法撤回。",
   "items.compareTitle": "装备对照",
   "items.requirementFailed": "属性未满足，装备效果暂不生效。",
-  "items.bagFull": "背包已满，无法收入新的物品。"
+  "items.bagFull": "背包已满，无法收入新的物品。",
+  "items.currentEquipped": "当前装备",
+  "items.candidateEquipped": "候选装备",
+  "items.currentValue": "当前估值",
+  "items.candidateValue": "候选估值"
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import { MATERIALS } from "../alchemy/item-data";
 import FishingBar, { type FishingBarHit, type FishingBarResult } from "../FishingBar";
@@ -58,6 +58,14 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
   const pool = useMemo(() => weightedPool(location, baitId, chumId), [baitId, chumId, location]);
   const attemptsLeft = Math.max(0, DAILY_CAST_LIMIT - progress.dailyAttempts);
 
+  useEffect(() => {
+    if (phase !== "reeling") return;
+    const key = "huaian-fishing-tutorial-v1";
+    if (window.localStorage.getItem(key)) return;
+    window.localStorage.setItem(key, "shown");
+    feedback.inspect({titleKey:"fishing.tutorialTitle",bodyKey:"fishing.tutorialBody",icon:"竿",details:[{labelKey:"fishing.tensionLabel",value:feedbackText("fishing.tutorialTension")},{labelKey:"fishing.energyLabel",value:feedbackText("fishing.tutorialEnergy")},{labelKey:"fishing.poolLabel",value:feedbackText("fishing.tutorialZone" )}],dedupeKey:key});
+  }, [feedback, phase]);
+
   function buyBait(id: BaitId) {
     const price = BAITS[id].price;
     if (state.shared.spiritStones < price) { onNotice(`灵石不足，购买${BAITS[id].name}需要 ${price} 枚。`); return; }
@@ -93,6 +101,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
     setPhase("reeling"); setCastRound((value) => value + 1); setLastHit(null);
     setFishing(cast.progress);
     if (chumMaterial) applyEffects([{ type: "remove_item", itemId: chumMaterial.id, amount: 1 }]);
+    if (fish.rarity >= 4) feedback.toast({priority:1,tone:"gold",titleKey:"system.toastWarning",bodyKey:"fishing.rareHint",icon:"异",dedupeKey:`fishing:rare-hint:${castRound+1}`});
     onNotice(`抛竿入水 · 消耗钓竿、${BAITS[baitId].name}${chumMaterial ? `与${chum.materialName}` : ""}`);
   }
 
@@ -175,7 +184,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
       <div className={`fishing-content ${phase === "reeling" ? "fishing-content-active" : ""}`}>
         <aside className="fish-pool-panel">
           <header><span>本地鱼谱</span><small>鱼饵会改变咬钩权重</small></header>
-          <div className="fish-pool-list">{pool.map((entry) => { const fish = FISH.find((item) => item.id === entry.fishId)!; return <article key={fish.id} className={progress.records[fish.id] ? "caught" : "unknown"}>
+          <div className="fish-pool-list">{pool.map((entry) => { const fish = FISH.find((item) => item.id === entry.fishId)!; const known=Boolean(progress.records[fish.id]); return <article key={fish.id} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"fishing.codexTitle",bodyKey:known?"fishing.codexBody":"fishing.codexUnknown",params:{name:known?fish.name:"?",description:known?fish.description:"",probability:`${(entry.probability*100).toFixed(entry.probability<.1?1:0)}%`},icon:known?fish.icon:"?",imageSrc:known?fish.art:undefined,details:[{labelKey:"items.rarityLabel",value:known?RARITY_LABELS[fish.rarity-1]:feedbackText("shop.unidentifiedLabel")},{labelKey:"items.valueLabel",value:known?fish.value:feedbackText("system.none")},{labelKey:"fishing.catchChance",value:`${(entry.probability*100).toFixed(entry.probability<.1?1:0)}%`},{labelKey:"items.countLabel",value:progress.records[fish.id]??0}],dedupeKey:`fish-codex:${fish.id}:${known}`})} onKeyDown={(event)=>{if(event.key==="Enter"||event.key===" ")event.currentTarget.click()}} className={known ? "caught" : "unknown"}>
             <div className="fish-token" style={{ backgroundImage: `url(${fish.art})` }}><b>{progress.records[fish.id] ? fish.icon : "?"}</b></div>
             <div><strong>{progress.records[fish.id] ? fish.name : "未录灵鱼"}</strong><small>{RARITY_LABELS[fish.rarity - 1]} · {(entry.probability * 100).toFixed(entry.probability < .1 ? 1 : 0)}%</small></div>
             <em>×{progress.records[fish.id] ?? 0}</em>

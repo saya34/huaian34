@@ -59,6 +59,7 @@ import { CULTIVATOR_PACK_SIZE, organizeEquipment } from "./inventorySystem";
 import type { UnifiedCardInstance, UnifiedRarity } from "../core/types";
 import { MATERIALS as ALCHEMY_MATERIALS } from "../alchemy/item-data";
 import { MainEquipmentPanel } from "../ui/FusionSystemPanel";
+import { useFeedback } from "../feedback/FeedbackProvider";
 
 type Screen = "loading" | "menu" | "preparing" | "battle" | "result";
 type HeldTreasure = { uid: string; source: ContainerKind | "loot"; treasureId: string };
@@ -162,6 +163,7 @@ function skillVisual(data: GameData | null, choice: UpgradeChoice) {
 
 export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWaveId?: number; embedded?: boolean }) {
   const { state: unifiedState, setBattle: setMeta, applyEffects } = useUnifiedGame();
+  const feedback = useFeedback();
   const [screen, setScreen] = useState<Screen>("loading");
   const [data, setData] = useState<GameData | null>(null);
   const [error, setError] = useState("");
@@ -194,10 +196,23 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
   const phaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const partnerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ceremonyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const announcedBossRef = useRef<string | null>(null);
 
   useEffect(() => {
     metaRef.current = meta;
   }, [meta]);
+
+  useEffect(() => {
+    feedback.setCombatBusy(screen === "battle");
+    return () => feedback.setCombatBusy(false);
+  }, [feedback, screen]);
+
+  useEffect(() => {
+    const bossName = snapshot.boss?.name ?? null;
+    if (!bossName || announcedBossRef.current === bossName) return;
+    announcedBossRef.current = bossName;
+    feedback.publish({ variant: "world-announcement", scope: "combat", priority: 0, tone: "danger", titleKey: "battle.bossTitle", bodyKey: "battle.bossBody", params: { name: bossName }, icon: "劫", dedupeKey: `battle-boss:${waveId}:${bossName}` });
+  }, [feedback, snapshot.boss?.name, waveId]);
 
   useEffect(() => {
     if (!heldTreasure) return;
@@ -248,9 +263,10 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
 
   const showToast = useCallback((message: string) => {
     setToast(message);
+    feedback.toast({ scope: "combat", priority: 2, titleKey: "system.dynamicMessage", params: { message }, dedupeKey: `battle-toast:${message}` });
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(""), 1800);
-  }, []);
+  }, [feedback]);
 
   const requestCardSummon = useCallback(() => {
     const pool = unifiedState.shared.cards.filter((card) => card.mode === "active").sort(() => Math.random() - .5).slice(0, 3);
@@ -312,6 +328,22 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
           ...(kind === "victory" ? [{ type: "add_item" as const, item: { itemId: ALCHEMY_MATERIALS[(waveId * 11) % ALCHEMY_MATERIALS.length].id, itemType: "material" as const, rarity: Math.min(7, 2 + Math.floor(waveId / 4)) as UnifiedRarity, amount: 1, sourceTags: ["battle", "alchemy", `wave-${waveId}`] } }] : []),
         ]);
         setResult({ kind, snapshot: finalSnapshot, accepted: settlement.accepted, overflow: settlement.overflow, equipmentOverflow: settlement.equipmentOverflow, experience: progression.gained, levelsGained: progression.levelsGained, skillBooks: bookReward.gained });
+        feedback.publish({
+          variant: kind === "victory" ? "progression-milestone" : "world-announcement",
+          scope: "combat",
+          priority: kind === "victory" ? 0 : 1,
+          tone: kind === "victory" ? "gold" : "jade",
+          titleKey: kind === "victory" ? "battle.victoryTitle" : "battle.extractTitle",
+          bodyKey: kind === "victory" ? "battle.victoryBody" : "battle.extractBody",
+          icon: kind === "victory" ? "胜" : "归",
+          details: [
+            { labelKey: "battle.settlementAccepted", value: settlement.accepted.length, emphasis: true },
+            { labelKey: "battle.settlementOverflow", value: settlement.overflow.length + settlement.equipmentOverflow.length },
+            { labelKey: "battle.settlementCost", value: finalSnapshot.kills },
+            { labelKey: "battle.settlementProject", value: kind === "victory" ? 1 : 0 },
+          ],
+          dedupeKey: `battle-result:${waveId}:${kind}:${Date.now()}`,
+        });
         const endingCopy = kind === "victory"
           ? { eyebrow: "妖王伏诛", title: "秘境镇压", subtitle: "一念斩群妖 · 清气复山河", seal: "胜" }
           : kind === "extracted"
@@ -360,7 +392,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
       setError(reason instanceof Error ? reason.message : "战场初始化失败");
       setScreen("menu");
     }
-  }, [applyEffects, data, heroId, mapId, meta, permanentAttributes, requestCardSummon, setMeta, showToast, waveId]);
+  }, [applyEffects, data, feedback, heroId, mapId, meta, permanentAttributes, requestCardSummon, setMeta, showToast, waveId]);
 
   useEffect(() => {
     if (screen === "preparing") {
@@ -578,15 +610,15 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
             </button>
             <button className="battle-stats-button" onClick={() => { engineRef.current?.setInventoryPaused(true); setStatsOpen(true); }}>人物属性</button>
             <div className="skill-rack">
-              {snapshot.skills.map((skill) => { const art = skillArtwork(skill.id); return <div key={skill.id} className={`skill-orb ${skill.evolved ? "evolved" : ""}`} title={skill.name}>{art ? <img src={art} alt="" /> : <span>{skill.name.slice(0, 1)}</span>}<b>{skill.level}</b></div>; })}
+              {snapshot.skills.map((skill) => { const art = skillArtwork(skill.id); return <button type="button" key={skill.id} className={`skill-orb ${skill.evolved ? "evolved" : ""}`} title={skill.name} onClick={() => feedback.popover({ scope: "combat", titleKey: "battle.skillLabel", params: { name: skill.name }, bodyKey: "battle.skillDetail", icon: "术", details: [{ labelKey: "items.nameLabel", value: skill.name }, { labelKey: "player.levelLabel", value: skill.level }, { labelKey: "battle.skillState", value: skill.evolved ? "已蜕变" : "修习中" }] })}>{art ? <img src={art} alt="" /> : <span>{skill.name.slice(0, 1)}</span>}<b>{skill.level}</b></button>; })}
               {Array.from({ length: Math.max(0, 6 - snapshot.skills.length) }).map((_, index) => <div className="skill-orb empty" key={`skill-${index}`} />)}
             </div>
             <div className="skill-rack supplies">
-              {snapshot.supplies.map((supply) => <div key={supply.id} className="skill-orb" title={supply.name}><span>{supply.name.slice(0, 1)}</span><b>{supply.level}</b></div>)}
+              {snapshot.supplies.map((supply) => <button type="button" key={supply.id} className="skill-orb" title={supply.name} onClick={() => feedback.popover({ scope: "combat", titleKey: "battle.supplyTitle", params: { name: supply.name }, bodyKey: "battle.supplyBody", icon: "辅", details: [{ labelKey: "items.nameLabel", value: supply.name }, { labelKey: "player.levelLabel", value: supply.level }] })}><span>{supply.name.slice(0, 1)}</span><b>{supply.level}</b></button>)}
             </div>
           </div>
 
-          <div className="bottom-status">
+          <div className="bottom-status" role="button" tabIndex={0} onClick={(event)=>feedback.popover({scope:"combat",titleKey:"battle.hudTitle",bodyKey:"battle.hudBody",icon:"命",anchor:{x:event.clientX,y:event.clientY},details:[{labelKey:"battle.healthLabel",value:`${Math.ceil(snapshot.hp)}/${Math.ceil(snapshot.maxHp)}`,emphasis:true},{labelKey:"player.expLabel",value:`${Math.floor(snapshot.exp)}/${Math.floor(snapshot.nextExp)}`},{labelKey:"battle.buffLabel",value:snapshot.activeBuffs.join(" · ")||"无"},{labelKey:"battle.debuffLabel",value:snapshot.hp<snapshot.maxHp*.3?"重伤警戒":"无"},{labelKey:"battle.cooldownLabel",value:"各术法按独立攻击间隔自动调息"}],dedupeKey:`battle-hud:${snapshot.level}:${snapshot.activeBuffs.join(":")}`})}>
             <div className="level-badge"><small>境界</small><b>{snapshot.level}</b></div>
             <div className="bars">
               <div className="hp-bar"><i style={{ width: `${hpProgress}%` }} /><span>{Math.ceil(snapshot.hp)} / {Math.ceil(snapshot.maxHp)}</span></div>

@@ -8,5 +8,11 @@
   "forum.networkLabel": "连接状态",
   "forum.localMode": "当前为本地演示数据，联网接口已经预留。",
   "forum.postSuccess": "帖子已保存到本地论坛。",
-  "forum.imageLimit": "图片数量或大小超过当前演示限制。"
+  "forum.imageLimit": "图片数量或大小超过当前演示限制。",
+  "forum.playerCardBody": "「{name}」公开的人物卡数据如下。",
+  "forum.postTitle": "玩家见闻",
+  "forum.postBody": "{author}：{content}",
+  "forum.channelLabel": "分卷",
+  "forum.interactionLabel": "互动",
+  "forum.scoreLabel": "问道积分"
 }

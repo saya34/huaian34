@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createForumGateway } from "./forum-service";
+import { createForumGateway, createLocalForumGateway } from "./forum-service";
 import type { ForumAttachment, ForumPlayerCard, ForumPost, ForumSection, ForumSnapshot } from "./types";
+import { useFeedback } from "../feedback/FeedbackProvider";
 
 type Props={player:ForumPlayerCard;day:number;period:string;onClose:()=>void};
 const STICKERS=[{glyph:"🌿",label:"灵草摇曳"},{glyph:"⚔️",label:"拔剑围观"},{glyph:"🐟",label:"灵鱼上钩"},{glyph:"🔥",label:"炉火正旺"},{glyph:"✨",label:"仙缘降临"},{glyph:"🦊",label:"灵狐探头"}];
@@ -17,21 +18,24 @@ function imageFromFile(file:File):Promise<string>{
 }
 
 function PlayerCardView({card}: {card:ForumPlayerCard}){
-  return <div className="forum-player-card"><div className="player-card-seal">侠</div><div><small>槐安人物卡 · PLAYER CARD</small><h4>{card.name}</h4><p>{card.title} · 境界 {card.level}</p></div><dl><div><dt>修为</dt><dd>{card.cultivation.toLocaleString()}</dd></div><div><dt>秘境</dt><dd>{card.dungeons} 境</dd></div><div><dt>牵绊</dt><dd>{card.bondName} {card.bond}</dd></div></dl></div>;
+  const feedback=useFeedback();
+  return <div className="forum-player-card" role="button" tabIndex={0} onClick={(event)=>{event.stopPropagation();feedback.inspect({titleKey:"forum.playerCardLabel",bodyKey:"forum.playerCardBody",params:{name:card.name},icon:"侠",details:[{labelKey:"relationship.nameLabel",value:card.name,emphasis:true},{labelKey:"player.levelLabel",value:card.level},{labelKey:"player.expLabel",value:card.cultivation},{labelKey:"battle.dungeonTitle",value:card.dungeons},{labelKey:"relationship.stageLabel",value:`${card.bondName} · ${card.bond}`}],dedupeKey:`forum-card:${card.name}:${card.level}`});}}><div className="player-card-seal">侠</div><div><small>槐安人物卡 · PLAYER CARD</small><h4>{card.name}</h4><p>{card.title} · 境界 {card.level}</p></div><dl><div><dt>修为</dt><dd>{card.cultivation.toLocaleString()}</dd></div><div><dt>秘境</dt><dd>{card.dungeons} 境</dd></div><div><dt>牵绊</dt><dd>{card.bondName} {card.bond}</dd></div></dl></div>;
 }
 
 function PostCard({post,onLike}:{post:ForumPost;onLike:(id:string)=>void}){
-  return <article className={`forum-post ${post.official?"official":""} ${post.pinned?"pinned":""}`}>
+  const feedback=useFeedback();
+  return <article role="button" tabIndex={0} onClick={()=>feedback.inspect({titleKey:post.channel==="official"?"forum.officialLabel":post.channel==="secrets"?"forum.secretLabel":"forum.postTitle",bodyKey:"forum.postBody",params:{author:post.author,content:post.content},icon:post.official?"诏":"帖",details:[{labelKey:"relationship.nameLabel",value:post.author,emphasis:true},{labelKey:"forum.channelLabel",value:post.channel},{labelKey:"forum.interactionLabel",value:`♥ ${post.likes} · 言 ${post.replies}`},{labelKey:"items.tagsLabel",value:post.tags.join(" · ")}],dedupeKey:`forum-post:${post.id}`})} className={`forum-post ${post.official?"official":""} ${post.pinned?"pinned":""}`}>
     <header><span className="post-avatar">{post.avatar}</span><div><strong>{post.author}{post.official&&<b>官</b>}</strong><small>{post.authorTitle} · {post.createdAt}</small></div>{post.pinned&&<i>置顶</i>}</header>
     <p>{post.content}</p>
     {!!post.attachments.length&&<div className="post-attachments">{post.attachments.map((attachment,index)=>attachment.kind==="image"?<img key={index} src={attachment.src} alt={attachment.alt}/>:attachment.kind==="sticker"?<span key={index} className="post-sticker" title={attachment.label}>{attachment.sticker}<small>{attachment.label}</small></span>:<PlayerCardView key={index} card={attachment.card}/>)}</div>}
     <div className="post-tags">{post.tags.map(tag=><span key={tag}>#{tag}</span>)}</div>
-    <footer><button type="button" className={post.liked?"liked":""} onClick={()=>onLike(post.id)}><i>♥</i>{post.likes}</button><button type="button"><i>言</i>{post.replies}</button><button type="button"><i>藏</i>收录</button></footer>
+    <footer><button type="button" className={post.liked?"liked":""} onClick={(event)=>{event.stopPropagation();onLike(post.id)}}><i>♥</i>{post.likes}</button><button type="button" onClick={event=>event.stopPropagation()}><i>言</i>{post.replies}</button><button type="button" onClick={event=>event.stopPropagation()}><i>藏</i>收录</button></footer>
   </article>;
 }
 
 export default function ForumModal({player,day,period,onClose}:Props){
   const gateway=useMemo(()=>createForumGateway(),[]);
+  const feedback=useFeedback();
   const [snapshot,setSnapshot]=useState<ForumSnapshot|null>(null);
   const [section,setSection]=useState<ForumSection>("square");
   const [announcement,setAnnouncement]=useState(0);
@@ -42,12 +46,15 @@ export default function ForumModal({player,day,period,onClose}:Props){
   const [notice,setNotice]=useState("");
   const fileRef=useRef<HTMLInputElement>(null);
 
-  useEffect(()=>{let active=true;gateway.load().then(data=>{if(active)setSnapshot(data)}).catch(()=>setNotice("闻壁暂时无法展开，请稍后再试。"));return()=>{active=false}},[gateway]);
+  async function loadForum(){try{setSnapshot(await gateway.load())}catch{setNotice("诸界连接中断，已切换本地卷宗。");setSnapshot(await createLocalForumGateway().load());}}
+  useEffect(()=>{let active=true;gateway.load().then(data=>{if(active)setSnapshot(data)}).catch(async()=>{const data=await createLocalForumGateway().load();if(active){setSnapshot(data);setNotice("诸界连接中断，已切换本地卷宗。");}});return()=>{active=false}},[gateway]);
   useEffect(()=>{const timer=window.setInterval(()=>setAnnouncement(value=>snapshot?.announcements.length?(value+1)%snapshot.announcements.length:0),5200);return()=>window.clearInterval(timer)},[snapshot?.announcements.length]);
   useEffect(()=>{const close=(event:KeyboardEvent)=>{if(event.key==="Escape")onClose()};window.addEventListener("keydown",close);const overflow=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{window.removeEventListener("keydown",close);document.body.style.overflow=overflow}},[onClose]);
 
   const posts=(snapshot?.posts??[]).filter(post=>post.channel===section);
   const currentAnnouncement=snapshot?.announcements[announcement];
+
+  useEffect(()=>{if(!notice)return;feedback.toast({titleKey:"system.dynamicMessage",params:{message:notice},icon:"闻",tone:notice.includes("无法")||notice.includes("中断")?"cinnabar":"jade",dedupeKey:`forum-notice:${notice}`});},[feedback,notice]);
 
   async function addImage(file?:File){
     if(!file||!file.type.startsWith("image/"))return;
@@ -63,7 +70,7 @@ export default function ForumModal({player,day,period,onClose}:Props){
     if(!content.trim()&&!attachments.length){setNotice("至少写下一句话，或附上一份内容。");return;}
     setSending(true);
     try{const post=await gateway.createPost({content:content.trim(),attachments,player});setSnapshot(current=>current?{...current,posts:[post,...current.posts]}:current);setContent("");setAttachments([]);setSection("square");setNotice("纸鹤已将帖子送上诸界闻壁。")}
-    catch{setNotice("纸鹤迷了路，帖子尚未送出。")}
+    catch{try{const post=await createLocalForumGateway().createPost({content:content.trim(),attachments,player});setSnapshot(current=>current?{...current,syncMode:"local",posts:[post,...current.posts]}:current);setContent("");setAttachments([]);setNotice("联网发送失败，帖子已保存到本地闻壁。");}catch{setNotice("纸鹤迷了路，帖子尚未送出。")}}
     finally{setSending(false)}
   }
 
@@ -74,7 +81,7 @@ export default function ForumModal({player,day,period,onClose}:Props){
 
   return <div className="forum-backdrop" role="presentation"><section className="forum-shell" role="dialog" aria-modal="true" aria-label="槐安情报局论坛">
     <header className="forum-heading"><button type="button" className="forum-close" onClick={onClose} aria-label="离开论坛">‹</button><div className="forum-brand"><span>闻</span><div><small>HUAIAN INTELLIGENCE BUREAU</small><h2>槐安情报局</h2></div></div><div className="forum-clock"><i className="forum-live-dot"/><span>第 {day} 日 · {period}</span><b>{snapshot?.syncMode==="online"?"诸界在线":"本地演示"}</b></div></header>
-    <div className="forum-announcement"><span>{currentAnnouncement?.tag??"传讯"}</span><button type="button" onClick={()=>setAnnouncement(value=>snapshot?.announcements.length?(value+1)%snapshot.announcements.length:0)}><strong>{currentAnnouncement?.title??"正在展开世界传讯……"}</strong><small>{currentAnnouncement?.detail}</small></button><div>{snapshot?.announcements.map((item,index)=><button type="button" key={item.id} className={index===announcement?"active":""} onClick={()=>setAnnouncement(index)} aria-label={`查看公告${index+1}`}/>)}</div></div>
+    <div className="forum-announcement"><span>{currentAnnouncement?.tag??"传讯"}</span><button type="button" onClick={()=>currentAnnouncement&&feedback.inspect({titleKey:"forum.announcementLabel",bodyKey:"world.changeBody",params:{message:currentAnnouncement.detail},icon:"闻",details:[{labelKey:"items.nameLabel",value:currentAnnouncement.title,emphasis:true},{labelKey:"items.tagsLabel",value:currentAnnouncement.tag},{labelKey:"calendar.dateLabel",value:`第 ${day} 日 · ${period}`}],dedupeKey:`forum-announcement:${currentAnnouncement.id}`})}><strong>{currentAnnouncement?.title??"正在展开世界传讯……"}</strong><small>{currentAnnouncement?.detail}</small></button><div>{snapshot?.announcements.map((item,index)=><button type="button" key={item.id} className={index===announcement?"active":""} onClick={()=>setAnnouncement(index)} aria-label={`查看公告${index+1}`}/>)}</div></div>
     <div className="forum-layout">
       <aside className="forum-nav"><p>闻壁分卷</p>{NAV.map(item=><button type="button" key={item.id} className={section===item.id?"active":""} onClick={()=>setSection(item.id)}><i>{item.seal}</i><span><strong>{item.name}</strong><small>{item.note}</small></span><b>{snapshot?.posts.filter(post=>post.channel===item.id).length??"·"}</b></button>)}<div className="forum-npc-note"><img src="/assets/characters/wenren-fei-v1.png" alt="闻人绯"/><span><small>情报局主事</small><strong>闻人绯</strong><p>“真假消息都能开价，但只有证据能落印。”</p></span></div></aside>
       <main className="forum-main">
@@ -82,8 +89,7 @@ export default function ForumModal({player,day,period,onClose}:Props){
         <header className="forum-section-title"><div><small>{section==="square"?"PLAYER FORUM":section==="official"?"OFFICIAL ARCHIVE":"SECRET SCROLLS"}</small><h3>{NAV.find(item=>item.id===section)?.name}</h3></div><span>{section==="square"?"最新见闻":section==="official"?"权威发布":"探索线索"}<i/></span></header>
         <div className="forum-feed">{!snapshot?<div className="forum-loading"><i/><span>纸鹤正在搬运卷宗……</span></div>:posts.map(post=><PostCard key={post.id} post={post} onLike={like}/>)}</div>
       </main>
-      <aside className="forum-ranking"><header><div><small>CELESTIAL RANK</small><h3>问道榜</h3></div><span>本旬</span></header><div className="rank-podium">{snapshot?.ranking.slice(0,3).map((entry,index)=><article key={entry.id} className={`rank-${index+1}`}><b>{index+1}</b><span style={{"--rank-accent":entry.accent} as React.CSSProperties}>{entry.seal}</span><strong>{entry.name}</strong><small>{entry.score.toLocaleString()}</small></article>)}</div><div className="rank-list">{snapshot?.ranking.slice(3).map((entry,index)=><article key={entry.id}><b>{index+4}</b><span style={{"--rank-accent":entry.accent} as React.CSSProperties}>{entry.seal}</span><div><strong>{entry.name}</strong><small>Lv.{entry.level} · {entry.title}</small></div><em>{entry.score.toLocaleString()}</em></article>)}</div><PlayerCardView card={player}/><p className="ranking-note">榜单数据为本地演示。联网后由赛季服务统一结算。</p></aside>
+      <aside className="forum-ranking"><header><div><small>CELESTIAL RANK</small><h3>问道榜</h3></div><span>本旬</span></header><div className="rank-podium">{snapshot?.ranking.slice(0,3).map((entry,index)=><article role="button" tabIndex={0} onClick={()=>feedback.inspect({titleKey:"forum.rankTitle",bodyKey:"forum.rankBody",params:{name:entry.name,rank:index+1},icon:entry.seal,details:[{labelKey:"player.levelLabel",value:entry.level},{labelKey:"forum.scoreLabel",value:entry.score},{labelKey:"relationship.roleLabel",value:entry.title}],dedupeKey:`forum-rank:${entry.id}`})} key={entry.id} className={`rank-${index+1}`}><b>{index+1}</b><span style={{"--rank-accent":entry.accent} as React.CSSProperties}>{entry.seal}</span><strong>{entry.name}</strong><small>{entry.score.toLocaleString()}</small></article>)}</div><div className="rank-list">{snapshot?.ranking.slice(3).map((entry,index)=><article role="button" tabIndex={0} onClick={()=>feedback.inspect({titleKey:"forum.rankTitle",bodyKey:"forum.rankBody",params:{name:entry.name,rank:index+4},icon:entry.seal,details:[{labelKey:"player.levelLabel",value:entry.level},{labelKey:"forum.scoreLabel",value:entry.score},{labelKey:"relationship.roleLabel",value:entry.title}],dedupeKey:`forum-rank:${entry.id}`})} key={entry.id}><b>{index+4}</b><span style={{"--rank-accent":entry.accent} as React.CSSProperties}>{entry.seal}</span><div><strong>{entry.name}</strong><small>Lv.{entry.level} · {entry.title}</small></div><em>{entry.score.toLocaleString()}</em></article>)}</div><PlayerCardView card={player}/><p className="ranking-note">榜单数据为本地演示。联网后由赛季服务统一结算。</p><button type="button" onClick={()=>void loadForum()}>重试同步</button></aside>
     </div>
-    {notice&&<button type="button" className="forum-toast" onClick={()=>setNotice("")}>{notice}</button>}
   </section></div>;
 }

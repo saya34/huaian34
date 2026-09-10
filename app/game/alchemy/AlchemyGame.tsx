@@ -65,6 +65,8 @@ import {
 } from "./advanced-card";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import type { AlchemyProgress, UnifiedCardInstance, UnifiedRarity } from "../core/types";
+import { useFeedback } from "../feedback/FeedbackProvider";
+import { feedbackText } from "../feedback/texts";
 
 const FILTERS = ["全部", "灵草", "妖丹", "矿骨", "辅材", "法器"];
 const CODEX_FILTERS = ["全部", "材料", "成品", "神品", "神话"];
@@ -108,6 +110,7 @@ function playTone(kind: "drop" | "ignite" | "reveal") {
 
 export default function Home({ embedded = false }: { embedded?: boolean }) {
   const { state: unifiedState, setAlchemy, applyEffects } = useUnifiedGame();
+  const feedback = useFeedback();
   const alchemy = unifiedState.alchemy;
   const setField = useCallback(<K extends keyof AlchemyProgress>(key: K, value: SetStateAction<AlchemyProgress[K]>) => {
     setAlchemy((current) => ({ ...current, [key]: typeof value === "function" ? (value as (previous: AlchemyProgress[K]) => AlchemyProgress[K])(current[key]) : value }));
@@ -182,6 +185,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
   const pendingCharacterRef = useRef<ReturnType<typeof selectCharacterOutcome>>(null);
   const recipeVersionRef = useRef(0);
   const mythicRevealStartedRef = useRef(false);
+  const announcedBrewRef = useRef("");
 
   const filled = slots.filter(Boolean).length;
   const hasFatedFlower = slots.some(isFatedFlower);
@@ -208,6 +212,25 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
   const progress = ((brewDuration - timeLeft) / brewDuration) * 100;
   const marketItems = marketOffers.map((offer) => ({ offer, item: MATERIALS.find((item) => item.id === offer.itemId) })).filter((entry): entry is { offer: MarketOffer; item: GameItem } => Boolean(entry.item));
   const marketSoldOut = marketOffers.length > 0 && marketOffers.every((offer) => offer.sold);
+
+  useEffect(() => {
+    if (!toast) return;
+    feedback.toast({titleKey:"system.dynamicMessage",params:{message:toast},icon:"炉",dedupeKey:`alchemy-toast:${toast}`});
+  }, [feedback, toast]);
+
+  useEffect(() => {
+    if (phase !== "brewing") return;
+    const key=`${brewSerialRef.current}:${slots.map(item=>item?.id??"empty").join(":")}`;
+    if (announcedBrewRef.current===key)return;
+    announcedBrewRef.current=key;
+    feedback.toast({titleKey:"alchemy.brewTitle",bodyKey:"alchemy.brewing",icon:"火",tone:"cinnabar",dedupeKey:`alchemy-brew:${key}`});
+  }, [feedback, phase, slots]);
+
+  useEffect(() => {
+    if (phase !== "done" || !resultItem) return;
+    const rare=resultItem.rarity>=4||resultMutation!=="normal";
+    feedback.publish({variant:rare?"rare-reward":"identification-reveal",priority:rare?0:1,tone:rare?"gold":"jade",titleKey:rare?"alchemy.rareTitle":"alchemy.resultTitle",bodyKey:rare?"alchemy.rareBody":"alchemy.resultBody",params:{name:mutationDisplayName(resultItem,resultMutation)},icon:rare?"丹":"成",imageSrc:resultItem.image,dedupeKey:`alchemy-result:${brewSerialRef.current}:${resultItem.id}:${resultMutation}`});
+  }, [feedback, phase, resultItem, resultMutation]);
   const manualRefreshPrice = getManualRefreshPrice(manualRefreshCount);
   const manualResetRemaining = Math.max(0, refreshResetAt - marketClock);
   const soldOutRemaining = Math.max(0, soldOutRefreshAt - marketClock);
@@ -932,7 +955,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
                 data-slot-index={index}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={(event) => onDrop(event, index)}
-                onClick={() => slot && removeIngredient(index)}
+                onClick={() => slot && feedback.inspect({titleKey:"alchemy.slotTitle",bodyKey:"alchemy.slotBody",params:{index:index+1},icon:index===2?"辅":"主",imageSrc:slot.image,details:[{labelKey:"items.nameLabel",value:slot.name,emphasis:true},{labelKey:"alchemy.functionLabel",value:`${slot.element} · ${slot.trait}`},{labelKey:"alchemy.stabilityLabel",value:omen.chance},{labelKey:"alchemy.recipeLabel",value:omen.result},{labelKey:"alchemy.yieldLabel",value:omen.quality}],actions:[{labelKey:"system.remove",tone:"secondary",onSelect:()=>removeIngredient(index)}],dedupeKey:`alchemy-slot:${index}:${slot.id}`})}
                 aria-label={slot ? `取出${slot.name}` : index === 2 ? "添加辅材" : "添加主材"}
               >
                 <span className="slot-orbit" />
@@ -1032,7 +1055,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
                 onPointerDown={(event) => beginPointerDrag(event, item)}
                 onClick={() => {
                   if (Date.now() < suppressClickUntilRef.current) return;
-                  addIngredient(item);
+                  if (selected) feedback.inspect({titleKey:"alchemy.materialTitle",bodyKey:"world.changeBody",params:{message:item.trait},icon:item.element,imageSrc:item.image,details:[{labelKey:"items.nameLabel",value:item.name,emphasis:true},{labelKey:"alchemy.sourceLabel",value:item.category},{labelKey:"alchemy.functionLabel",value:`${item.attribute} · ${item.trait}`},{labelKey:"items.rarityLabel",value:item.quality},{labelKey:"items.valueLabel",value:item.price},{labelKey:"alchemy.recipeLabel",value:item.short}],dedupeKey:`alchemy-material:${item.id}`}); else addIngredient(item);
                 }}
                 className={`item-card quality-${item.quality} ${selected ? "selected" : ""} ${(materialCounts[item.id] ?? 0) <= 0 ? "depleted" : ""} ${item.characterTrigger ? "rare-material" : ""} ${item.advancedCardTrigger ? "mythic-material" : ""}`}
                 style={{ "--item-color": item.color } as CSSProperties}
@@ -1211,12 +1234,12 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
             {marketTab === "goods" ? <>
               <div className="market-grid">
                 {marketItems.map(({ offer, item }, index) => (
-                  <article key={offer.id} className={`market-card quality-${item.quality} ${offer.sold ? "sold" : ""}`} style={{ "--item-color": item.color } as CSSProperties}>
+                  <article key={offer.id} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"shop.productTitle",bodyKey:"world.changeBody",params:{message:item.trait},icon:"市",imageSrc:item.image,details:[{labelKey:"items.nameLabel",value:item.name,emphasis:true},{labelKey:"items.rarityLabel",value:item.quality},{labelKey:"items.effectLabel",value:`${item.attribute} · ${item.trait}`},{labelKey:"shop.priceLabel",value:getMarketPrice(item)},{labelKey:"system.source",value:"云游集市"}],dedupeKey:`alchemy-market:${offer.id}`})} className={`market-card quality-${item.quality} ${offer.sold ? "sold" : ""}`} style={{ "--item-color": item.color } as CSSProperties}>
                     <span className="market-stock">货位 {String(index + 1).padStart(2, "0")}</span>
                     <span className="market-quality">{item.quality}</span>
                     <div className="market-item-art"><img src={item.image} alt="" /></div>
                     <div className="market-item-copy"><strong>{item.name}</strong><small>{item.attribute} · {item.trait}</small></div>
-                    <div className="market-price"><span><i>◉</i>{getMarketPrice(item).toLocaleString()}</span><button onClick={() => buyMarketItem(offer.id)} disabled={offer.sold}>{offer.sold ? "已售罄" : "购 入"}</button></div>
+                    <div className="market-price"><span><i>◉</i>{getMarketPrice(item).toLocaleString()}</span><button onClick={(event) => {event.stopPropagation();buyMarketItem(offer.id);}} disabled={offer.sold}>{offer.sold ? "已售罄" : "购 入"}</button></div>
                     {offer.sold && <div className="sold-seal">售罄</div>}
                   </article>
                 ))}
@@ -1235,7 +1258,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
                     const name = commission.kind === "specific" ? item?.name ?? "未知货品" : commission.title;
                     const selectedEntries = commission.kind === "fuzzy" ? fuzzySelectedEntries(commission.id) : [];
                     const reward = commission.kind === "fuzzy" ? fuzzyCommissionReward(commission) : commission.reward;
-                    return <article key={commission.id} className={`commission-card ${commission.kind}`}>
+                    return <article key={commission.id} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"alchemy.commissionTitle",bodyKey:"alchemy.commissionBody",params:{name,quantity:commission.quantity},icon:"榜",details:[{labelKey:"alchemy.commissionLabel",value:commission.kind==="specific"&&item?.itemType==="material"?feedbackText("alchemy.commissionEmergency"):feedbackText("alchemy.commissionProcessed")},{labelKey:"alchemy.referencePrice",value:reward},{labelKey:"items.countLabel",value:`${stock}/${commission.quantity}`},{labelKey:"system.reward",value:`${reward} 灵石`}],dedupeKey:`commission:${commission.id}`})} className={`commission-card ${commission.kind}`}>
                       <span className="commission-index">{String(index + 1).padStart(2, "0")}</span>
                       <div className="commission-icon">{item ? <img src={item.image} alt="" /> : <span>{commission.kind === "fuzzy" && commission.requirement === "element" ? commission.element : "品"}</span>}</div>
                       <div className="commission-copy"><small>{commission.kind === "specific" ? `${item?.itemType === "material" ? "材料救急回收" : "丹药加工委托"}` : `模糊丹药委托 · ${commission.pricingMode === "dynamic" ? "动态价格" : "仙门定价"}`}</small><strong>{name} ×{commission.quantity}</strong><em>{commission.kind === "fuzzy" ? `已装填 ${stock}/${commission.quantity}` : `持有 ${stock}/${commission.quantity}`}</em></div>
@@ -1248,7 +1271,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
                         })}
                       </div>}
                       <div className="commission-reward"><small>{commission.kind === "specific"&&item?.itemType==="material"?"救急档回收":commission.kind === "fuzzy" && commission.pricingMode === "dynamic" ? "总估值 ×1.5" : "完整劳作奖励"}</small><strong>◉ {reward.toLocaleString()}</strong></div>
-                      <button onClick={() => deliverCommission(commission)} disabled={stock < commission.quantity}>交 付</button>
+                      <button onClick={(event) => {event.stopPropagation();deliverCommission(commission);}} disabled={stock < commission.quantity}>交 付</button>
                     </article>;
                   })}
                   {commissions.length === 0 && <div className="commission-empty">本轮委托均已完成，请静候下次张榜</div>}

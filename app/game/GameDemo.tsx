@@ -50,6 +50,7 @@ import PathProjectPanel, { PathProjectTracker } from "./projects/PathProjectPane
 import { Inspectable } from "./feedback/Inspectable";
 import { useFeedback } from "./feedback/FeedbackProvider";
 import { feedbackText } from "./feedback/texts";
+import { getFarmWeather } from "./farm/farm";
 
 const PERIODS: Period[] = ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"];
 
@@ -128,6 +129,11 @@ export default function GameDemo() {
   const [notice, setNotice] = useState("剧情系统已就绪");
   const [keyAnnouncementQueue, setKeyAnnouncementQueue] = useState<GlobalKeyDefinition[]>([]);
   const [messageQueue,setMessageQueue]=useState<CharacterMessageDefinition[]>([]);
+
+  useEffect(() => {
+    if (!notice) return;
+    feedback.toast({ titleKey: "system.dynamicMessage", params: { message: notice }, icon: "讯", dedupeKey: `scene-notice:${notice}` });
+  }, [feedback, notice]);
   const [messageInboxOpen,setMessageInboxOpen]=useState(false);
   const [replayMessage,setReplayMessage]=useState<CharacterMessageDefinition|null>(null);
   const [stageNotice,setStageNotice]=useState<{characterId:CharacterId;stage:RelationshipStageDefinition}|null>(null);
@@ -365,6 +371,7 @@ export default function GameDemo() {
   const availableActivities = useMemo(() => getAvailableActivities(game), [game.day, game.sceneId]);
   const activeFortune=fortuneHistory[realDateKey];
   const activeFortuneSign=getFortuneSign(activeFortune);
+  const weatherNow=getFarmWeather(game.day),weatherNext=getFarmWeather(game.day+1),weatherLater=getFarmWeather(game.day+2);
 
   useEffect(()=>{if(activeDefinition?.cardStyle==="audio")setAudioIndex(0)},[activeDefinition?.id, activeDefinition?.cardStyle]);
 
@@ -674,6 +681,7 @@ export default function GameDemo() {
           <Inspectable className="stamina-balance" feedback={{ titleKey:"player.staminaLabel", bodyKey:"player.staminaBody", icon:"息", details:[{labelKey:"player.staminaLabel",value:`${game.stamina}/10`,emphasis:true},{labelKey:"calendar.periodLabel",value:game.period}] }}>体力 {game.stamina}/10</Inspectable><i/>
           <Inspectable className="spirit-stone-balance" feedback={{ titleKey:"player.currencyLabel", bodyKey:"player.currencyBody", icon:"石", details:[{labelKey:"player.currencyLabel",value:game.spiritStones,emphasis:true}] }}>灵石 {game.spiritStones}</Inspectable><i/>
           <Inspectable className="proficiency-balance" feedback={{ titleKey:"player.proficiencyLabel", bodyKey:"player.proficiencyBody", icon:"酌", details:[{labelKey:"player.proficiencyLabel",value:`${drinkingProficiency.level}阶 · ${drinkingProficiency.name}`,emphasis:true}] }}>酒艺 {drinkingProficiency.level}阶·{drinkingProficiency.name}</Inspectable>
+          <Inspectable mode="popover" className="weather-balance" feedback={{ titleKey:"world.weatherTitle", bodyKey:"world.weatherBody", params:{name:weatherNow.name}, icon:weatherNow.icon, details:[{labelKey:"world.weatherLabel",value:weatherNow.name,emphasis:true},{labelKey:"world.forecastNext",value:`${weatherNext.icon} ${weatherNext.name}`},{labelKey:"world.forecastLater",value:`${weatherLater.icon} ${weatherLater.name}`},{labelKey:"system.effect",value:weatherNow.description}] }}>{weatherNow.icon} {weatherNow.name}</Inspectable>
         </div>
         <nav className="top-actions" aria-label="功能菜单">
           <button type="button" onClick={() => setPanel("characters")}>人物谱</button>
@@ -693,7 +701,7 @@ export default function GameDemo() {
 
       <section className="scene-tabs" aria-label="场景选择">
         {playableScenes.map((item) => (
-          <button type="button" key={item.id} className={item.id === game.sceneId ? "active" : ""} onClick={() => enterScene(item.id)}>
+          <button type="button" key={item.id} className={item.id === game.sceneId ? "active" : ""} onClick={(event) => item.id === game.sceneId ? feedback.popover({ titleKey:"world.sceneTitle", bodyKey:"world.sceneBody", params:{name:item.name}, icon:"境", anchor:{x:event.clientX,y:event.clientY}, details:[{labelKey:"world.locationLabel",value:item.name,emphasis:true},{labelKey:"world.atmosphereLabel",value:item.atmosphere},{labelKey:"world.sceneEffectLabel",value:item.description},{labelKey:"world.travelCostLabel",value:feedbackText("world.travelCostValue")},{labelKey:"world.sceneNpcLabel",value:item.characters.map(id=>characterMap[id]?.name??id).join(feedbackText("system.listSeparator"))||feedbackText("system.none")},{labelKey:"world.sceneActivityLabel",value:item.id===game.sceneId?availableActivities.slice(0,1).map(activity=>activity.name).join(feedbackText("system.listSeparator"))||feedbackText("system.none"):feedbackText("world.sceneActivityUnknown")},{labelKey:"projects.statusLabel",value:feedbackText(`projects.status.${game.medicineShortage.status}`)}] }) : enterScene(item.id)}>
             <span>{item.shortName}</span><strong>{item.name}</strong>
           </button>
         ))}
@@ -712,11 +720,11 @@ export default function GameDemo() {
           <p>此间人物</p>
           {!activeCharacters.length && <span className="nobody-present">此时无人</span>}
           {activeCharacters.map((item) => (
-            <button type="button" key={item.id} className={item.id === character.id ? "active" : ""} onClick={() => selectCharacter(item.id)} aria-label={`选择${item.name}`}>
+            <button type="button" key={item.id} className={item.id === character.id ? "active" : ""} onClick={(event) => item.id === character.id ? feedback.popover({ titleKey:"relationship.profileTitle", icon:"缘", imageSrc:item.image, anchor:{x:event.clientX,y:event.clientY}, bodyKey:"relationship.stageBody", params:{name:item.name,stage:relationshipStage(item,game.relationships[item.id]??0).name,description:relationshipStage(item,game.relationships[item.id]??0).description}, details:[{labelKey:"relationship.roleLabel",value:item.role},{labelKey:"relationship.scheduleLabel",value:`${scene.name} · ${game.period}`},{labelKey:"relationship.preferenceLabel",value:(game.discoveredGiftPreferences[item.id]??[]).map((id)=>giftMap[id]?.name??id).join(" · ")||feedbackText("system.none")},{labelKey:"relationship.appointmentLabel",value:feedbackText("relationship.appointmentValue")},{labelKey:"relationship.worldImpactLabel",value:item.id==="liu"&&game.flags.medicine_supply_restored?feedbackText("relationship.clinicRestored"):feedbackText("relationship.worldStable")}] }) : selectCharacter(item.id)} aria-label={`选择${item.name}`}>
               <img src={item.image} alt="" /><span>{item.name.slice(0, 1)}</span>
             </button>
           ))}
-          {!game.activeEvent && <ActivityCards activities={availableActivities} completedIds={activeFortune?["daily-divination"]:[]} onOpen={openActivity} />}
+          {!game.activeEvent && <ActivityCards activities={availableActivities.slice(0,1)} completedIds={activeFortune?["daily-divination"]:[]} onOpen={openActivity} />}
         </aside>}
 
         {hasPresentCharacter && !isSpecialEvent && <div className="portrait-wrap" key={character.id}>
@@ -770,7 +778,7 @@ export default function GameDemo() {
         )}
       </section>
 
-      <footer className="statusbar"><span className="status-dot" /><p>{notice}</p><div className="game-reset-controls"><button type="button" onClick={recoverGifts}>恢复礼物</button><button type="button" onClick={resetDemo}>初始化</button></div><span>事件引擎 · 数据驱动</span></footer>
+      <footer className="statusbar"><span className="status-dot" /><p>{feedbackText("system.noticeMirrored")}</p><div className="game-reset-controls"><button type="button" onClick={recoverGifts}>恢复礼物</button><button type="button" onClick={resetDemo}>初始化</button></div><span>事件引擎 · 数据驱动</span></footer>
 
       <nav className="fusion-world-dock" aria-label="槐安一梦主要功能">
         <button type="button" className={systemPanel === "profile" ? "active" : ""} onClick={() => setSystemPanel("profile")}><i>我</i><span>修士属性</span></button>

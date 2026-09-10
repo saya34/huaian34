@@ -13,5 +13,15 @@
   "alchemy.rareTitle": "丹成上品",
   "alchemy.rareBody": "「{name}」丹纹天成，灵韵远胜寻常。",
   "alchemy.commissionLabel": "劳动条件",
-  "alchemy.referencePrice": "接取参考价"
+  "alchemy.referencePrice": "接取参考价",
+  "alchemy.brewTitle": "玄火起炉",
+  "alchemy.resultTitle": "丹药出炉",
+  "alchemy.resultBody": "「{name}」已经炼成，可收入成品库或用于交付。",
+  "alchemy.commissionTitle": "仙门委托",
+  "alchemy.commissionBody": "「{name}」需要交付 {quantity} 份，接取时的奖励标准已经锁定。",
+  "alchemy.commissionEmergency": "纯材料采购仅按救急档回收",
+  "alchemy.commissionProcessed": "包含炼制、品质或配货劳动条件",
+  "alchemy.slotTitle": "炉位详解",
+  "alchemy.slotBody": "第 {index} 炉位会与其余灵材共同决定五行互补、稳定度与成丹结果。",
+  "alchemy.yieldLabel": "预计品质"
 }

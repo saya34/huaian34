@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import type { Period } from "../types";
 import {
@@ -43,6 +43,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
   const [toolMode, setToolMode] = useState<"inspect" | "water" | "fertilize">("inspect");
   const [selectedFertilizer, setSelectedFertilizer] = useState<FertilizerId>("rapid-root");
   const [livestockOpen, setLivestockOpen] = useState(initialView === "livestock");
+  const readyRef = useRef(new Set<string>());
   const tick = gameTick(day, period);
   const weather = getFarmWeather(day);
   const farmEvent = getFarmEvent(day);
@@ -56,6 +57,15 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
 
   const readyCount = useMemo(() => farm.plots.filter((plot) => plotGrowth(plot, tick, weather).ready).length, [farm.plots, tick, weather]);
   const growingCount = farm.plots.filter((plot) => plot.cropId && !plotGrowth(plot, tick, weather).ready).length;
+
+  useEffect(() => {
+    const ready = new Set(farm.plots.filter((plot) => plot.cropId && plotGrowth(plot, tick, weather).ready).map((plot) => plot.id));
+    for (const id of ready) if (!readyRef.current.has(id)) {
+      const plot = farm.plots.find((entry) => entry.id === id);
+      if (plot?.cropId) feedback.publish({ variant:"progression-milestone", priority:2, titleKey:"farm.matureTitle", bodyKey:"farm.matureBody", params:{name:cropById(plot.cropId).materialName}, icon:"熟", dedupeKey:`farm:mature:${id}:${plot.plantedAtTick}` });
+    }
+    readyRef.current = ready;
+  }, [farm.plots, feedback, tick, weather]);
 
   function announce(copy: string) {
     setMessage(copy);
@@ -82,14 +92,14 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
 
   function fertilize(plotId: string) {
     const result = fertilizePlot(farm, plotId, selectedFertilizer);
-    if (!result.ok) { setMessage(result.message); return; }
-    setFarm(result.farm); pulsePlot(plotId, "fertilize"); floatPlot(plotId, `${FERTILIZERS[selectedFertilizer].name} -1`, "blue"); announce(result.message);
+    if (!result.ok) { announce(result.message); return; }
+    setFarm(result.farm); pulsePlot(plotId, "fertilize"); floatPlot(plotId, `${FERTILIZERS[selectedFertilizer].name} -1`, "blue"); feedback.float({titleKey:"farm.fertilizeFloat",params:{name:FERTILIZERS[selectedFertilizer].name},icon:"沃",tone:"jade",dedupeKey:`farm:fertilize:${plotId}:${tick}`}); announce(result.message);
   }
 
   function water(plotId: string) {
     const result = waterPlot(farm, plotId, day);
-    if (!result.ok) { setMessage(result.message); return; }
-    setFarm(result.farm); pulsePlot(plotId, "fertilize"); floatPlot(plotId, "灵泉润畦 · 生长加速", "blue"); announce(result.message);
+    if (!result.ok) { announce(result.message); return; }
+    setFarm(result.farm); pulsePlot(plotId, "fertilize"); floatPlot(plotId, "灵泉润畦 · 生长加速", "blue"); feedback.float({titleKey:"farm.waterFloat",icon:"泉",tone:"jade",dedupeKey:`farm:water:${plotId}:${day}`}); announce(result.message);
   }
 
   function harvest(plotId: string) {
@@ -97,6 +107,8 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
     if (!result.ok) { setMessage(result.message); return; }
     setFarm(result.farm); pulsePlot(plotId, "harvest"); floatPlot(plotId, result.message, "gold");
     feedback.float({ titleKey:"farm.harvestFloat", params:{name:cropById(farm.plots.find((entry)=>entry.id===plotId)?.cropId ?? selectedCropId).materialName,amount:result.reward.amount}, icon:"收", tone:"gold", dedupeKey:`farm:harvest:${plotId}:${tick}` });
+    if (!state.shared.items[result.reward.itemId]) feedback.toast({titleKey:"farm.firstCodex",bodyKey:"farm.firstCodexBody",params:{name:cropById(farm.plots.find((entry)=>entry.id===plotId)?.cropId ?? selectedCropId).materialName},icon:"录",tone:"gold",dedupeKey:`farm:first:${result.reward.itemId}`});
+    if (result.mutated) feedback.publish({variant:"rare-reward",priority:0,tone:"gold",titleKey:"farm.mutationTitle",bodyKey:"farm.mutationBody",params:{name:cropById(farm.plots.find((entry)=>entry.id===plotId)?.cropId ?? selectedCropId).materialName},icon:"变",dedupeKey:`farm:mutation:${plotId}:${tick}`});
     applyEffects([{ type: "add_item", item: result.reward }, { type: "add_player_exp", amount: Math.max(1, Math.floor(result.experience / 2)) }]);
     announce(`${result.message} · 灵圃经验 +${result.experience}`);
   }
@@ -238,7 +250,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
           const material = crop ? cropMaterial(crop) : null;
           const growth = plotGrowth(plot, tick, weather);
           const stage = growth.ready ? "ready" : growth.progress >= 65 ? "almost" : growth.progress >= 25 ? "sprout" : "seedling";
-          return <button type="button" key={plot.id} className={`farm-plot ${locked ? "locked" : ""} ${unsupported ? "unsupported" : ""} ${plot.cropId ? stage : "empty"} ${plot.watered ? "watered" : ""} ${plot.fertilized ? "fertilized" : ""} ${plotFx?.id === plot.id ? `fx-${plotFx.kind}` : ""}`} disabled={locked || unsupported} onClick={() => interactPlot(plot.id)} aria-label={locked ? `第${index + 1}畦未解锁` : unsupported ? `第${index + 1}畦等待灵泉覆盖` : crop ? `${crop.materialName}，${growth.ready ? "已成熟" : `还需${growth.remaining}时辰`}` : `第${index + 1}畦空田`}>
+          return <button type="button" key={plot.id} className={`farm-plot ${locked ? "locked" : ""} ${unsupported ? "unsupported" : ""} ${plot.cropId ? stage : "empty"} ${plot.watered ? "watered" : ""} ${plot.fertilized ? "fertilized" : ""} ${plotFx?.id === plot.id ? `fx-${plotFx.kind}` : ""}`} onClick={() => locked ? feedback.toast({titleKey:"farm.lockedHint",params:{level:level+1},icon:"锁",tone:"muted",dedupeKey:`farm:locked:${plot.id}`}) : unsupported ? feedback.toast({titleKey:"farm.unsupportedHint",params:{level:farm.wellLevel+1},icon:"泉",tone:"muted",dedupeKey:`farm:unsupported:${plot.id}`}) : interactPlot(plot.id)} aria-label={locked ? `第${index + 1}畦未解锁` : unsupported ? `第${index + 1}畦等待灵泉覆盖` : crop ? `${crop.materialName}，${growth.ready ? "已成熟" : `还需${growth.remaining}时辰`}` : `第${index + 1}畦空田`}>
             <span className="farm-soil-lines" />
             {locked ? <span className="farm-lock"><b>封</b><small>{farmLevel(farm.experience) + 1}阶拓地</small></span> : crop && material ? <>
               <img src={material.image} alt="" style={{ "--crop-progress": Math.max(24, growth.progress), "--crop-color": crop.color } as React.CSSProperties} />

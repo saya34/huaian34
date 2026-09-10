@@ -1,17 +1,21 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 import { MATERIALS, PRODUCTS } from "../alchemy/item-data";
 import { productStackKey, type ProductStack } from "../alchemy/commissions";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import type { PathProjectRoute } from "../types";
+import { useFeedback } from "../feedback/FeedbackProvider";
+import { feedbackText } from "../feedback/texts";
 
 const herb=MATERIALS.find(item=>item.name==="碧落灵芝")!;
 const frost=MATERIALS.find(item=>item.name==="霜心草")!;
 const remedy=PRODUCTS.find(item=>item.name==="碧落回春丹")!;
 const ROUTES:Record<PathProjectRoute,{glyph:string;name:string;role:string;description:string;result:string}>={
-  production:{glyph:"圃",name:"生产替代药",role:"灵田 → 丹炉",description:"亲手培育碧落灵芝，再炼成一枚回春丹。成本可控，准备时间较长。",result:"医馆获得稳定的本地药源。"},
-  relationship:{glyph:"契",name:"取得药师协作",role:"关系 → 低成本配方",description:"取得柳知意的信任，以两份霜心草完成她的简化药方。",result:"解锁医馆协作与低成本配方。"},
-  battle:{glyph:"境",name:"秘境夺取灵材",role:"战斗 → 高品质替代",description:"接受项目后镇压一次秘境，并交出一份带出的灵材。风险较高，但准备最快。",result:"医馆获得一批高品质应急药材。"},
+  production:{glyph:"圃",name:feedbackText("projects.routeProduction"),role:feedbackText("projects.medicine.productionRole"),description:feedbackText("projects.medicine.productionDescription"),result:feedbackText("projects.medicine.productionResult")},
+  relationship:{glyph:"契",name:feedbackText("projects.routeRelationship"),role:feedbackText("projects.medicine.relationshipRole"),description:feedbackText("projects.medicine.relationshipDescription"),result:feedbackText("projects.medicine.relationshipResult")},
+  battle:{glyph:"境",name:feedbackText("projects.routeBattle"),role:feedbackText("projects.medicine.battleRole"),description:feedbackText("projects.medicine.battleDescription"),result:feedbackText("projects.medicine.battleResult")},
 };
 
 function productCount(stacks:Record<string,ProductStack>,productId:string){return Object.values(stacks).filter(stack=>stack.productId===productId).reduce((sum,stack)=>sum+stack.count,0)}
@@ -24,6 +28,7 @@ export function PathProjectTracker({onOpen}:{onOpen:()=>void}){
 
 export default function PathProjectPanel({onClose,onNotice}:{onClose:()=>void;onNotice:(message:string)=>void}){
   const{state,setRomance,setAlchemy,applyEffects}=useUnifiedGame();const game=state.romance,project=game.medicineShortage;
+  const feedback=useFeedback();const readyAnnouncedRef=useRef<PathProjectRoute|null>(null);
   const overdue=project.status==="active"&&game.day>(project.deadlineDay??game.day),remaining=project.deadlineDay===undefined?3:Math.max(0,project.deadlineDay-game.day+1);
   const herbCount=state.shared.items[herb.id]?.amount??0,frostCount=state.shared.items[frost.id]?.amount??0,remedyCount=productCount(state.alchemy.productStacks,remedy.id);
   const personallyHarvested=project.status==="active"&&state.farm.totalHarvests>(project.farmHarvestsAtAccept??state.farm.totalHarvests);
@@ -36,8 +41,9 @@ export default function PathProjectPanel({onClose,onNotice}:{onClose:()=>void;on
   function accept(){setRomance(current=>({...current,medicineShortage:{status:"active",acceptedDay:current.day,deadlineDay:current.day+2,battleVictories:0,farmHarvestsAtAccept:state.farm.totalHarvests}}));onNotice("道途项目已接受 · 坊市药材断供");}
   function choose(route:PathProjectRoute){setRomance(current=>({...current,medicineShortage:{...current.medicineShortage,route}}));onNotice(`主解法已定 · ${ROUTES[route].name}`);}
   function removeProduct(){setAlchemy(current=>{let remaining=1;const stacks={...current.productStacks};for(const stack of Object.values(stacks).filter(item=>item.productId===remedy.id)){if(remaining<=0)break;const key=productStackKey(stack.productId,stack.mutation),used=Math.min(remaining,stack.count);stacks[key]={...stack,count:stack.count-used};remaining-=used;}return{...current,productStacks:stacks};});}
-  function deliver(){const route=project.route;if(!route||!readiness[route].ready)return;if(route==="production"){applyEffects([{type:"remove_item",itemId:herb.id,amount:3}]);removeProduct();}else if(route==="relationship")applyEffects([{type:"remove_item",itemId:frost.id,amount:2}]);else if(battleMaterial)applyEffects([{type:"remove_item",itemId:battleMaterial.itemId,amount:1}]);const outcome=overdue?"recovered":"stabilized";applyEffects([{type:"add_currency",amount:overdue?100:240},{type:"add_relationship",characterId:"liu",amount:overdue?1:3},{type:"add_item",item:{itemId:"clinic-supply-covenant",itemType:"quest",rarity:4,amount:1,sourceTags:["道途项目","坊市药材断供"],locked:true}},{type:"set_global_key",key:"medicine_supply_restored",value:true}]);setRomance(current=>({...current,medicineShortage:{...current.medicineShortage,status:"completed",completedDay:current.day,outcome}}));onNotice(outcome==="stabilized"?"断供危机解除 · 医馆与坊市恢复运转":"补救完成 · 医馆恢复基础接诊");}
-  const milestones=[{done:project.status!=="offered",label:"接下医馆告急"},{done:Boolean(project.route),label:"确定一条主解法"},{done:Boolean(project.route&&readiness[project.route].ready),label:"完成物资与风险准备"},{done:project.status==="completed",label:"交付替代药材"},{done:project.status==="completed",label:"见证坊市恢复"}];
+  async function deliver(){const route=project.route;if(!route||!readiness[route].ready)return;const accepted=await feedback.confirm({titleKey:"projects.deliveryTitle",bodyKey:"projects.deliveryBody",icon:"交",tone:"cinnabar",details:[{labelKey:"projects.routeLabel",value:ROUTES[route].name,emphasis:true},{labelKey:"system.cost",value:readiness[route].progress},{labelKey:"projects.resultLabel",value:ROUTES[route].result}],dedupeKey:`project-deliver:${route}:${game.day}`});if(!accepted)return;if(route==="production"){applyEffects([{type:"remove_item",itemId:herb.id,amount:3}]);removeProduct();}else if(route==="relationship")applyEffects([{type:"remove_item",itemId:frost.id,amount:2}]);else if(battleMaterial)applyEffects([{type:"remove_item",itemId:battleMaterial.itemId,amount:1}]);const outcome=overdue?"recovered":"stabilized";applyEffects([{type:"add_currency",amount:overdue?100:240},{type:"add_relationship",characterId:"liu",amount:overdue?1:3},{type:"add_item",item:{itemId:"clinic-supply-covenant",itemType:"quest",rarity:4,amount:1,sourceTags:["道途项目","坊市药材断供"],locked:true}},{type:"set_global_key",key:"medicine_supply_restored",value:true}]);setRomance(current=>({...current,medicineShortage:{...current.medicineShortage,status:"completed",completedDay:current.day,outcome}}));onNotice(outcome==="stabilized"?feedbackText("projects.medicine.completedOnTime"):feedbackText("projects.medicine.completedRecovery"));}
+  useEffect(()=>{const route=project.route;if(!route||!readiness[route].ready||readyAnnouncedRef.current===route)return;readyAnnouncedRef.current=route;feedback.publish({variant:"project-milestone",priority:1,tone:"gold",titleKey:"projects.ready",bodyKey:"projects.readyBody",params:{name:feedbackText("projects.medicineName"),route:ROUTES[route].name},icon:"备",dedupeKey:`project-ready:${route}:${project.acceptedDay}`});},[feedback,project.acceptedDay,project.route,readiness]);
+  const milestones=["accepted","route","prepared","delivered","changed"].map((id,index)=>({done:[project.status!=="offered",Boolean(project.route),Boolean(project.route&&readiness[project.route].ready),project.status==="completed",project.status==="completed"][index],label:feedbackText(`projects.medicine.milestone.${id}`)}));
   return <div className="path-project-backdrop" onMouseDown={onClose}><section className={`path-project-panel ${overdue?"recovery":""}`} role="dialog" aria-modal="true" aria-label="道途项目" onMouseDown={event=>event.stopPropagation()}>
     <header><span className="path-project-mark">途</span><div><small>DAO PATH PROJECT · 世界事件</small><h2>坊市药材断供</h2><p>{project.status==="completed"?"你选择的解法已经改变了坊市。":project.status==="offered"?"医馆的常用药材突然断供，需要有人查明缺口并交付替代方案。":overdue?"三日危机窗口已经过去，但事件不会永久错过；你仍可完成补救版本。":`第 ${project.acceptedDay} 日接取 · 第 ${project.deadlineDay} 日结束危机窗口 · 尚余 ${remaining} 日`}</p></div><button onClick={onClose}>×</button></header>
     {project.status==="completed"?<div className="project-outcome"><div className="outcome-ripple"><i/><i/><b>成</b></div><small>{project.outcome==="stabilized"?"危机期内完成":"补救完成"}</small><h3>{project.outcome==="stabilized"?"药路重开，坊市复苏":"医馆复诊，供给渐稳"}</h3><p>医馆恢复接诊，栖珍阁重新上架基础补给；柳知意的日程从寻药改为坐诊。你获得了剧情物品「医馆回春契」。</p><div><span><b>医馆</b>恢复接诊</span><span><b>商店</b>补给恢复</span><span><b>人物</b>柳知意回归日程</span></div><button onClick={onClose}>返回坊市</button></div>:<div className="project-workspace">

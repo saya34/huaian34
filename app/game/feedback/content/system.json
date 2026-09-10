@@ -19,5 +19,17 @@
   "system.yes": "是",
   "system.no": "否",
   "system.none": "无",
-  "system.listSeparator": " · "
+  "system.listSeparator": " · ",
+  "system.dynamicMessage": "{message}",
+  "system.current": "当前",
+  "system.next": "随后",
+  "system.cost": "消耗",
+  "system.reward": "所得",
+  "system.status": "状态",
+  "system.requirement": "要求",
+  "system.source": "来源",
+  "system.effect": "影响",
+  "system.quantity": "数量",
+  "system.remove": "取出",
+  "system.noticeMirrored": "行动讯息已显示于右上，并可在讯息录中回看。"
 }

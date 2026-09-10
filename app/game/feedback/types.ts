@@ -24,6 +24,7 @@ export type FeedbackDetail = {
   labelParams?: FeedbackTextParams;
   value: ReactNode;
   emphasis?: boolean;
+  delta?: "up" | "down" | "neutral";
 };
 
 export type FeedbackAction = {
@@ -45,7 +46,8 @@ export type FeedbackInput = {
   actions?: FeedbackAction[];
   durationMs?: number;
   dedupeKey?: string;
-  anchor?: { x: number; y: number };
+  anchor?: { x: number; y: number; element?: HTMLElement };
+  scope?: "world" | "combat";
   className?: string;
 };
 
@@ -69,8 +71,10 @@ export type FeedbackApi = {
   toast: (input: Omit<FeedbackInput, "variant">) => string | null;
   float: (input: Omit<FeedbackInput, "variant">) => string | null;
   inspect: (input: Omit<FeedbackInput, "variant">) => string | null;
+  popover: (input: Omit<FeedbackInput, "variant">) => string | null;
   compare: (input: Omit<FeedbackInput, "variant">) => string | null;
   confirm: (input: Omit<FeedbackInput, "variant" | "actions">) => Promise<boolean>;
   dismiss: (id?: string) => void;
   openHistory: () => void;
+  setCombatBusy: (busy: boolean) => void;
 };

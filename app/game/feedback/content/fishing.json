@@ -13,5 +13,16 @@
   "fishing.catchTitle": "灵鳞出水",
   "fishing.catchBody": "钓得{name} ×{amount}。",
   "fishing.fail": "鱼影挣脱，只在水面留下几圈涟漪。",
-  "fishing.limit": "今日此处的鱼群已受惊，宜改日再来。"
+  "fishing.limit": "今日此处的鱼群已受惊，宜改日再来。",
+  "fishing.agingTitle": "鱼获入藏",
+  "fishing.agingBody": "新鱼获已进入蕴养槽，成熟后可获得更稳定的灵材价值。",
+  "fishing.tutorialTitle": "初识听澜术",
+  "fishing.tutorialBody": "鱼影进入红区时收线。连续命中可压低鱼力，失误会提高张力；张力满值则鱼影挣脱。",
+  "fishing.tutorialTension": "失误时上升，满值失败",
+  "fishing.tutorialEnergy": "命中时削减，归零成功",
+  "fishing.tutorialZone": "红区为最佳收线区，邻近区域仍有少量收益",
+  "fishing.codexTitle": "听澜鱼谱",
+  "fishing.codexBody": "「{name}」：{description}",
+  "fishing.codexUnknown": "尚未钓得此鱼，只能从水纹推测其出现概率。",
+  "fishing.catchChance": "当前权重"
 }

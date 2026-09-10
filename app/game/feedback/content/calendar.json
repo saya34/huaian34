@@ -9,5 +9,9 @@
   "calendar.festivalTitle": "佳节将至",
   "calendar.festivalBody": "今日为「{name}」，城中人物与活动已有变化。",
   "calendar.deadlineTitle": "危机迫近",
-  "calendar.deadlineBody": "「{name}」只剩 {remaining} 个游戏日的危机窗口。"
+  "calendar.deadlineBody": "「{name}」只剩 {remaining} 个游戏日的危机窗口。",
+  "calendar.activityTitle": "周期活动",
+  "calendar.activityBody": "「{name}」：{subtitle}",
+  "calendar.eventTitle": "日历事件",
+  "calendar.eventBody": "「{name}」：{subtitle}"
 }

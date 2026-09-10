@@ -13,5 +13,10 @@
   "shop.insufficientCurrency": "灵石不足，无法完成本次交易。",
   "shop.insufficientSpace": "背包没有足够连续空间，交易未完成。",
   "shop.bulkSellTitle": "确认批量出售",
-  "shop.bulkSellBody": "将出售 {count} 件物品，预计获得 {value} 灵石。"
+  "shop.bulkSellBody": "将出售 {count} 件物品，预计获得 {value} 灵石。",
+  "shop.merchantTitle": "商契人物",
+  "shop.merchantBody": "「{name}」既负责店铺服务，也是可通过交谈、交易与事件推进关系的人物。",
+  "shop.merchantService": "经营服务",
+  "shop.weaponDetail": "「{name}」的占格、需求、价值与词条对照如下。",
+  "shop.unidentifiedDetail": "「{name}」尚未鉴定，只公开器型、占格与价格；购入或付费鉴定后揭示词条。"
 }

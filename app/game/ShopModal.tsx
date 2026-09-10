@@ -12,6 +12,7 @@ import type { EventDefinition, GiftDefinition } from "./types";
 import WeaponMerchantPanel from "./WeaponMerchantPanel";
 import { fishById } from "./fishing/fishing";
 import { livestockProductById } from "./farm/livestock";
+import { useFeedback } from "./feedback/FeedbackProvider";
 
 type ShopModalProps = {
   gifts: GiftDefinition[];
@@ -29,6 +30,7 @@ const RARITY_COLORS = ["#aab5ad", "#7ebf8b", "#5faed0", "#a889ce", "#d59b54", "#
 
 export default function ShopModal({ gifts, events, relationship, initialDepartment = "treasure", onClose, onNotice }: ShopModalProps) {
   const { state, applyEffects, setBattle } = useUnifiedGame();
+  const feedback = useFeedback();
   const [department, setDepartment] = useState<"treasure" | "weapons">(initialDepartment);
   const [tab, setTab] = useState<"buy" | "sell">("buy");
   const [message, setMessage] = useState("万物有价，也总有人愿意给它第二个去处。");
@@ -76,10 +78,10 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
     return { name, image, position, value: Math.max(1, Math.floor(baseValue * .58)) };
   }
 
-  function sellStack(stack: UnifiedItemStack, amount: number) {
+  async function sellStack(stack: UnifiedItemStack, amount: number) {
     const quantity = Math.max(1, Math.min(amount, stack.amount));
     const definition = stackDefinition(stack);
-    if (quantity > 1 && !window.confirm(`确认将「${definition.name}」全部出售，共 ${quantity} 件？`)) return;
+    if (quantity > 1 && !(await feedback.confirm({titleKey:"shop.bulkSellTitle",bodyKey:"shop.bulkSellBody",params:{count:quantity,value:definition.value*quantity},icon:"售",tone:"cinnabar",dedupeKey:`shop-bulk:${stack.itemId}:${quantity}`}))) return;
     const gain = definition.value * quantity;
     if (stack.itemType === "treasure") {
       const treasureId = stack.itemId.startsWith("treasure:") ? stack.itemId.slice(9) : stack.itemId;
@@ -115,16 +117,16 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
         <button type="button" onClick={onClose} aria-label="离开栖珍阁">×</button>
       </header>
       <div className={`shop-body ${department === "weapons" ? "weapon-department" : ""}`}>
-        <aside className={`shopkeeper-panel ${department === "weapons" ? "weapon-merchant-portrait" : ""}`}>
+        <aside className={`shopkeeper-panel ${department === "weapons" ? "weapon-merchant-portrait" : ""}`} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"shop.merchantTitle",bodyKey:"shop.merchantBody",params:{name:department==="weapons"?"霍青翎":"宁砚书"},icon:"商",imageSrc:department==="weapons"?"/assets/shop/huo-qingling.webp":"/assets/shop/ning-yanshu.svg",details:[{labelKey:"relationship.roleLabel",value:department==="weapons"?"玄锋号兵器商 · 可攻略":"栖珍阁掌柜 · 可攻略"},{labelKey:"relationship.valueLabel",value:relationship},{labelKey:"shop.discountLabel",value:`${Math.round(discount*100)} 折`},{labelKey:"shop.merchantService",value:department==="weapons"?"周货、回购、鉴定":"常货、全品类售卖、剧情物品保护"}],dedupeKey:`merchant:${department}:${relationship}`})}>
           <img src={department === "weapons" ? "/assets/shop/huo-qingling.webp" : "/assets/shop/ning-yanshu.svg"} alt={department === "weapons" ? "玄锋号女商人霍青翎" : "栖珍阁老板娘宁砚书"} />
           <div><small>{department === "weapons" ? "铸兵行商 · 霍青翎" : "掌柜寄语"}</small><p>“{department === "weapons" ? "兵刃占几格、值几钱，都写在明处；匣中锋芒，买下才与你相见。" : message}”</p></div>
         </aside>
         {department === "weapons" ? <main className="shop-counter weapon-shop-counter"><WeaponMerchantPanel onNotice={onNotice} /></main> : <main className="shop-counter">
           {supplyRestored&&<div className="medicine-supply-banner"><i>药</i><span><small>道途项目结果 · 已生效</small><strong>医馆药路重开，基础补给额外减免</strong></span><b>供给恢复</b></div>}
           <nav className="shop-tabs"><button className={tab === "buy" ? "active" : ""} onClick={() => setTab("buy")}><i>买</i><span><strong>购入常货</strong><small>行旅所需 · 明码标价</small></span></button><button className={tab === "sell" ? "active" : ""} onClick={() => setTab("sell")}><i>卖</i><span><strong>出售所有物品</strong><small>行囊、宝物与法器统一估价</small></span></button></nav>
-          {tab === "buy" ? <div className="shop-goods-grid">{SHOP_OFFERS.map((offer) => { const gift = shopGiftMap[offer.itemId]!; const price = Math.max(1, Math.round(offer.price * discount)); return <article key={offer.itemId}>
+          {tab === "buy" ? <div className="shop-goods-grid">{SHOP_OFFERS.map((offer) => { const gift = shopGiftMap[offer.itemId]!; const price = Math.max(1, Math.round(offer.price * discount)); return <article key={offer.itemId} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"shop.productTitle",bodyKey:"world.changeBody",params:{message:gift.description},icon:gift.icon,imageSrc:gift.image,details:[{labelKey:"items.nameLabel",value:gift.name,emphasis:true},{labelKey:"shop.stockLabel",value:offer.stock},{labelKey:"shop.priceLabel",value:price},{labelKey:"items.tagsLabel",value:gift.tags.join(" · ")},{labelKey:"shop.discountLabel",value:discount<1?`${Math.round(discount*100)} 折`:"无"}],dedupeKey:`shop-product:${offer.itemId}`})}>
             <div className="shop-goods-art" style={artStyle(gift)}><span>{gift.icon}</span><b>{offer.stock}</b></div>
-            <small>{gift.tags.join(" · ")}</small><h3>{gift.name}</h3><p>{gift.description}</p><div><span><del>{discount < 1 ? offer.price : ""}</del><strong>◉ {price}</strong></span><button onClick={() => buy(offer.itemId, offer.price)} disabled={state.shared.spiritStones < price}>购入</button></div>
+            <small>{gift.tags.join(" · ")}</small><h3>{gift.name}</h3><p>{gift.description}</p><div><span><del>{discount < 1 ? offer.price : ""}</del><strong>◉ {price}</strong></span><button onClick={(event) => {event.stopPropagation();buy(offer.itemId, offer.price);}} disabled={state.shared.spiritStones < price}>购入</button></div>
           </article>; })}</div> : <div className="shop-sell-area">
             <section><header><div><small>TRAVEL PACK · 可出售</small><h3>乾坤行囊</h3></div><span>{sellableStacks.length} 类物品</span></header><div className="shop-sell-list">{sellableStacks.map((stack) => { const definition = stackDefinition(stack); const isAtlas = definition.image.includes("atlas") || definition.image.includes("ning-shop-goods"); return <article key={stack.itemId}>
               <div className="shop-sell-art" style={isAtlas ? { backgroundImage: `url(${definition.image})`, backgroundPosition: definition.position ?? "center", backgroundSize: definition.image.includes("ning-shop-goods") ? "300% 200%" : "500% 100%" } : undefined}>{!isAtlas && <img src={definition.image} alt="" />}</div>

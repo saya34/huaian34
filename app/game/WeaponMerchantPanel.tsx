@@ -7,6 +7,7 @@ import { identifyEquipment } from "./battle/meta";
 import { equipmentAttributeBonus, equipmentById, equipmentRequirements, equipmentSize, equipmentValue, formatBonus, type EquipmentItem, type EquipmentPosition } from "./battle/progression";
 import { ensureWeeklyWeaponShop, nextWeaponShopRefreshDay, publicWeaponRarity, WEAPON_SHOP_GRID_SIZE, weaponGridPositions, weaponPurchasePrice, weaponSellPrice, weaponShopWeekNumber } from "./battle/weaponShop";
 import { useUnifiedGame } from "./core/UnifiedGameProvider";
+import { useFeedback } from "./feedback/FeedbackProvider";
 
 type DragPayload = { source: "store" | "player" | "identify"; uid: string };
 type Selection = DragPayload | null;
@@ -33,9 +34,11 @@ function identificationCost(item: EquipmentItem) {
 
 export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: string) => void }) {
   const { state, setBattle } = useUnifiedGame();
+  const feedback = useFeedback();
   const [shelf, setShelf] = useState<"weekly" | "buyback" | "identify">("weekly");
   const [selection, setSelection] = useState<Selection>(null);
   const [message, setMessage] = useState("左边是本周兵架，右边是你的法器背包。拖过去，买卖就算成了。");
+  const [seenWeek,setSeenWeek]=useState(()=>weaponShopWeekNumber(state.romance.day));
 
   useEffect(() => {
     setBattle((current) => {
@@ -43,6 +46,8 @@ export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: 
       return weaponShop === current.weaponShop ? current : { ...current, weaponShop };
     });
   }, [setBattle, state.romance.day]);
+
+  useEffect(()=>{const week=weaponShopWeekNumber(state.romance.day);if(week===seenWeek)return;setSeenWeek(week);feedback.publish({variant:"world-announcement",priority:1,titleKey:"shop.refreshTitle",bodyKey:"shop.refreshBody",icon:"新",dedupeKey:`weapon-week:${week}`});},[feedback,seenWeek,state.romance.day]);
 
   const battle = state.battle;
   const unidentifiedItems = useMemo(() => battle.equipmentBag.filter((item) => battle.equipmentPositions[item.uid] && item.identified === false), [battle.equipmentBag, battle.equipmentPositions]);
@@ -61,12 +66,12 @@ export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: 
     const item = (isBuyback ? battle.weaponShop.buyback : battle.weaponShop.stock).find((entry) => entry.uid === uid);
     if (!item) return;
     const price = weaponPurchasePrice(item, isBuyback);
-    if (battle.spiritStones < price) { setMessage(`灵石不足，还差 ${(price - battle.spiritStones).toLocaleString()} 枚。`); return; }
+    if (battle.spiritStones < price) { setMessage(`灵石不足，还差 ${(price - battle.spiritStones).toLocaleString()} 枚。`); feedback.toast({titleKey:"system.toastError",bodyKey:"shop.insufficientCurrency",icon:"石",tone:"danger",dedupeKey:`weapon-currency:${price}`}); return; }
     const purchased = { ...item, identified: isBuyback ? item.identified : true };
     const point = target
       ? canPlaceEquipment(playerItems, battle.equipmentPositions, purchased, CULTIVATOR_PACK_SIZE, target.x, target.y) ? target : null
       : findEquipmentPosition(playerItems, battle.equipmentPositions, purchased, CULTIVATOR_PACK_SIZE);
-    if (!point) { setMessage("你的 10×4 法器背包没有足够的连续空格，交易未发生。"); return; }
+    if (!point) { setMessage("你的 10×4 法器背包没有足够的连续空格，交易未发生。"); feedback.toast({titleKey:"system.toastError",bodyKey:"shop.insufficientSpace",icon:"囊",tone:"danger",dedupeKey:`weapon-space:${item.uid}`}); return; }
     setBattle((current) => {
       const source = isBuyback ? current.weaponShop.buyback : current.weaponShop.stock;
       if (!source.some((entry) => entry.uid === uid) || current.spiritStones < price) return current;
@@ -87,6 +92,7 @@ export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: 
     setSelection({ source: "player", uid: purchased.uid });
     setMessage(`${copy}，花费 ${price.toLocaleString()} 灵石。`);
     onNotice(copy);
+    if(revealed)feedback.publish({variant:"identification-reveal",priority:0,tone:"gold",titleKey:"items.identifiedTitle",bodyKey:"items.identifiedBody",params:{name:purchased.name??base.name},icon:"鉴",imageSrc:base.art,details:[{labelKey:"items.rarityLabel",value:RARITY_META[publicWeaponRarity(purchased)??base.rarity].name},{labelKey:"items.bonusLabel",value:formatBonus(equipmentAttributeBonus(purchased)).join(" · ")},{labelKey:"items.gridLabel",value:`${equipmentSize(purchased).width}×${equipmentSize(purchased).height}`}],dedupeKey:`weapon-reveal:${purchased.uid}`});
   }
 
   function sell(uid: string) {
@@ -112,6 +118,7 @@ export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: 
     setSelection({ source: "store", uid });
     setMessage(`${copy}；在本周结束前可按原收购价赎回。`);
     onNotice(copy);
+    feedback.publish({variant:"identification-reveal",priority:1,tone:"gold",titleKey:"items.identifiedTitle",bodyKey:"items.identifiedBody",params:{name:item.name??base.name},icon:"鉴",imageSrc:base.art,details:[{labelKey:"items.rarityLabel",value:RARITY_META[publicWeaponRarity(item)??base.rarity].name},{labelKey:"items.bonusLabel",value:formatBonus(equipmentAttributeBonus(item)).join(" · ")},{labelKey:"shop.identifyCostLabel",value:cost}],dedupeKey:`weapon-identify:${uid}`});
   }
 
   function identify(uid: string) {
@@ -165,13 +172,14 @@ export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: 
     const size = equipmentSize(item);
     const unknown = item.identified === false;
     const price = source === "store" ? weaponPurchasePrice(item, shelf === "buyback") : source === "identify" ? identificationCost(item) : weaponSellPrice(item);
+    const equippedUid=battle.equipped[base.slot];const equippedItem=battle.equipmentBag.find(entry=>entry.uid===equippedUid);const currentValue=equippedItem?equipmentValue(equippedItem):0;const candidateValue=equipmentValue(item);const delta=candidateValue===currentValue?"neutral":candidateValue>currentValue?"up":"down";
     return <button
       type="button"
       draggable={source !== "identify"}
       className={`weapon-grid-item ${unknown ? "is-unidentified" : ""} ${selection?.source === source && selection.uid === item.uid ? "selected" : ""} ${source === "player" && base.slot !== "weapon" ? "not-sellable" : ""}`}
       style={itemStyle(item, point)}
       onDragStart={(event) => writeDrag(event, { source, uid: item.uid })}
-      onClick={(event) => { event.stopPropagation(); setSelection({ source, uid: item.uid }); }}
+      onClick={(event) => { event.stopPropagation(); if(selection?.source===source&&selection.uid===item.uid){feedback.compare({titleKey:"items.compareTitle",bodyKey:unknown?"shop.unidentifiedDetail":"shop.weaponDetail",params:{name:unknown?`未鉴定的${base.name}`:item.name??base.name},icon:"器",imageSrc:base.art,details:[{labelKey:"items.currentEquipped",value:equippedItem?(equippedItem.name??equipmentById(equippedItem.equipmentId).name):"空位"},{labelKey:"items.candidateEquipped",value:unknown?`未鉴定的${base.name}`:item.name??base.name,delta},{labelKey:"items.currentValue",value:currentValue},{labelKey:"items.candidateValue",value:candidateValue,delta},{labelKey:"items.gridLabel",value:`${size.width}×${size.height}`},{labelKey:"items.requirementLabel",value:`体魄 ${equipmentRequirements(item).strength??0} · 身法 ${equipmentRequirements(item).dexterity??0} · 神识 ${equipmentRequirements(item).magic??0}`},{labelKey:"items.bonusLabel",value:unknown?"？？":formatBonus(equipmentAttributeBonus(item)).join(" · ")}],dedupeKey:`weapon-detail:${source}:${item.uid}:${unknown}`});}else setSelection({ source, uid: item.uid }); }}
       onDoubleClick={() => source === "store" ? buy(item.uid) : source === "identify" ? identify(item.uid) : sell(item.uid)}
       aria-label={unknown && source === "store" ? `未鉴定的${base.name}，${size.width}乘${size.height}格，价格${price}灵石` : `${item.name ?? base.name}，${size.width}乘${size.height}格`}
     >

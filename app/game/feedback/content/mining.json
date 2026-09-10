@@ -1,5 +1,6 @@
 {
   "mining.tileTitle": "岩层辨识",
+  "mining.pointTitle": "矿脉情报",
   "mining.typeLabel": "土层类型",
   "mining.hpLabel": "岩层强度",
   "mining.costLabel": "预计耐久消耗",
@@ -14,5 +15,20 @@
   "mining.depthTitle": "矿脉深入",
   "mining.depthBody": "你已抵达第 {depth} 层，更珍稀的矿物正在地脉深处闪烁。",
   "mining.dropFloat": "发现 {name} ×{amount}",
-  "mining.mapFragment": "藏宝图残片散发出彼此呼应的微光。"
+  "mining.mapFragment": "藏宝图残片散发出彼此呼应的微光。",
+  "mining.pickaxeDanger": "灵镐将折",
+  "mining.pickaxeDangerBody": "玄铁灵镐仅余 {value} 点耐久，深入前宜先修复。",
+  "mining.pickaxeBroken": "灵镐断损",
+  "mining.pickaxeBrokenBody": "玄铁灵镐耐久已经归零，修复前无法继续凿击。",
+  "mining.mapReady": "藏宝图合一",
+  "mining.mapReadyBody": "三卷残图已经拼合，太虚藏宝窟特殊副本现世。",
+  "mining.tutorialTitle": "初入地脉迷宫",
+  "mining.tutorialBody": "从入口相邻岩层开始。每挖通一块才会揭示四周；黑墙不可破，宝箱需对应钥匙，最深秘藏不耗钥匙。",
+  "mining.tutorialReachable": "只可凿击已显现且与甬道相邻的岩层",
+  "mining.tutorialDurability": "不同土层每次消耗不同耐久，灵镐不会一击即毁",
+  "mining.tutorialChest": "青铜、碧玉、星纹钥匙对应不同宝箱",
+  "mining.chestOpenedTitle": "封匣洞开",
+  "mining.chestOpenedBody": "宝箱中取得：{items}",
+  "mining.repairTitle": "灵镐复原",
+  "mining.repairBody": "玄铁灵镐恢复至 {value} 点耐久，本次消耗 {cost} 灵石。"
 }

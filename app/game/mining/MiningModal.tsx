@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import {
   KEY_DEFINITIONS, SOIL_DEFINITIONS, activeMiningMaze, assembleTreasureMap, descendResidentMine,
@@ -45,6 +45,8 @@ export default function MiningModal({locationId,randomSpotId,day,period,onClose,
   const explorerTile=useMemo(()=>{if(!maze)return undefined;if(selected&&isPassage(selected))return selected;if(selected){const neighbor=maze.tiles.find(tile=>isPassage(tile)&&Math.abs(tile.x-selected.x)+Math.abs(tile.y-selected.y)===1);if(neighbor)return neighbor;}return [...maze.tiles].filter(isPassage).sort((a,b)=>b.depth-a.depth)[0];},[maze,selected]);
   const impactTile=maze?.tiles.find(tile=>tile.id===strikeFx),lootTile=maze?.tiles.find(tile=>tile.id===lootAt);
 
+  useEffect(()=>{const key="huaian-mining-tutorial-v1";if(window.localStorage.getItem(key))return;window.localStorage.setItem(key,"shown");feedback.inspect({titleKey:"mining.tutorialTitle",bodyKey:"mining.tutorialBody",icon:"镐",details:[{labelKey:"mining.reachableLabel",value:feedbackText("mining.tutorialReachable")},{labelKey:"mining.costLabel",value:feedbackText("mining.tutorialDurability")},{labelKey:"mining.keyLabel",value:feedbackText("mining.tutorialChest")}],dedupeKey:key});},[feedback]);
+
   function announce(copy:string){setMessage(copy);onNotice(copy)}
   function grant(rewards:MiningReward[]){
     const effects:Parameters<typeof applyEffects>[0]=[];
@@ -54,19 +56,19 @@ export default function MiningModal({locationId,randomSpotId,day,period,onClose,
   }
   function hit(tile:MineTile){
     setSelectedId(tile.id);
-    if(tile.state!=="revealed"){setMessage(tile.state==="hidden"?"此处仍被迷雾遮蔽，请先开通相邻土块。":"已经挖通的甬道无需重复开掘。");return;}
-    if(tile.kind==="wall"){setMessage("镇脉黑墙与山根相连，无法挖掘，请寻找绕行路线。 ");return;}
+    if(tile.state!=="revealed"){const copy=tile.state==="hidden"?"此处仍被迷雾遮蔽，请先开通相邻土块。":"已经挖通的甬道无需重复开掘。";setMessage(copy);feedback.toast({titleKey:"system.dynamicMessage",params:{message:copy},icon:"阻",tone:"muted",dedupeKey:`mine-blocked:${tile.id}:${tile.state}`});return;}
+    if(tile.kind==="wall"){const copy="镇脉黑墙与山根相连，无法挖掘，请寻找绕行路线。";setMessage(copy);feedback.toast({titleKey:"system.dynamicMessage",params:{message:copy},icon:"壁",tone:"muted",dedupeKey:`mine-wall:${tile.id}`});return;}
     if(tile.kind==="chest"||tile.kind==="deep-chest"){openChest(tile);return;}
-    const result=strikeMineTile(mining,{location,spotId:randomSpotId,tileId:tile.id});if(!result.ok){setMessage(result.message);return;}
+    const result=strikeMineTile(mining,{location,spotId:randomSpotId,tileId:tile.id});if(!result.ok){setMessage(result.message);feedback.toast({titleKey:"system.dynamicMessage",params:{message:result.message},icon:"镐",tone:"danger",dedupeKey:`mine-fail:${result.message}`});return;}
     setMining(result.progress);setStrikeFx(tile.id);window.setTimeout(()=>setStrikeFx(null),520);setMessage(result.message);
     if(result.reward){setLoot([result.reward]);setLootAt(tile.id);window.setTimeout(()=>setLootAt(null),1800);grant([result.reward]);}
   }
   function openChest(tile:MineTile){
-    const result=openMineChest(mining,{location,spotId:randomSpotId,tileId:tile.id});if(!result.ok){setMessage(result.message);return;}
+    const result=openMineChest(mining,{location,spotId:randomSpotId,tileId:tile.id});if(!result.ok){setMessage(result.message);feedback.toast({titleKey:"system.dynamicMessage",params:{message:result.message},icon:"钥",tone:"cinnabar",dedupeKey:`mine-chest-fail:${tile.id}`});return;}
     setMining(result.progress);setLoot(result.rewards);grant(result.rewards);setChestFx(tile.kind==="deep-chest"?"deep":"normal");setMessage(result.message);onNotice(`${result.message} · 所得已归入行囊`);
-    if(tile.kind==="deep-chest")feedback.publish({variant:"rare-reward",priority:1,tone:"gold",titleKey:"mining.deepChestTitle",bodyKey:"mining.deepChestBody",icon:"秘",dedupeKey:`mining:deep-chest:${maze?.floor ?? 0}:${day}`});
+    feedback.publish({variant:tile.kind==="deep-chest"?"rare-reward":"identification-reveal",priority:tile.kind==="deep-chest"?0:1,tone:"gold",titleKey:tile.kind==="deep-chest"?"mining.deepChestTitle":"mining.chestOpenedTitle",bodyKey:tile.kind==="deep-chest"?"mining.deepChestBody":"mining.chestOpenedBody",params:{items:result.rewards.map(item=>`${item.name} ×${item.amount}`).join(" · ")},icon:tile.kind==="deep-chest"?"秘":"匣",dedupeKey:`mining:chest:${tile.id}`});
   }
-  function mend(){const price=repairPrice(mining);if(mining.pickaxeDurability>=mining.pickaxeMaxDurability){setMessage("玄铁灵镐状态完好。 ");return;}if(state.shared.spiritStones<price){setMessage(`修复灵镐需要 ${price} 灵石。`);return;}setMining(repairPickaxe(mining).progress);applyEffects([{type:"add_currency",amount:-price}]);announce(`玄铁灵镐修复完成 · 灵石 -${price}`);}
+  function mend(){const price=repairPrice(mining);if(mining.pickaxeDurability>=mining.pickaxeMaxDurability){setMessage("玄铁灵镐状态完好。 ");return;}if(state.shared.spiritStones<price){setMessage(`修复灵镐需要 ${price} 灵石。`);return;}setMining(repairPickaxe(mining).progress);applyEffects([{type:"add_currency",amount:-price}]);feedback.publish({variant:"progression-milestone",priority:2,titleKey:"mining.repairTitle",bodyKey:"mining.repairBody",params:{value:mining.pickaxeMaxDurability,cost:price},icon:"修",dedupeKey:`mine-repair:${day}:${mining.pickaxeDurability}`});announce(`玄铁灵镐修复完成 · 灵石 -${price}`);}
   function improve(){if(mining.pickaxeLevel>=3){setMessage("玄铁灵镐已经淬炼至最高阶。 ");return;}const cost=pickaxeUpgradeCost(mining.pickaxeLevel),source=miningMaterialByName(cost.materialName),held=state.shared.items[source.id]?.amount??0;if(state.shared.spiritStones<cost.stones||held<cost.materialAmount){setMessage(`淬炼需要灵石 ${cost.stones} 与${cost.materialName} ×${cost.materialAmount}`);return;}const result=upgradePickaxe(mining);if(!result.ok)return;setMining(result.progress);applyEffects([{type:"add_currency",amount:-cost.stones},{type:"remove_item",itemId:source.id,amount:cost.materialAmount}]);announce(result.message);}
   function descend(){const result=descendResidentMine(mining);if(!result.ok){setMessage(result.message);return;}setMining(result.progress);setSelectedId(result.progress.residentMaze.tiles.find(tile=>tile.state==="revealed")?.id??"");setChestFx(null);setLoot([]);setLootAt(null);announce(result.message);}
   function assemble(){const result=assembleTreasureMap(mining);if(!result.ok){setMessage(result.message);return;}setMining(result.progress);applyEffects([{type:"remove_item",itemId:"treasure-map-fragment",amount:3},{type:"add_item",item:{itemId:"complete-treasure-map",itemType:"quest",rarity:6,amount:1,sourceTags:["挖矿","太虚藏宝图"]}},{type:"reveal_dungeon",dungeonId:"treasure-map-vault"}]);announce(result.message);}

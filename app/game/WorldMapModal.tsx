@@ -8,6 +8,7 @@ import { useUnifiedGame } from "./core/UnifiedGameProvider";
 import { ITEM_TABLE, MATERIALS } from "./alchemy/item-data";
 import { fishingLocationById, type FishingLocationId } from "./fishing/fishing";
 import { miningLocationById, type MiningLocationId } from "./mining/mining";
+import { useFeedback } from "./feedback/FeedbackProvider";
 
 type Props = {
   sceneId: SceneId;
@@ -29,6 +30,7 @@ type Props = {
 
 export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, period, day, inspectionHints, inspectionDays, onClose, onEnterScene, onTriggerMapEvent, onInspectScene, onEnterDungeon, onEnterAlchemy, onEnterFishing, onEnterMining }: Props) {
   const { state } = useUnifiedGame();
+  const feedback=useFeedback();
   const [currentMapId, setCurrentMapId] = useState<WorldMapId>("yunzhou");
   const [notice, setNotice] = useState("");
   const [inspectionMode,setInspectionMode]=useState(false);
@@ -76,7 +78,7 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
         const hasSceneEvent = Boolean(location.sceneId && sceneEventHints.has(location.sceneId));
         const hasInspectionHint=Boolean(location.sceneId&&inspectionHints.has(location.sceneId));
         const inspected=Boolean(location.sceneId&&inspectionDays[location.sceneId]===day);
-        return <button type="button" key={location.id} className={`map-location ${location.unlocked ? "unlocked" : "locked"} ${location.targetMapId ? "map-gate" : ""} ${active ? "current" : ""} ${inspectionMode?"inspection-mode":""} ${inspected?"inspected":""}`} style={{ left: `${location.x}%`, top: `${location.y}%` }} onClick={() => choose(location)}>
+        return <button type="button" key={location.id} className={`map-location ${location.unlocked ? "unlocked" : "locked"} ${location.targetMapId ? "map-gate" : ""} ${active ? "current" : ""} ${inspectionMode?"inspection-mode":""} ${inspected?"inspected":""}`} style={{ left: `${location.x}%`, top: `${location.y}%` }} onClick={(event) => active&&!inspectionMode?feedback.popover({titleKey:"world.sceneTitle",bodyKey:"world.sceneBody",params:{name:location.name},icon:location.icon,anchor:{x:event.clientX,y:event.clientY},details:[{labelKey:"world.locationLabel",value:location.name,emphasis:true},{labelKey:"system.status",value:"当前所在"},{labelKey:"system.effect",value:location.subtitle}],dedupeKey:`map-scene:${location.id}:${day}`}):choose(location)}>
           <span className="map-location-pulse"><b>{location.unlocked ? location.icon : "锁"}</b></span>
           {hasSceneEvent && <span className="map-scene-event-signal" title="此处有可触发事件" aria-label="此处有可触发事件">?</span>}
           {hasInspectionHint&&<span className="map-inspection-signal" title="此处有可提示的检视事件" aria-label="此处有检视线索">眼</span>}
@@ -87,7 +89,7 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
         <span className="system-location-art"><img src="/assets/xuanhuo-furnace.webp" alt="" /></span>
         <em><strong>玄火丹炉</strong><small>炼丹 · 委托 · 太虚显化</small></em><b>炉</b>
       </button>}
-      {!inspectionMode && currentMapId === "yunzhou" && <button type="button" className="map-system-location mining-location" style={{ left: "84%", top: "60%" }} onClick={() => onEnterMining?.("yunzhou-mine")}>
+      {!inspectionMode && currentMapId === "yunzhou" && <button type="button" className="map-system-location mining-location" style={{ left: "84%", top: "60%" }} onClick={(event) => feedback.popover({titleKey:"mining.pointTitle",bodyKey:"world.changeBody",params:{message:"常驻矿洞可逐层下探，岩层、墙壁与宝箱构成连通迷宫。"},icon:"矿",anchor:{x:event.clientX,y:event.clientY},details:[{labelKey:"fishing.kindLabel",value:"常驻地宫"},{labelKey:"mining.depthLabel",value:state.mining.residentFloor},{labelKey:"mining.pickaxeLabel",value:`${state.mining.pickaxeDurability}/${state.mining.pickaxeMaxDurability}`}],actions:[{labelKey:"world.enterAction",tone:"primary",onSelect:()=>onEnterMining?.("yunzhou-mine")}],dedupeKey:`map-mine-resident:${day}`})}>
         <span className="system-location-art mining-location-art"><img src="/assets/item-atlases/atlas-ores.webp" alt="" /></span><em><strong>玄铁常明矿窟</strong><small>常驻地宫 · 逐层开掘秘藏</small></em><b>矿</b>
       </button>}
       {!inspectionMode && mapDungeons.filter(dungeonIsVisible).map((dungeon) => {
@@ -97,13 +99,13 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
           <em><strong>{dungeon.name}</strong><small>{locked ? "前置秘境未镇压" : dungeon.kind === "random" ? "异闻秘境 · 本轮显现" : `常驻秘境 · 战力 ${dungeon.recommendedPower}`}</small></em>
         </button>;
       })}
-      {!inspectionMode && state.fishing.randomSpots.filter((spot) => spot.mapId === currentMapId && spot.spawnDay === day).map((spot, index) => { const location = fishingLocationById(spot.locationId); return <button type="button" key={spot.id} className="map-fishing-light" style={{ left: `${spot.x}%`, top: `${spot.y}%`, "--fish-delay": `${index * .24}s` } as React.CSSProperties} onClick={() => onEnterFishing?.(spot.locationId, spot.id)} aria-label={`前往随机钓点：${location?.name ?? "游光灵泉"}`}>
+      {!inspectionMode && state.fishing.randomSpots.filter((spot) => spot.mapId === currentMapId && spot.spawnDay === day).map((spot, index) => { const location = fishingLocationById(spot.locationId); return <button type="button" key={spot.id} className="map-fishing-light" style={{ left: `${spot.x}%`, top: `${spot.y}%`, "--fish-delay": `${index * .24}s` } as React.CSSProperties} onClick={(event) => feedback.popover({titleKey:"fishing.pointTitle",bodyKey:"world.changeBody",params:{message:location?.subtitle??"游光灵泉"},icon:"渔",anchor:{x:event.clientX,y:event.clientY},details:[{labelKey:"fishing.kindLabel",value:"随机钓点"},{labelKey:"fishing.poolLabel",value:location?.pool.length??0},{labelKey:"calendar.dateLabel",value:`第 ${day} 日 · 收杆后消失`}],actions:[{labelKey:"world.enterAction",tone:"primary",onSelect:()=>onEnterFishing?.(spot.locationId,spot.id)}],dedupeKey:`map-fishing:${spot.id}`})} aria-label={`前往随机钓点：${location?.name ?? "游光灵泉"}`}>
         <span className="map-fishing-flare"><b>渔</b><i /></span><em><strong>{location?.name ?? "游光灵泉"}</strong><small>随机钓点 · 收杆后消失</small></em>
       </button>; })}
-      {!inspectionMode && state.mining.randomSpots.filter((spot) => spot.mapId === currentMapId && spot.spawnDay === day).map((spot, index) => { const location = miningLocationById(spot.locationId); return <button type="button" key={spot.id} className="map-mining-light" style={{ left: `${spot.x}%`, top: `${spot.y}%`, "--mine-delay": `${index * .2}s` } as React.CSSProperties} onClick={() => onEnterMining?.(spot.locationId, spot.id)} aria-label={`勘探随机矿脉：${location?.name ?? "游光矿脉"}`}>
+      {!inspectionMode && state.mining.randomSpots.filter((spot) => spot.mapId === currentMapId && spot.spawnDay === day).map((spot, index) => { const location = miningLocationById(spot.locationId); return <button type="button" key={spot.id} className="map-mining-light" style={{ left: `${spot.x}%`, top: `${spot.y}%`, "--mine-delay": `${index * .2}s` } as React.CSSProperties} onClick={(event) => feedback.popover({titleKey:"mining.pointTitle",bodyKey:"world.changeBody",params:{message:location?.subtitle??"游光地宫"},icon:"矿",anchor:{x:event.clientX,y:event.clientY},details:[{labelKey:"fishing.kindLabel",value:"随机地宫"},{labelKey:"mining.depthLabel",value:spot.maze.floor},{labelKey:"mining.reachableLabel",value:`未探 ${spot.durability}/${spot.maxDurability}`}],actions:[{labelKey:"world.enterAction",tone:"primary",onSelect:()=>onEnterMining?.(spot.locationId,spot.id)}],dedupeKey:`map-mining:${spot.id}`})} aria-label={`勘探随机矿脉：${location?.name ?? "游光矿脉"}`}>
         <span className="map-mining-flare"><b>矿</b><i /></span><em><strong>{location?.name ?? "游光地宫"}</strong><small>随机地宫 · 未探 {spot.durability}/{spot.maxDurability}</small></em>
       </button>; })}
-      {!inspectionMode && visibleMapEvents.map((event, index) => <button type="button" key={event.id} className="map-event-cursor" style={{ left: `${event.mapEvent!.x}%`, top: `${event.mapEvent!.y}%`, "--event-delay": `${index * .18}s` } as React.CSSProperties} onClick={() => { onClose(); onTriggerMapEvent(event.id); }} aria-label={`触发地图事件：${event.title}`}>
+      {!inspectionMode && visibleMapEvents.map((event, index) => <button type="button" key={event.id} className="map-event-cursor" style={{ left: `${event.mapEvent!.x}%`, top: `${event.mapEvent!.y}%`, "--event-delay": `${index * .18}s` } as React.CSSProperties} onClick={(pointer) => feedback.popover({titleKey:"world.mapEventTitle",bodyKey:"world.changeBody",params:{message:event.subtitle},icon:"异",anchor:{x:pointer.clientX,y:pointer.clientY},details:[{labelKey:"items.nameLabel",value:event.title,emphasis:true},{labelKey:"world.locationLabel",value:event.sceneId},{labelKey:"calendar.ruleLabel",value:"完成前持续驻留"}],actions:[{labelKey:"world.enterAction",tone:"primary",onSelect:()=>{onClose();onTriggerMapEvent(event.id)}}],dedupeKey:`map-event:${event.id}`})} aria-label={`触发地图事件：${event.title}`}>
         <span className="map-event-flare"><b>!</b><i /></span><em><strong>{event.title}</strong><small>待解异闻 · 完成前持续驻留</small></em>
       </button>)}
       <div className="map-compass"><i>北</i><span>✦</span><i>南</i></div>

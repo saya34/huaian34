@@ -15,4 +15,13 @@
   ,"relationship.stageKnown": "相知"
   ,"relationship.stageFond": "心悦"
   ,"relationship.stageDevoted": "同心"
+  ,"relationship.messageTitle": "飞笺传音"
+  ,"relationship.messageBody": "有新的传音抵达，可在传音匣中查看人物消息。"
+  ,"relationship.storyTitle": "因缘已动"
+  ,"relationship.storyBody": "新的事件「{name}」已经开始，你的选择会影响后续关系与世界状态。"
+  ,"relationship.appointmentLabel": "预约与补救"
+  ,"relationship.appointmentValue": "错过当日时段可在下一次在场时重新触发，不会永久失去"
+  ,"relationship.worldImpactLabel": "世界事件影响"
+  ,"relationship.clinicRestored": "药材断供已解决，柳知意恢复白日坐诊"
+  ,"relationship.worldStable": "当前没有改变此人物日程的危机事件"
 }

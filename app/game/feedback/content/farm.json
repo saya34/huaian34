@@ -23,5 +23,9 @@
   "farm.harvestFloat": "收获 {name} ×{amount}",
   "farm.mutationTitle": "灵植异变",
   "farm.mutationBody": "{name}显露异色灵辉，收获可能出现珍稀变化。",
-  "farm.firstCodex": "新作物已经收入灵植图鉴。"
+  "farm.firstCodex": "灵植初录",
+  "farm.firstCodexBody": "「{name}」首次收获，已经收入灵植图鉴。",
+  "farm.fertilizeFloat": "{name}融入灵壤",
+  "farm.lockedHint": "灵圃升至 {level} 阶后解锁此畦。",
+  "farm.unsupportedHint": "灵泉升至 {level} 阶后才能润养此畦。"
 }

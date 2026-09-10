@@ -60,3 +60,5 @@ export function createForumGateway():ForumGateway {
   const apiBase=process.env.NEXT_PUBLIC_FORUM_API_BASE?.trim();
   return apiBase ? new HttpForumGateway(apiBase.replace(/\/$/,"")) : new LocalForumGateway();
 }
+
+export function createLocalForumGateway():ForumGateway { return new LocalForumGateway(); }

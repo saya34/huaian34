@@ -17,6 +17,12 @@ const CENTER_VARIANTS = new Set([
 ]);
 const FEEDBACK_HISTORY_KEY = "huaian-feedback-history-v1";
 
+function compactCenterQueue(items: FeedbackItem[]) {
+  if (items.length <= 5) return items;
+  const kept=items.slice(0,4),rest=items.slice(4),last=rest.at(-1)!;
+  return [...kept,{...last,id:`${last.id}-summary`,variant:"project-milestone" as const,priority:2,titleKey:"world.phaseSummaryTitle",bodyKey:"world.phaseSummaryBody",params:{count:rest.length},icon:"录",count:1,dedupeKey:`phase-summary:${last.createdAt}`}];
+}
+
 function defaultTone(input: FeedbackInput): FeedbackTone {
   if (input.tone) return input.tone;
   if (input.variant === "rare-reward" || input.variant === "identification-reveal") return "gold";
@@ -28,12 +34,14 @@ function defaultTone(input: FeedbackInput): FeedbackTone {
 export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   const idRef = useRef(0);
   const dedupeRef = useRef(new Map<string, number>());
+  const combatBusyRef = useRef(false);
   const resolveConfirmRef = useRef<((answer: boolean) => void) | null>(null);
   const [center, setCenter] = useState<FeedbackItem | null>(null);
   const [queue, setQueue] = useState<FeedbackItem[]>([]);
   const [toasts, setToasts] = useState<FeedbackItem[]>([]);
   const [floats, setFloats] = useState<FeedbackItem[]>([]);
   const [sheet, setSheet] = useState<FeedbackItem | null>(null);
+  const [popoverItem, setPopoverItem] = useState<FeedbackItem | null>(null);
   const [decision, setDecision] = useState<FeedbackItem | null>(null);
   const [history, setHistory] = useState<FeedbackHistoryItem[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -83,9 +91,13 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
     };
     archive(item);
     if (CENTER_VARIANTS.has(item.variant)) {
+      if (combatBusyRef.current && item.scope !== "combat" && (item.priority ?? 2) > 0) {
+        setQueue((queued) => compactCenterQueue([...queued, item].sort((a, b) => (a.priority ?? 2) - (b.priority ?? 2) || a.createdAt - b.createdAt)));
+        return item.id;
+      }
       setCenter((current) => {
         if (!current) return item;
-        setQueue((queued) => [...queued, item].sort((a, b) => (a.priority ?? 2) - (b.priority ?? 2) || a.createdAt - b.createdAt));
+        setQueue((queued) => compactCenterQueue([...queued, item].sort((a, b) => (a.priority ?? 2) - (b.priority ?? 2) || a.createdAt - b.createdAt)));
         return current;
       });
     } else if (item.variant === "action-toast") {
@@ -94,6 +106,8 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
       setFloats((current) => [...current.slice(-5), item]);
     } else if (item.variant === "decision-dialog") {
       setDecision(item);
+    } else if (item.variant === "info-popover") {
+      setPopoverItem(item);
     } else {
       setSheet(item);
     }
@@ -108,11 +122,12 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
     setToasts((current) => id ? current.filter((item) => item.id !== id) : []);
     setFloats((current) => id ? current.filter((item) => item.id !== id) : []);
     setSheet((current) => !id || current?.id === id ? null : current);
+    setPopoverItem((current) => !id || current?.id === id ? null : current);
     setDecision((current) => !id || current?.id === id ? null : current);
   }, []);
 
   useEffect(() => {
-    if (center || queue.length === 0) return;
+    if (center || queue.length === 0 || combatBusyRef.current) return;
     const [next, ...rest] = queue;
     setCenter(next);
     setQueue(rest);
@@ -140,6 +155,7 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   const toast = useCallback<FeedbackApi["toast"]>((input) => publish({ ...input, variant: "action-toast" }), [publish]);
   const float = useCallback<FeedbackApi["float"]>((input) => publish({ ...input, variant: "floating-text" }), [publish]);
   const inspect = useCallback<FeedbackApi["inspect"]>((input) => publish({ ...input, variant: "inspector-sheet" }), [publish]);
+  const popover = useCallback<FeedbackApi["popover"]>((input) => publish({ ...input, variant: "info-popover" }), [publish]);
   const compare = useCallback<FeedbackApi["compare"]>((input) => publish({ ...input, variant: "equipment-compare" }), [publish]);
   const confirm = useCallback<FeedbackApi["confirm"]>((input) => new Promise<boolean>((resolve) => {
     resolveConfirmRef.current?.(false);
@@ -154,11 +170,15 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
     });
   }), [publish]);
 
-  const api = useMemo<FeedbackApi>(() => ({ publish, toast, float, inspect, compare, confirm, dismiss, openHistory: () => setHistoryOpen(true) }), [compare, confirm, dismiss, float, inspect, publish, toast]);
+  const setCombatBusy = useCallback((busy: boolean) => {
+    combatBusyRef.current = busy;
+    if (!busy) setQueue((current) => [...current]);
+  }, []);
+  const api = useMemo<FeedbackApi>(() => ({ publish, toast, float, inspect, popover, compare, confirm, dismiss, openHistory: () => setHistoryOpen(true), setCombatBusy }), [compare, confirm, dismiss, float, inspect, popover, publish, setCombatBusy, toast]);
 
   return <FeedbackContext.Provider value={api}>
     {children}
-    <FeedbackViewport center={center} toasts={toasts} floats={floats} sheet={sheet} decision={decision} history={history} historyOpen={historyOpen} onCloseHistory={() => setHistoryOpen(false)} onDismiss={dismiss} />
+    <FeedbackViewport center={center} toasts={toasts} floats={floats} sheet={sheet} popoverItem={popoverItem} decision={decision} history={history} historyOpen={historyOpen} onCloseHistory={() => setHistoryOpen(false)} onDismiss={dismiss} />
   </FeedbackContext.Provider>;
 }
 
