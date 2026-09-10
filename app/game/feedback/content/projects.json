@@ -1,0 +1,20 @@
+{
+  "projects.title": "道途推进",
+  "projects.icon": "途",
+  "projects.medicineName": "坊市药材断供",
+  "projects.routeProduction": "生产替代药",
+  "projects.routeRelationship": "取得药师协作",
+  "projects.routeBattle": "秘境夺取灵材",
+  "projects.accepted": "已接下「{name}」，现在可以选择一条主解法。",
+  "projects.route": "主解法已定为「{route}」。其他系统仍可提供助力。",
+  "projects.ready": "「{name}」的交付准备已经完成。",
+  "projects.completedTitle": "道途有成",
+  "projects.completedBody": "「{name}」已经完成，你的选择正使世界产生可见变化。",
+  "projects.statusLabel": "项目状态",
+  "projects.deadlineLabel": "危机窗口",
+  "projects.milestoneLabel": "可见里程碑",
+  "projects.routeLabel": "当前主解法",
+  "projects.resultLabel": "完成后的变化",
+  "projects.deliveryTitle": "确认交付成果",
+  "projects.deliveryBody": "交付会消耗准备好的物资，并永久记录本次世界结果。"
+}

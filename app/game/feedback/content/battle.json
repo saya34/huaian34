@@ -1,0 +1,17 @@
+{
+  "battle.dungeonTitle": "秘境情报",
+  "battle.powerLabel": "建议战力",
+  "battle.enemyLabel": "主要妖物",
+  "battle.dropLabel": "可能收获",
+  "battle.extractionLabel": "撤离规则",
+  "battle.skillLabel": "术法",
+  "battle.cooldownLabel": "调息",
+  "battle.buffLabel": "增益状态",
+  "battle.debuffLabel": "异常状态",
+  "battle.bossTitle": "强敌降临",
+  "battle.bossBody": "{name}踏入战局，留意其招式前摇与危险范围。",
+  "battle.victoryTitle": "秘境肃清",
+  "battle.victoryBody": "本次带出的战利品已经归入主界面行囊。",
+  "battle.extractTitle": "携宝归来",
+  "battle.extractBody": "你选择及时撤离，已保住本次收获。"
+}

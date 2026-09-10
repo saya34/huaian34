@@ -1,0 +1,13 @@
+{
+  "calendar.dayTitle": "新的一日",
+  "calendar.dayIcon": "晨",
+  "calendar.dayBody": "第 {day} 日 · {period}，今日行程由你安排。",
+  "calendar.dateLabel": "日期",
+  "calendar.periodLabel": "时辰",
+  "calendar.ruleLabel": "时间规则",
+  "calendar.ruleValue": "主要行动消耗一个阶段；查看、整理与同区域移动不耗时。",
+  "calendar.festivalTitle": "佳节将至",
+  "calendar.festivalBody": "今日为「{name}」，城中人物与活动已有变化。",
+  "calendar.deadlineTitle": "危机迫近",
+  "calendar.deadlineBody": "「{name}」只剩 {remaining} 个游戏日的危机窗口。"
+}

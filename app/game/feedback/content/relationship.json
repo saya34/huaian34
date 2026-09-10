@@ -1,0 +1,18 @@
+{
+  "relationship.stageTitle": "缘分新章",
+  "relationship.icon": "缘",
+  "relationship.stageBody": "你与{name}的关系进入「{stage}」。{description}",
+  "relationship.gain": "{name}缘分 +{amount}",
+  "relationship.nameLabel": "人物",
+  "relationship.roleLabel": "身份",
+  "relationship.stageLabel": "关系阶段",
+  "relationship.valueLabel": "当前缘分",
+  "relationship.addressLabel": "对你的称呼",
+  "relationship.scheduleLabel": "当前日程",
+  "relationship.preferenceLabel": "已知喜好",
+  "relationship.profileTitle": "人物小传"
+  ,"relationship.stageFirst": "初识"
+  ,"relationship.stageKnown": "相知"
+  ,"relationship.stageFond": "心悦"
+  ,"relationship.stageDevoted": "同心"
+}

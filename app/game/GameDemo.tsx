@@ -47,6 +47,9 @@ import { ensureRandomMiningSpots, type MiningLocationId } from "./mining/mining"
 import IntelligenceBureauScene from "./forum/IntelligenceBureauScene";
 import ForumModal from "./forum/ForumModal";
 import PathProjectPanel, { PathProjectTracker } from "./projects/PathProjectPanel";
+import { Inspectable } from "./feedback/Inspectable";
+import { useFeedback } from "./feedback/FeedbackProvider";
+import { feedbackText } from "./feedback/texts";
 
 const PERIODS: Period[] = ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"];
 
@@ -83,6 +86,7 @@ type InspectionReveal = { scene: SceneDefinition; event: EventDefinition | null 
 
 export default function GameDemo() {
   const { state: unifiedState, setRomance: setGame, setFishing, setMining, applyEffects: applyUnifiedEffects, hydrated, resetGame } = useUnifiedGame();
+  const feedback = useFeedback();
   const game = unifiedState.romance;
   const [eventDefinitions, setEventDefinitions] = useState<EventDefinition[]>(EVENTS);
   const [definitionsReady, setDefinitionsReady] = useState(false);
@@ -663,7 +667,14 @@ export default function GameDemo() {
           <div className="seal">槐</div>
           <div><p className="eyebrow">山河入梦 · 与卿同游</p><h1>槐安一梦</h1></div>
         </div>
-        <div className="world-state" aria-label="当前时间"><span>第 {game.day} 日</span><i /><span>{calendarDate.eraYear} · {calendarDate.monthName}{calendarDate.dayName}</span><i /><span>{calendarDate.weekdayName} · {game.period}</span><i /><span className="stamina-balance">体力 {game.stamina}/10</span><i/><span className="spirit-stone-balance">灵石 {game.spiritStones}</span><i/><span className="proficiency-balance">酒艺 {drinkingProficiency.level}阶·{drinkingProficiency.name}</span></div>
+        <div className="world-state" aria-label="当前时间">
+          <Inspectable feedback={{ titleKey:"calendar.dayTitle", bodyKey:"calendar.dayBody", params:{day:game.day,period:game.period}, icon:"历", details:[{labelKey:"calendar.dateLabel",value:`${calendarDate.eraYear} · ${calendarDate.monthName}${calendarDate.dayName} · ${calendarDate.weekdayName}`},{labelKey:"calendar.periodLabel",value:game.period,emphasis:true},{labelKey:"calendar.ruleLabel",value:feedbackText("calendar.ruleValue")}] }}>第 {game.day} 日</Inspectable><i />
+          <Inspectable feedback={{ titleKey:"calendar.dayTitle", bodyKey:"calendar.dayBody", params:{day:game.day,period:game.period}, icon:"时", details:[{labelKey:"calendar.dateLabel",value:`${calendarDate.eraYear} · ${calendarDate.monthName}${calendarDate.dayName}`},{labelKey:"calendar.periodLabel",value:`${calendarDate.weekdayName} · ${game.period}`,emphasis:true}] }}>{calendarDate.eraYear} · {calendarDate.monthName}{calendarDate.dayName}</Inspectable><i />
+          <Inspectable feedback={{ titleKey:"calendar.dayTitle", bodyKey:"calendar.dayBody", params:{day:game.day,period:game.period}, icon:"辰", details:[{labelKey:"calendar.periodLabel",value:`${calendarDate.weekdayName} · ${game.period}`,emphasis:true},{labelKey:"calendar.ruleLabel",value:feedbackText("calendar.ruleValue")}] }}>{calendarDate.weekdayName} · {game.period}</Inspectable><i />
+          <Inspectable className="stamina-balance" feedback={{ titleKey:"player.staminaLabel", bodyKey:"player.staminaBody", icon:"息", details:[{labelKey:"player.staminaLabel",value:`${game.stamina}/10`,emphasis:true},{labelKey:"calendar.periodLabel",value:game.period}] }}>体力 {game.stamina}/10</Inspectable><i/>
+          <Inspectable className="spirit-stone-balance" feedback={{ titleKey:"player.currencyLabel", bodyKey:"player.currencyBody", icon:"石", details:[{labelKey:"player.currencyLabel",value:game.spiritStones,emphasis:true}] }}>灵石 {game.spiritStones}</Inspectable><i/>
+          <Inspectable className="proficiency-balance" feedback={{ titleKey:"player.proficiencyLabel", bodyKey:"player.proficiencyBody", icon:"酌", details:[{labelKey:"player.proficiencyLabel",value:`${drinkingProficiency.level}阶 · ${drinkingProficiency.name}`,emphasis:true}] }}>酒艺 {drinkingProficiency.level}阶·{drinkingProficiency.name}</Inspectable>
+        </div>
         <nav className="top-actions" aria-label="功能菜单">
           <button type="button" onClick={() => setPanel("characters")}>人物谱</button>
           <a className="em-entry" href="/em">EM 管理台</a>
@@ -672,6 +683,7 @@ export default function GameDemo() {
           <button type="button" onClick={() => setGalleryOpen(true)}>展馆 <b>{unlockedAudioEvents.length}/{audioEvents.length}</b></button>
           <button type="button" onClick={()=>setCollectionOpen(true)}>藏珍 <b>{game.collectedEasterEggs.length}/{easterEggEvents.length}</b></button>
           <button type="button" onClick={()=>setGiftOpen(true)}>行囊</button>
+          <button type="button" onClick={feedback.openHistory}>讯息录</button>
           <button type="button" className="path-project-entry" onClick={()=>setProjectOpen(true)}>道途 <b>{game.medicineShortage.status==="completed"?"成":"!"}</b></button>
           <div className="time-control"><button type="button" className="time-button" onClick={()=>setTimeMenuOpen(value=>!value)}>安排时辰</button>{timeMenuOpen&&<div className="time-action-menu"><button onClick={()=>advanceTime("wait")}><i>候</i><span><b>等待</b><small>推进一个阶段 · 不恢复体力</small></span></button><button onClick={()=>advanceTime("rest")}><i>憩</i><span><b>短休</b><small>推进一个阶段 · 今日第 {(game.shortRestDay===game.day?game.shortRestCount:0)+1} 次</small></span></button><button onClick={()=>advanceTime("sleep")}><i>眠</i><span><b>结束今日</b><small>进入次日清晨 · 恢复全部体力</small></span></button></div>}</div>
         </nav>
@@ -712,7 +724,7 @@ export default function GameDemo() {
           <img className="main-portrait" src={character.image} alt={`${character.name}人物立绘`} />
         </div>}
         {isSpecialEvent && <div className="special-portrait-wrap" key={`${game.activeEvent?.eventId}-${game.activeEvent?.nodeId}`}><div className="special-portrait-aura" /><img src={specialPortrait} alt={`${character.name}特殊事件立绘`} /></div>}
-        {hasPresentCharacter && <div className="character-plaque"><p>{character.role}</p><h3>{character.name}</h3><span>{currentStage.name} · 唤你「{currentStage.addressing}」</span></div>}
+        {hasPresentCharacter && <Inspectable className="character-plaque" aria-label={`查看${character.name}详情`} feedback={{ titleKey:"relationship.profileTitle", icon:"缘", imageSrc:character.image, bodyKey:"relationship.stageBody", params:{name:character.name,stage:currentStage.name,description:currentStage.description}, details:[{labelKey:"relationship.nameLabel",value:character.name,emphasis:true},{labelKey:"relationship.roleLabel",value:character.role},{labelKey:"relationship.stageLabel",value:currentStage.name},{labelKey:"relationship.valueLabel",value:relationship},{labelKey:"relationship.addressLabel",value:`「${currentStage.addressing}」`}] }}><p>{character.role}</p><h3>{character.name}</h3><span>{currentStage.name} · 唤你「{currentStage.addressing}」</span></Inspectable>}
         {!game.activeEvent&&scene.id==="bedroom"&&<div className="bedroom-practice-card"><div className="bedroom-formation"><i/><i/><span>炁</span></div><p>PRIVATE CULTIVATION · 静室</p><h3>聚灵阵已启</h3><span>每次练功消耗 2 点体力，运转一周天需 1 秒。</span><div><b>修为 {game.experience}</b><b>体力 {game.stamina}/10</b></div><button type="button" disabled={game.stamina<2} onClick={()=>setCultivationOpen(true)}>{game.stamina<2?"体力不足":"入阵练功"}</button></div>}
         {!game.activeEvent&&scene.id==="spirit-farm"&&<SpiritFarmScene day={game.day} period={game.period} onNotice={setNotice}/>}
         {!game.activeEvent&&scene.id==="intelligence-bureau"&&<IntelligenceBureauScene day={game.day} period={game.period} onNotice={setNotice} onOpenForum={()=>setForumOpen(true)}/>}

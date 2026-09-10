@@ -1,0 +1,17 @@
+{
+  "fishing.pointTitle": "水域情报",
+  "fishing.kindLabel": "钓点类型",
+  "fishing.kindResident": "常驻鱼场",
+  "fishing.kindRandom": "游光灵泉",
+  "fishing.weatherLabel": "天候",
+  "fishing.periodLabel": "适宜时辰",
+  "fishing.poolLabel": "可能鱼获",
+  "fishing.baitLabel": "鱼饵",
+  "fishing.tensionLabel": "鱼线张力",
+  "fishing.energyLabel": "鱼力",
+  "fishing.rareHint": "水下掠过异色灵光——这条鱼不同寻常。",
+  "fishing.catchTitle": "灵鳞出水",
+  "fishing.catchBody": "钓得{name} ×{amount}。",
+  "fishing.fail": "鱼影挣脱，只在水面留下几圈涟漪。",
+  "fishing.limit": "今日此处的鱼群已受惊，宜改日再来。"
+}

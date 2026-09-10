@@ -1,0 +1,17 @@
+{
+  "shop.productTitle": "货品详情",
+  "shop.stockLabel": "库存",
+  "shop.priceLabel": "买入价",
+  "shop.sellLabel": "回售价",
+  "shop.demandLabel": "坊市需求",
+  "shop.discountLabel": "关系折扣",
+  "shop.unidentifiedLabel": "未鉴定",
+  "shop.identifyCostLabel": "鉴定费用",
+  "shop.refreshTitle": "武库换新",
+  "shop.refreshBody": "新的游戏周已经开始，玄锋号更换了一批兵刃。",
+  "shop.buybackLabel": "可回购物品",
+  "shop.insufficientCurrency": "灵石不足，无法完成本次交易。",
+  "shop.insufficientSpace": "背包没有足够连续空间，交易未完成。",
+  "shop.bulkSellTitle": "确认批量出售",
+  "shop.bulkSellBody": "将出售 {count} 件物品，预计获得 {value} 灵石。"
+}

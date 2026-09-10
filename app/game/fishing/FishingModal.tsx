@@ -26,6 +26,8 @@ import {
   type FishDefinition,
   type FishingLocationId,
 } from "./fishing";
+import { useFeedback } from "../feedback/FeedbackProvider";
+import { feedbackText } from "../feedback/texts";
 
 type Props = {
   locationId: FishingLocationId;
@@ -41,6 +43,7 @@ const RARITY_LABELS = ["凡品", "灵品", "珍品", "玄品", "仙品"];
 
 export default function FishingModal({ locationId, randomSpotId, day, period, onClose, onNotice }: Props) {
   const { state, setFishing, applyEffects } = useUnifiedGame();
+  const feedback = useFeedback();
   const location = fishingLocationById(locationId)!;
   const progress = resetFishingDay(state.fishing, day);
   const periods=["清晨","上午","午后","黄昏","夜晚","深夜"];
@@ -105,11 +108,23 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
       ] as Parameters<typeof applyEffects>[0];
       if (reel.ok && reel.mapFragment) rewards.push({ type: "add_item", item: { itemId: "river-map-fragment", itemType: "quest", rarity: 4, amount: 1, sourceTags: ["钓鱼", "河图残片"] } });
       applyEffects(rewards);
+      feedback.publish({
+        variant: target.rarity >= 4 ? "rare-reward" : "action-toast",
+        priority: target.rarity >= 4 ? 1 : 3,
+        tone: target.rarity >= 4 ? "gold" : "jade",
+        titleKey: target.rarity >= 4 ? "items.rareTitle" : "fishing.catchTitle",
+        bodyKey: target.rarity >= 4 ? "items.rareBody" : "fishing.catchBody",
+        params: { name: target.name, amount: 1 },
+        icon: target.icon,
+        imageSrc: target.art,
+        dedupeKey: `fishing:catch:${target.id}:${progress.totalCaught + 1}`,
+      });
       onNotice(`收杆成功 · 获得${target.name}${reel.ok && reel.mapFragment ? "与河图残片" : ""}，已收入乾坤行囊。`);
       return;
     }
     setPhase("failed");
     setFishing((current) => reelFishing(current, false).progress);
+    feedback.toast({ priority:3, tone:"muted", titleKey:"system.toastInfo", bodyKey:"fishing.fail", icon:"澜", dedupeKey:`fishing:escape:${castRound}` });
     onNotice("灵线失衡，鱼影挣脱了。 ");
   }
 
@@ -152,7 +167,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
   return <div className="fishing-backdrop" role="presentation" onMouseDown={leaveFishing}>
     <section className="fishing-window" role="dialog" aria-modal="true" aria-label={`${location.name}钓鱼`} onMouseDown={(event) => event.stopPropagation()}>
       <header className="fishing-heading">
-        <div><small>SPIRIT ANGLING · {location.kind === "random" ? "游光灵泉" : "常驻鱼场"}</small><h2>{location.name}</h2><p>{location.subtitle} · 第 {day} 日 {period}</p></div>
+        <div className="fishing-location-heading" role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"fishing.pointTitle",bodyKey:"world.changeBody",params:{message:location.subtitle},icon:"钓",details:[{labelKey:"world.locationLabel",value:location.name,emphasis:true},{labelKey:"fishing.kindLabel",value:feedbackText(location.kind === "random" ? "fishing.kindRandom" : "fishing.kindResident")},{labelKey:"fishing.periodLabel",value:period},{labelKey:"fishing.poolLabel",value:pool.map((entry)=>FISH.find((fish)=>fish.id===entry.fishId)?.name).filter(Boolean).join(feedbackText("system.listSeparator"))},{labelKey:"fishing.baitLabel",value:BAITS[baitId].name}],dedupeKey:`fishing:location:${location.id}:${day}:${period}`})} onKeyDown={(event)=>{if(event.key==="Enter"||event.key===" ")event.currentTarget.click()}}><small>SPIRIT ANGLING · {feedbackText(location.kind === "random" ? "fishing.kindRandom" : "fishing.kindResident")}</small><h2>{location.name}</h2><p>{location.subtitle} · 第 {day} 日 {period}</p></div>
         <div className="fishing-attempts"><span>今日抛竿</span><strong>{attemptsLeft}<small> / {DAILY_CAST_LIMIT}</small></strong><em>钓竿 {progress.rods}</em></div>
         <button type="button" onClick={leaveFishing} aria-label="离开钓点">×</button>
       </header>

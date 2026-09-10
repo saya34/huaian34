@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { UnifiedGameProvider } from "./game/core/UnifiedGameProvider";
+import { FeedbackProvider } from "./game/feedback/FeedbackProvider";
+import { UnifiedFeedbackBridge } from "./game/feedback/UnifiedFeedbackBridge";
+import "./game/feedback/feedback.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
@@ -22,5 +25,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="zh-CN"><body><UnifiedGameProvider>{children}</UnifiedGameProvider></body></html>;
+  return <html lang="zh-CN"><body><UnifiedGameProvider><FeedbackProvider><UnifiedFeedbackBridge>{children}</UnifiedFeedbackBridge></FeedbackProvider></UnifiedGameProvider></body></html>;
 }

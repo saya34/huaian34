@@ -1,0 +1,16 @@
+{
+  "player.levelTitle": "修途精进",
+  "player.levelIcon": "破",
+  "player.staminaIcon": "息",
+  "player.levelBody": "人物等级提升至 {level}，新的成长空间已经开启。",
+  "player.levelLabel": "人物等级",
+  "player.expLabel": "当前修为",
+  "player.expBody": "修为用于推进人物等级与部分修行门槛，不会在修行后被清零。",
+  "player.staminaLabel": "体力",
+  "player.staminaBody": "战斗、采矿与耕作会消耗体力；进食可保留时辰，短休会推进一个阶段。",
+  "player.staminaLow": "体力仅余 {value} 点，继续高强度行动前宜进食或休整。",
+  "player.currencyLabel": "灵石",
+  "player.currencyBody": "灵石用于交易、旅行、制造与服务，也是世界工程的重要投入。",
+  "player.proficiencyLabel": "酒艺",
+  "player.proficiencyBody": "酒艺会影响共饮事件的容错、特殊对话与部分关系结果。"
+}

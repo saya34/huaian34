@@ -1,0 +1,14 @@
+{
+  "world.changeTitle": "天地有变",
+  "world.icon": "变",
+  "world.changeBody": "{message}",
+  "world.keyChanged": "世界状态「{name}」已经发生改变。",
+  "world.sceneUnlockedTitle": "山河新境",
+  "world.sceneUnlockedBody": "新的地点「{name}」已可前往。",
+  "world.randomPointTitle": "异象浮现",
+  "world.randomPointBody": "{scene}出现了新的{kind}，异象不会长久停留。",
+  "world.randomPointGone": "{scene}的{kind}已经消散。",
+  "world.weatherLabel": "天象",
+  "world.locationLabel": "所在",
+  "world.stateLabel": "世界状态"
+}

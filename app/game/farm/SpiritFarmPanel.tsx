@@ -28,11 +28,14 @@ import {
 } from "./farm";
 import LivestockPanel from "./LivestockPanel";
 import { SPIRIT_BEASTS } from "./livestock";
+import { useFeedback } from "../feedback/FeedbackProvider";
+import { feedbackText } from "../feedback/texts";
 
 type Props = { day: number; period: Period; onNotice: (message: string) => void; initialView?: "field" | "livestock"; onClose?: () => void };
 
 export default function SpiritFarmPanel({ day, period, onNotice, initialView = "field", onClose }: Props) {
   const { state, setFarm, applyEffects } = useUnifiedGame();
+  const feedback = useFeedback();
   const [selectedCropId, setSelectedCropId] = useState<HerbCropId>("frost-heart");
   const [message, setMessage] = useState("选中灵种后直接点击空田播种；成熟后再次点击即可收获。仙草只随游戏内时辰成长。");
   const [plotFx, setPlotFx] = useState<{ id: string; kind: "plant" | "harvest" | "fertilize" } | null>(null);
@@ -72,7 +75,9 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
   function plant(plotId: string) {
     const result = plantPlot(farm, plotId, selectedCropId, tick);
     if (!result.ok) { setMessage(result.message); return; }
-    setFarm(result.farm); pulsePlot(plotId, "plant"); floatPlot(plotId, `播种 · ${selectedCrop.materialName}`, "green"); announce(`${result.message} · ${selectedCrop.growTicks} 时辰内成熟`);
+    setFarm(result.farm); pulsePlot(plotId, "plant"); floatPlot(plotId, `播种 · ${selectedCrop.materialName}`, "green");
+    feedback.float({ titleKey:"farm.sowFloat", params:{name:selectedCrop.materialName}, icon:"芽", tone:"jade", dedupeKey:`farm:sow:${plotId}:${tick}` });
+    announce(`${result.message} · ${selectedCrop.growTicks} 时辰内成熟`);
   }
 
   function fertilize(plotId: string) {
@@ -91,6 +96,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
     const result = harvestPlot(farm, plotId, tick, day);
     if (!result.ok) { setMessage(result.message); return; }
     setFarm(result.farm); pulsePlot(plotId, "harvest"); floatPlot(plotId, result.message, "gold");
+    feedback.float({ titleKey:"farm.harvestFloat", params:{name:cropById(farm.plots.find((entry)=>entry.id===plotId)?.cropId ?? selectedCropId).materialName,amount:result.reward.amount}, icon:"收", tone:"gold", dedupeKey:`farm:harvest:${plotId}:${tick}` });
     applyEffects([{ type: "add_item", item: result.reward }, { type: "add_player_exp", amount: Math.max(1, Math.floor(result.experience / 2)) }]);
     announce(`${result.message} · 灵圃经验 +${result.experience}`);
   }
@@ -102,6 +108,26 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
     if (toolMode === "water") { water(plotId); return; }
     if (toolMode === "fertilize") { fertilize(plotId); return; }
     const growth = plotGrowth(plot, tick, weather);
+    const crop = cropById(plot.cropId);
+    const material = cropMaterial(crop);
+    const stageKey = growth.ready ? "farm.stageReady" : growth.progress >= 65 ? "farm.stageAlmost" : growth.progress >= 25 ? "farm.stageSprout" : "farm.stageSeedling";
+    feedback.inspect({
+      titleKey:"farm.plotTitle",
+      bodyKey:"world.changeBody",
+      params:{message:crop.lore},
+      icon:"圃",
+      imageSrc:material.image,
+      details:[
+        {labelKey:"farm.cropLabel",value:crop.materialName,emphasis:true},
+        {labelKey:"farm.stageLabel",value:feedbackText(stageKey)},
+        {labelKey:"farm.remainingLabel",value:growth.ready?feedbackText("farm.none"):growth.remaining},
+        {labelKey:"farm.waterLabel",value:feedbackText(plot.watered?"farm.yes":"farm.no")},
+        {labelKey:"farm.fertilizerLabel",value:plot.fertilizerId?FERTILIZERS[plot.fertilizerId].name:feedbackText("farm.none")},
+        {labelKey:"farm.weatherLabel",value:weather.name},
+        {labelKey:"farm.yieldLabel",value:`${crop.yieldMin}—${crop.yieldMax}`},
+      ],
+      dedupeKey:`farm:inspect:${plotId}:${tick}`,
+    });
     const copy = `成长 ${Math.round(growth.progress)}% · 尚余 ${growth.remaining} 时辰`;
     setMessage(`这畦正在生长，尚余 ${growth.remaining} 个游戏时辰。`); floatPlot(plotId, copy, "green");
   }

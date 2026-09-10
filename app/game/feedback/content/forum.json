@@ -1,0 +1,12 @@
+{
+  "forum.rankTitle": "榜单易位",
+  "forum.rankBody": "{name}在玩家榜单升至第 {rank} 位。",
+  "forum.announcementLabel": "世界轮播",
+  "forum.playerCardLabel": "人物卡",
+  "forum.officialLabel": "官方讯息",
+  "forum.secretLabel": "游戏秘闻",
+  "forum.networkLabel": "连接状态",
+  "forum.localMode": "当前为本地演示数据，联网接口已经预留。",
+  "forum.postSuccess": "帖子已保存到本地论坛。",
+  "forum.imageLimit": "图片数量或大小超过当前演示限制。"
+}

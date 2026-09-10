@@ -1,0 +1,23 @@
+{
+  "system.close": "关闭",
+  "system.closeGlyph": "×",
+  "system.iconDefault": "槐",
+  "system.iconInspect": "鉴",
+  "system.confirm": "确认",
+  "system.cancel": "暂不",
+  "system.details": "详情",
+  "system.history": "讯息录",
+  "system.historyEyebrow": "MESSAGE ARCHIVE",
+  "system.historyEmpty": "尚无可回溯的讯息。",
+  "system.openHistory": "打开讯息录",
+  "system.toastSuccess": "行动完成",
+  "system.toastWarning": "请留意",
+  "system.toastError": "未能完成",
+  "system.toastInfo": "游历讯息",
+  "system.missingText": "此处文案尚未配置：{key}",
+  "system.inspectHint": "轻触查看详情",
+  "system.yes": "是",
+  "system.no": "否",
+  "system.none": "无",
+  "system.listSeparator": " · "
+}

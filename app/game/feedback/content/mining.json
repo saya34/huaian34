@@ -1,0 +1,18 @@
+{
+  "mining.tileTitle": "岩层辨识",
+  "mining.typeLabel": "土层类型",
+  "mining.hpLabel": "岩层强度",
+  "mining.costLabel": "预计耐久消耗",
+  "mining.depthLabel": "当前深度",
+  "mining.dropLabel": "发现物概率",
+  "mining.reachableLabel": "可否挖掘",
+  "mining.pickaxeLabel": "矿镐耐久",
+  "mining.keyLabel": "所需钥匙",
+  "mining.chestTitle": "岩中藏匣",
+  "mining.deepChestTitle": "地脉秘藏",
+  "mining.deepChestBody": "抵达矿脉最深处，无需钥匙即可开启这只古老宝匣。",
+  "mining.depthTitle": "矿脉深入",
+  "mining.depthBody": "你已抵达第 {depth} 层，更珍稀的矿物正在地脉深处闪烁。",
+  "mining.dropFloat": "发现 {name} ×{amount}",
+  "mining.mapFragment": "藏宝图残片散发出彼此呼应的微光。"
+}

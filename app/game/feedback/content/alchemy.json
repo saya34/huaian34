@@ -1,0 +1,17 @@
+{
+  "alchemy.materialTitle": "灵材详解",
+  "alchemy.sourceLabel": "来源类别",
+  "alchemy.functionLabel": "功能标签",
+  "alchemy.recipeLabel": "可用配方",
+  "alchemy.stabilityLabel": "炉内稳定",
+  "alchemy.substituteLabel": "替代方案",
+  "alchemy.brewing": "丹火已起，炉内药性正在交融。",
+  "alchemy.fail": "药性相冲，本炉未能成丹。",
+  "alchemy.mutationTitle": "丹象异变",
+  "alchemy.mutationBody": "炉中出现罕见丹象，成品可能获得特殊变化。",
+  "alchemy.recipeDiscovered": "领悟新丹方「{name}」。",
+  "alchemy.rareTitle": "丹成上品",
+  "alchemy.rareBody": "「{name}」丹纹天成，灵韵远胜寻常。",
+  "alchemy.commissionLabel": "劳动条件",
+  "alchemy.referencePrice": "接取参考价"
+}
