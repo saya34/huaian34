@@ -47,9 +47,9 @@ import { ensureRandomMiningSpots, type MiningLocationId } from "./mining/mining"
 import IntelligenceBureauScene from "./forum/IntelligenceBureauScene";
 import ForumModal from "./forum/ForumModal";
 import PathProjectPanel from "./projects/PathProjectPanel";
-import QuestPanel, { CurrentQuestCard, QuestStateSynchronizer } from "./quests/QuestSystem";
+import QuestPanel, { CurrentQuestCard, QuestOfferDialogue, QuestStateSynchronizer } from "./quests/QuestSystem";
 import { QUESTS, questText } from "./quests/content";
-import { questView } from "./quests/engine";
+import { findQuestOffer, questView } from "./quests/engine";
 import type { QuestDefinition } from "./quests/types";
 import { Inspectable } from "./feedback/Inspectable";
 import { useFeedback } from "./feedback/FeedbackProvider";
@@ -114,6 +114,7 @@ export default function GameDemo() {
   const [forumOpen,setForumOpen]=useState(false);
   const [projectOpen,setProjectOpen]=useState(false);
   const [questOpen,setQuestOpen]=useState(false);
+  const [questOffer,setQuestOffer]=useState<QuestDefinition|null>(null);
   const [timeMenuOpen,setTimeMenuOpen]=useState(false);
   const [activeModule, setActiveModule] = useState<{ kind: "battle"; dungeon: DungeonDefinition } | { kind: "alchemy" } | null>(null);
   const [systemPanel, setSystemPanel] = useState<FusionPanelId | null>(null);
@@ -378,6 +379,7 @@ export default function GameDemo() {
   const activeFortuneSign=getFortuneSign(activeFortune);
   const weatherNow=getFarmWeather(game.day),weatherNext=getFarmWeather(game.day+1),weatherLater=getFarmWeather(game.day+2);
   const claimableQuestCount=QUESTS.filter((quest)=>questView(quest,unifiedState.quests,unifiedState).status==="claimable").length;
+  const availableQuestOffer=findQuestOffer(character.id,unifiedState.quests);
 
   useEffect(()=>{if(activeDefinition?.cardStyle==="audio")setAudioIndex(0)},[activeDefinition?.id, activeDefinition?.cardStyle]);
 
@@ -474,6 +476,12 @@ export default function GameDemo() {
 
   function talk() {
     if (game.activeEvent) return;
+    if (availableQuestOffer) {
+      setInteractionMenuOpen(false);
+      setQuestOffer(availableQuestOffer);
+      setNotice(questText("notice.offered", { name: availableQuestOffer.name, giver: character.name }));
+      return;
+    }
     const context: TriggerContext = { trigger: "talk", sceneId: game.sceneId, characterId: character.id };
     setGame((state) => launch(context, state, "talk"));
   }
@@ -515,7 +523,7 @@ export default function GameDemo() {
     setPanel(null);
     setGiftOpen(false);
     setInteractionMenuOpen(false);setDrinkingOpen(false);
-    setMapOpen(false);setQuestOpen(false);setProjectOpen(false);
+    setMapOpen(false);setQuestOpen(false);setQuestOffer(null);setProjectOpen(false);
     setCalendarOpen(false);
     setCultivationOpen(false);setInspectionReveal(null);
     setActiveActivity(null);
@@ -670,8 +678,17 @@ export default function GameDemo() {
 
   function drawFortuneToday(){const existing=fortuneHistory[realDateKey];if(existing)return existing;const record=drawDailyFortune(realDateKey);setFortuneHistory((history)=>({...history,[realDateKey]:record}));setNotice(`今日签文 · ${getFortuneSign(record)?.rank}「${getFortuneSign(record)?.title}」`);return record}
 
-  function navigateToQuest(definition:QuestDefinition){
+  function navigateToQuest(definition:QuestDefinition,purpose:"objective"|"giver"="objective"){
     setQuestOpen(false);setMapOpen(false);setSystemPanel(null);
+    if(purpose==="giver"&&definition.giver){
+      const giver=definition.giver;
+      setGame((state)=>{
+        if(state.activeEvent)return state;
+        const present=state.presentCharacters[giver.sceneId]??[];
+        return{...state,sceneId:giver.sceneId,selectedCharacterId:giver.characterId,presentCharacters:{...state.presentCharacters,[giver.sceneId]:[giver.characterId,...present.filter((id)=>id!==giver.characterId)]}};
+      });
+      setInteractionMenuOpen(false);setNotice(questText("notice.meeting",{name:definition.name,giver:giver.name}));return;
+    }
     const target=definition.destination;
     if(target.kind==="alchemy"){setActiveModule({kind:"alchemy"});return}
     if(target.kind==="battle"){const dungeon=DUNGEONS.find((item)=>item.waveId===(target.waveId??1))??DUNGEONS[0];setActiveModule({kind:"battle",dungeon});return}
@@ -739,8 +756,8 @@ export default function GameDemo() {
           <p>此间人物</p>
           {!activeCharacters.length && <span className="nobody-present">此时无人</span>}
           {activeCharacters.map((item) => (
-            <button type="button" key={item.id} className={item.id === character.id ? "active" : ""} onClick={(event) => item.id === character.id ? feedback.popover({ titleKey:"relationship.profileTitle", icon:"缘", imageSrc:item.image, anchor:{x:event.clientX,y:event.clientY}, bodyKey:"relationship.stageBody", params:{name:item.name,stage:relationshipStage(item,game.relationships[item.id]??0).name,description:relationshipStage(item,game.relationships[item.id]??0).description}, details:[{labelKey:"relationship.roleLabel",value:item.role},{labelKey:"relationship.scheduleLabel",value:`${scene.name} · ${game.period}`},{labelKey:"relationship.preferenceLabel",value:(game.discoveredGiftPreferences[item.id]??[]).map((id)=>giftMap[id]?.name??id).join(" · ")||feedbackText("system.none")},{labelKey:"relationship.appointmentLabel",value:feedbackText("relationship.appointmentValue")},{labelKey:"relationship.worldImpactLabel",value:item.id==="liu"&&game.flags.medicine_supply_restored?feedbackText("relationship.clinicRestored"):feedbackText("relationship.worldStable")}] }) : selectCharacter(item.id)} aria-label={`选择${item.name}`}>
-              <img src={item.image} alt="" /><span>{item.name.slice(0, 1)}</span>
+            <button type="button" key={item.id} className={`${item.id === character.id ? "active" : ""} ${findQuestOffer(item.id,unifiedState.quests)?"has-quest-offer":""}`} onClick={(event) => item.id === character.id ? feedback.popover({ titleKey:"relationship.profileTitle", icon:"缘", imageSrc:item.image, anchor:{x:event.clientX,y:event.clientY}, bodyKey:"relationship.stageBody", params:{name:item.name,stage:relationshipStage(item,game.relationships[item.id]??0).name,description:relationshipStage(item,game.relationships[item.id]??0).description}, details:[{labelKey:"relationship.roleLabel",value:item.role},{labelKey:"relationship.scheduleLabel",value:`${scene.name} · ${game.period}`},{labelKey:"relationship.preferenceLabel",value:(game.discoveredGiftPreferences[item.id]??[]).map((id)=>giftMap[id]?.name??id).join(" · ")||feedbackText("system.none")},{labelKey:"relationship.appointmentLabel",value:feedbackText("relationship.appointmentValue")},{labelKey:"relationship.worldImpactLabel",value:item.id==="liu"&&game.flags.medicine_supply_restored?feedbackText("relationship.clinicRestored"):feedbackText("relationship.worldStable")}] }) : selectCharacter(item.id)} aria-label={`选择${item.name}`}>
+              <img src={item.image} alt="" /><span>{item.name.slice(0, 1)}</span>{findQuestOffer(item.id,unifiedState.quests)&&<b aria-label={questText("offerAvailable")}>!</b>}
             </button>
           ))}
           {!game.activeEvent && <ActivityCards activities={availableActivities.slice(0,1)} completedIds={activeFortune?["daily-divination"]:[]} onOpen={openActivity} />}
@@ -749,6 +766,7 @@ export default function GameDemo() {
         {hasPresentCharacter && !isSpecialEvent && <div className="portrait-wrap" key={character.id}>
           <div className="portrait-halo" style={{ "--accent": character.accent } as React.CSSProperties} />
           <img className="main-portrait" src={character.image} alt={`${character.name}人物立绘`} />
+          {availableQuestOffer&&<span className="npc-quest-marker"><b>!</b><em>{questText("offerAvailable")}</em></span>}
         </div>}
         {isSpecialEvent && <div className="special-portrait-wrap" key={`${game.activeEvent?.eventId}-${game.activeEvent?.nodeId}`}><div className="special-portrait-aura" /><img src={specialPortrait} alt={`${character.name}特殊事件立绘`} /></div>}
         {hasPresentCharacter && <Inspectable className="character-plaque" aria-label={`查看${character.name}详情`} feedback={{ titleKey:"relationship.profileTitle", icon:"缘", imageSrc:character.image, bodyKey:"relationship.stageBody", params:{name:character.name,stage:currentStage.name,description:currentStage.description}, details:[{labelKey:"relationship.nameLabel",value:character.name,emphasis:true},{labelKey:"relationship.roleLabel",value:character.role},{labelKey:"relationship.stageLabel",value:currentStage.name},{labelKey:"relationship.valueLabel",value:relationship},{labelKey:"relationship.addressLabel",value:`「${currentStage.addressing}」`}] }}><p>{character.role}</p><h3>{character.name}</h3><span>{currentStage.name} · 唤你「{currentStage.addressing}」</span></Inspectable>}
@@ -768,7 +786,7 @@ export default function GameDemo() {
               <p>{nextHint}</p>
             </div>
             {(character.id === "ning" || character.id === "huo") && <button type="button" className="shop-action" onClick={() => setShopOpen(true)}><span className="action-glyph">商</span><span><small>进入</small>{character.id === "huo" ? "玄锋号" : "栖珍阁"}</span></button>}
-            <button type="button" className="ink-action" onClick={talk}><span className="action-glyph">言</span><span><small>与她</small>交谈</span></button>
+            <button type="button" className={`ink-action ${availableQuestOffer?"has-quest-offer":""}`} onClick={talk}><span className="action-glyph">{availableQuestOffer?"!":"言"}</span><span><small>{availableQuestOffer?questText("offerAvailable"):"与她"}</small>{availableQuestOffer?questText("meetGiver"):"交谈"}</span></button>
             <button type="button" className={`gold-action ${interactionMenuOpen?"active":""}`} onClick={() => canDrink?setInteractionMenuOpen(value=>!value):setGiftOpen(true)}><span className="action-glyph">{canDrink?"互":"礼"}</span><span><small>{canDrink?"展开":"赠予"}</small>{canDrink?"互动":"心意"}</span></button>
           </div>
         )}
@@ -812,6 +830,7 @@ export default function GameDemo() {
 
       {mapOpen && <WorldMapModal sceneId={game.sceneId} sceneEventHints={sceneEventHints} mapEvents={visibleMapEvents} period={game.period} day={game.day} inspectionHints={inspectionHints} inspectionDays={game.sceneInspectionDays} onClose={() => setMapOpen(false)} onEnterScene={enterScene} onTriggerMapEvent={triggerMapEvent} onInspectScene={inspectScene} onEnterDungeon={(dungeon) => { setActiveModule({ kind: "battle", dungeon }); setMapOpen(false); }} onEnterAlchemy={() => { setActiveModule({ kind: "alchemy" }); setMapOpen(false); }} onEnterFishing={(locationId, randomSpotId) => { setFishingTarget({ locationId, randomSpotId }); setMapOpen(false); }} onEnterMining={(locationId, randomSpotId) => { setMiningTarget({ locationId, randomSpotId }); setMapOpen(false); }} />}
       {questOpen&&<QuestPanel onClose={()=>setQuestOpen(false)} onNavigate={navigateToQuest}/>}
+      {questOffer&&<QuestOfferDialogue definition={questOffer} onClose={()=>setQuestOffer(null)}/>}
       {projectOpen&&<PathProjectPanel onClose={()=>setProjectOpen(false)} onNotice={setNotice}/>}
       {forumOpen&&<ForumModal day={game.day} period={game.period} onClose={()=>setForumOpen(false)} player={{name:"槐安行者",title:"云州新秀",level:unifiedState.shared.playerLevel,cultivation:game.experience,dungeons:unifiedState.dungeons.completed.length,bondName:characters.reduce((best,item)=>(game.relationships[item.id]??0)>(game.relationships[best.id]??0)?item:best,characters[0]).name,bond:Math.max(...characters.map(item=>game.relationships[item.id]??0))}}/>}
       {fishingTarget && <FishingModal locationId={fishingTarget.locationId} randomSpotId={fishingTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setFishingTarget(null)} onNotice={setNotice} />}

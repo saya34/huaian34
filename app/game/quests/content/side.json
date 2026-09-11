@@ -6,6 +6,18 @@
     "name": "坊市药材断供",
     "summary": "医馆常用药材突然断供。接下委托后，可从生产、关系或战斗中任选一条主解法完成交付。",
     "initialStatus": "unaccepted",
+    "giver": {
+      "characterId": "liu",
+      "sceneId": "tavern",
+      "name": "柳知意",
+      "role": "悬壶谷医师",
+      "portrait": "/assets/characters/liu-zhiyi.webp",
+      "offerText": "坊市送往医馆的药材断了，伤患却一日都等不得。我需要有人补出这批药——种植、寻药或深入秘境都可以，你愿意帮我吗？",
+      "acceptedText": "多谢。你选最稳妥的路便好，缺什么就来与我商量。",
+      "declinedText": "我明白。此事不该勉强你，若改变主意，再来找我。",
+      "acceptLabel": "这批药交给我",
+      "declineLabel": "我暂时帮不上忙"
+    },
     "objectives": [
       { "id": "restore-medicine-route", "type": "reach", "target": "path:medicine-shortage-completed", "required": 1, "description": "解决坊市药材断供" }
     ],
@@ -13,6 +25,7 @@
     "rewards": [
       { "type": "currency", "amount": 120, "label": "灵石" },
       { "type": "experience", "amount": 40, "label": "修为" },
+      { "type": "relationship", "characterId": "liu", "amount": 4, "label": "柳知意好感" },
       { "type": "item", "itemId": "quest-clinic-record", "itemType": "quest", "rarity": 4, "amount": 1, "label": "医馆纪事" }
     ]
   }

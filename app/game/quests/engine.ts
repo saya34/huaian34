@@ -3,10 +3,25 @@ import { QUESTS } from "./content";
 import type { QuestDefinition, QuestObjectiveDefinition, QuestProgress, QuestStatus, QuestView } from "./types";
 
 export function createInitialQuestProgress(): QuestProgress {
+  const firstMain = QUESTS.filter((quest) => quest.type === "main").sort((a, b) => a.order - b.order)[0];
   return {
     statuses: Object.fromEntries(QUESTS.map((quest) => [quest.id, quest.initialStatus])),
-    trackedQuestId: QUESTS.find((quest) => quest.type === "main" && quest.initialStatus === "in_progress")?.id ?? null,
+    trackedQuestId: firstMain?.id ?? null,
   };
+}
+
+export function isQuestOfferAvailable(definition: QuestDefinition, progress: QuestProgress) {
+  if ((progress.statuses[definition.id] ?? definition.initialStatus) !== "unaccepted") return false;
+  return !definition.prerequisiteQuestId || progress.statuses[definition.prerequisiteQuestId] === "claimed";
+}
+
+export function findQuestOffer(characterId: string, progress: QuestProgress) {
+  return QUESTS.filter((quest) => quest.giver?.characterId === characterId && isQuestOfferAvailable(quest, progress)).sort((a, b) => a.order - b.order)[0] ?? null;
+}
+
+export function isQuestVisible(definition: QuestDefinition, progress: QuestProgress) {
+  const status = progress.statuses[definition.id] ?? definition.initialStatus;
+  return status !== "unaccepted" || !definition.prerequisiteQuestId || progress.statuses[definition.prerequisiteQuestId] === "claimed";
 }
 
 export function normalizeQuestProgress(value?: Partial<QuestProgress> | null): QuestProgress {
@@ -55,6 +70,7 @@ export function questRewardEffects(definition: QuestDefinition): GameEffect[] {
   return definition.rewards.flatMap((reward) => {
     if (reward.type === "currency") return [{ type: "add_currency" as const, amount: reward.amount }];
     if (reward.type === "experience") return [{ type: "add_player_exp" as const, amount: reward.amount }];
+    if (reward.type === "relationship" && reward.characterId) return [{ type: "add_relationship" as const, characterId: reward.characterId, amount: reward.amount }];
     if (reward.type === "item" && reward.itemId && reward.itemType && reward.rarity) return [{ type: "add_item" as const, item: { itemId: reward.itemId, itemType: reward.itemType, rarity: reward.rarity, amount: reward.amount, sourceTags: ["任务奖励", definition.id], locked: reward.itemType === "quest" } }];
     return [];
   });

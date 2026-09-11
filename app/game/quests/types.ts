@@ -14,12 +14,26 @@ export type QuestObjectiveDefinition = {
 };
 
 export type QuestRewardDefinition = {
-  type: "currency" | "experience" | "item";
+  type: "currency" | "experience" | "item" | "relationship";
   amount: number;
   label: string;
   itemId?: string;
   itemType?: UnifiedItemType;
   rarity?: UnifiedRarity;
+  characterId?: string;
+};
+
+export type QuestGiverDefinition = {
+  characterId: string;
+  sceneId: string;
+  name: string;
+  role: string;
+  portrait: string;
+  offerText: string;
+  acceptedText: string;
+  declinedText: string;
+  acceptLabel: string;
+  declineLabel: string;
 };
 
 export type QuestDefinition = {
@@ -29,6 +43,8 @@ export type QuestDefinition = {
   name: string;
   summary: string;
   initialStatus: QuestStatus;
+  prerequisiteQuestId?: string;
+  giver?: QuestGiverDefinition;
   objectives: QuestObjectiveDefinition[];
   destination: { kind: QuestDestinationKind; sceneId?: string; waveId?: number };
   rewards: QuestRewardDefinition[];
@@ -52,6 +68,6 @@ export type QuestView = {
   tracked: boolean;
 };
 
-export type QuestNavigate = (quest: QuestDefinition) => void;
+export type QuestNavigate = (quest: QuestDefinition, purpose?: "objective" | "giver") => void;
 
 export type QuestStateReader = Pick<UnifiedGameState, "shared" | "romance" | "alchemy" | "dungeons" | "farm">;

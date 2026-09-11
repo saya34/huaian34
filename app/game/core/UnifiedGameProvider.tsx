@@ -188,7 +188,7 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     }
     if (effect.type === "add_card") { const cards = [...next.shared.cards, effect.card]; return { ...next, shared: { ...next.shared, cards }, romance: { ...next.romance, ownedCardIds: cards.map((card) => card.id) } }; }
     if (effect.type === "learn_skill") return { ...next, shared: { ...next.shared, learnedSkills: [...new Set([...next.shared.learnedSkills, effect.skillId])] } };
-    if (effect.type === "add_relationship") return { ...next, romance: { ...next.romance, relationships: { ...next.romance.relationships, [effect.characterId]: Math.max(0, (next.romance.relationships[effect.characterId] ?? 0) + effect.amount) } } };
+    if (effect.type === "add_relationship") return { ...next, romance: { ...next.romance, relationships: { ...next.romance.relationships, [effect.characterId]: Math.max(0, Math.min(100, (next.romance.relationships[effect.characterId] ?? 0) + effect.amount)) } } };
     if (effect.type === "add_player_exp") return { ...next, shared: { ...next.shared, playerExperience: next.shared.playerExperience + effect.amount }, romance: { ...next.romance, experience: next.romance.experience + effect.amount } };
     if (effect.type === "set_global_key") return { ...next, shared: { ...next.shared, globalKeys: { ...next.shared.globalKeys, [effect.key]: effect.value } }, romance: { ...next.romance, flags: { ...next.romance.flags, [effect.key]: effect.value } } };
     if (effect.type === "reveal_dungeon") return { ...next, dungeons: { ...next.dungeons, randomVisible: [...new Set([...next.dungeons.randomVisible, effect.dungeonId])] } };

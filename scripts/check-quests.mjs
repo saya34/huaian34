@@ -20,10 +20,18 @@ for (const quest of quests) {
   if (!Array.isArray(quest.objectives) || quest.objectives.length === 0) throw new Error(`missing objectives: ${quest.id}`);
   if (!Array.isArray(quest.rewards) || quest.rewards.length === 0) throw new Error(`missing rewards: ${quest.id}`);
   for (const objective of quest.objectives) if (!objective.id || !objective.description || !objectiveTypes.has(objective.type) || !(objective.required > 0)) throw new Error(`invalid objective: ${quest.id}`);
-  for (const reward of quest.rewards) if (!reward.label || !(reward.amount > 0) || !["currency", "experience", "item"].includes(reward.type)) throw new Error(`invalid reward: ${quest.id}`);
+  for (const reward of quest.rewards) {
+    if (!reward.label || !(reward.amount > 0) || !["currency", "experience", "item", "relationship"].includes(reward.type)) throw new Error(`invalid reward: ${quest.id}`);
+    if (reward.type === "relationship" && !reward.characterId) throw new Error(`relationship reward needs characterId: ${quest.id}`);
+  }
+  if (quest.giver) {
+    for (const key of ["characterId", "sceneId", "name", "role", "portrait", "offerText", "acceptedText", "declinedText", "acceptLabel", "declineLabel"]) if (!quest.giver[key]) throw new Error(`invalid quest giver ${key}: ${quest.id}`);
+  }
 }
 
-if (main.filter((quest) => quest.initialStatus === "in_progress").length !== 1) throw new Error("exactly one main quest must start in progress");
-for (const key of ["panelTitle", "mainTab", "sideTab", "currentObjective", "viewAll", "accept", "go", "claim", "claimed", "rewardTitle", "continue"]) if (!ui[key]) throw new Error(`missing ui text: ${key}`);
+for (const quest of quests) if (quest.prerequisiteQuestId && !ids.has(quest.prerequisiteQuestId)) throw new Error(`unknown prerequisite: ${quest.id}`);
+if (quests.filter((quest) => quest.giver).length < Math.ceil(quests.length / 2)) throw new Error("most quests must be issued through character dialogue");
+if (main.some((quest) => quest.initialStatus !== "unaccepted")) throw new Error("main quests must wait for character dialogue acceptance");
+for (const key of ["panelTitle", "mainTab", "sideTab", "currentObjective", "viewAll", "accept", "meetGiver", "offerEyebrow", "offerPrompt", "go", "claim", "claimed", "rewardTitle", "continue"]) if (!ui[key]) throw new Error(`missing ui text: ${key}`);
 
-console.log(`quest content check passed: ${quests.length} quests, ${quests.reduce((sum, quest) => sum + quest.objectives.length, 0)} objectives, ${quests.reduce((sum, quest) => sum + quest.rewards.length, 0)} rewards`);
+console.log(`quest content check passed: ${quests.length} quests, ${quests.filter((quest) => quest.giver).length} dialogue offers, ${quests.reduce((sum, quest) => sum + quest.objectives.length, 0)} objectives, ${quests.reduce((sum, quest) => sum + quest.rewards.length, 0)} rewards`);

@@ -5,7 +5,19 @@
     "order": 10,
     "name": "丹火初明",
     "summary": "玄火丹炉已经重新点燃。先亲手炼成一枚丹药，熟悉灵材、炉温与收丹的基本章法。",
-    "initialStatus": "in_progress",
+    "initialStatus": "unaccepted",
+    "giver": {
+      "characterId": "shen",
+      "sceneId": "lingxiao",
+      "name": "沈清霜",
+      "role": "问剑峰主 · 师尊",
+      "portrait": "/assets/characters/shen-qingshuang.webp",
+      "offerText": "丹炉虽已重燃，火候却要由你亲手掌握。去炼成第一枚丹药，让我看看你能否把躁动的玄火收进方寸之间。",
+      "acceptedText": "去吧。莫急着求上品，先记住每一次炉火的呼吸。",
+      "declinedText": "无妨。等你心神安定，再来问我这件事。",
+      "acceptLabel": "弟子愿意一试",
+      "declineLabel": "容我准备片刻"
+    },
     "objectives": [
       { "id": "brew-once", "type": "play", "target": "alchemy:any-product", "required": 1, "description": "完成一次炼丹" }
     ],
@@ -13,6 +25,7 @@
     "rewards": [
       { "type": "currency", "amount": 100, "label": "灵石" },
       { "type": "experience", "amount": 50, "label": "修为" },
+      { "type": "relationship", "characterId": "shen", "amount": 3, "label": "沈清霜好感" },
       { "type": "item", "itemId": "quest-danfire-seal", "itemType": "quest", "rarity": 3, "amount": 1, "label": "丹火印记" }
     ]
   },
@@ -23,6 +36,19 @@
     "name": "青岚试锋",
     "summary": "丹药已备，是时候前往青岚秘径验证修行成果。完成一次秘境镇压，并把战果安全带回。",
     "initialStatus": "unaccepted",
+    "prerequisiteQuestId": "main-first-alchemy",
+    "giver": {
+      "characterId": "su",
+      "sceneId": "lingxiao",
+      "name": "苏晚棠",
+      "role": "执事长老 · 师叔",
+      "portrait": "/assets/characters/su-wantang.webp",
+      "offerText": "丹药既成，只在宗门里闻香可不算本事。青岚秘径近来妖气浮动，你可愿替师叔走一趟，把真正的战果带回来？",
+      "acceptedText": "好胆量。记住，活着带回战果，比逞强深入更重要。",
+      "declinedText": "先把剑擦亮也好。青岚秘径不会跑，师叔也不催你。",
+      "acceptLabel": "我去青岚秘径",
+      "declineLabel": "我还需准备"
+    },
     "objectives": [
       { "id": "win-dungeon", "type": "play", "target": "dungeon:any-completed", "required": 1, "description": "完成一次秘境战斗" }
     ],
@@ -30,6 +56,7 @@
     "rewards": [
       { "type": "currency", "amount": 180, "label": "灵石" },
       { "type": "experience", "amount": 80, "label": "修为" },
+      { "type": "relationship", "characterId": "su", "amount": 4, "label": "苏晚棠好感" },
       { "type": "item", "itemId": "quest-qinglan-token", "itemType": "quest", "rarity": 4, "amount": 1, "label": "青岚令" }
     ]
   }
