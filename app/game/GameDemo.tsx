@@ -37,7 +37,7 @@ import { getAvailableActivities, isMarketReminderDay, marketReminderKey, type Pe
 import { drawDailyFortune, FORTUNE_STORAGE_KEY, fortuneBoosts, fortuneEffectLabel, getFortuneSign, getLocalDateKey, type FortuneDrawRecord } from "./fortune-engine";
 import type { CharacterDefinition, CharacterId, CharacterMessageDefinition, DialogueProfileDefinition, EventDefinition, GiftDefinition, GiftId, GameState, GlobalKeyDefinition, Period, RelationshipStageDefinition, SceneDefinition, SceneId, TriggerContext } from "./types";
 import { useUnifiedGame } from "./core/UnifiedGameProvider";
-import type { DungeonDefinition } from "./core/dungeons";
+import { DUNGEONS, type DungeonDefinition } from "./core/dungeons";
 import FusionSystemPanel, { type FusionPanelId } from "./ui/FusionSystemPanel";
 import SpiritFarmScene from "./farm/SpiritFarmScene";
 import FishingModal from "./fishing/FishingModal";
@@ -46,7 +46,11 @@ import MiningModal from "./mining/MiningModal";
 import { ensureRandomMiningSpots, type MiningLocationId } from "./mining/mining";
 import IntelligenceBureauScene from "./forum/IntelligenceBureauScene";
 import ForumModal from "./forum/ForumModal";
-import PathProjectPanel, { PathProjectTracker } from "./projects/PathProjectPanel";
+import PathProjectPanel from "./projects/PathProjectPanel";
+import QuestPanel, { CurrentQuestCard, QuestStateSynchronizer } from "./quests/QuestSystem";
+import { QUESTS, questText } from "./quests/content";
+import { questView } from "./quests/engine";
+import type { QuestDefinition } from "./quests/types";
 import { Inspectable } from "./feedback/Inspectable";
 import { useFeedback } from "./feedback/FeedbackProvider";
 import { feedbackText } from "./feedback/texts";
@@ -109,6 +113,7 @@ export default function GameDemo() {
   const [miningTarget, setMiningTarget] = useState<{ locationId: MiningLocationId; randomSpotId?: string } | null>(null);
   const [forumOpen,setForumOpen]=useState(false);
   const [projectOpen,setProjectOpen]=useState(false);
+  const [questOpen,setQuestOpen]=useState(false);
   const [timeMenuOpen,setTimeMenuOpen]=useState(false);
   const [activeModule, setActiveModule] = useState<{ kind: "battle"; dungeon: DungeonDefinition } | { kind: "alchemy" } | null>(null);
   const [systemPanel, setSystemPanel] = useState<FusionPanelId | null>(null);
@@ -372,6 +377,7 @@ export default function GameDemo() {
   const activeFortune=fortuneHistory[realDateKey];
   const activeFortuneSign=getFortuneSign(activeFortune);
   const weatherNow=getFarmWeather(game.day),weatherNext=getFarmWeather(game.day+1),weatherLater=getFarmWeather(game.day+2);
+  const claimableQuestCount=QUESTS.filter((quest)=>questView(quest,unifiedState.quests,unifiedState).status==="claimable").length;
 
   useEffect(()=>{if(activeDefinition?.cardStyle==="audio")setAudioIndex(0)},[activeDefinition?.id, activeDefinition?.cardStyle]);
 
@@ -509,7 +515,7 @@ export default function GameDemo() {
     setPanel(null);
     setGiftOpen(false);
     setInteractionMenuOpen(false);setDrinkingOpen(false);
-    setMapOpen(false);
+    setMapOpen(false);setQuestOpen(false);setProjectOpen(false);
     setCalendarOpen(false);
     setCultivationOpen(false);setInspectionReveal(null);
     setActiveActivity(null);
@@ -664,8 +670,21 @@ export default function GameDemo() {
 
   function drawFortuneToday(){const existing=fortuneHistory[realDateKey];if(existing)return existing;const record=drawDailyFortune(realDateKey);setFortuneHistory((history)=>({...history,[realDateKey]:record}));setNotice(`今日签文 · ${getFortuneSign(record)?.rank}「${getFortuneSign(record)?.title}」`);return record}
 
+  function navigateToQuest(definition:QuestDefinition){
+    setQuestOpen(false);setMapOpen(false);setSystemPanel(null);
+    const target=definition.destination;
+    if(target.kind==="alchemy"){setActiveModule({kind:"alchemy"});return}
+    if(target.kind==="battle"){const dungeon=DUNGEONS.find((item)=>item.waveId===(target.waveId??1))??DUNGEONS[0];setActiveModule({kind:"battle",dungeon});return}
+    if(target.kind==="farm"){enterScene(target.sceneId??"spirit-farm");return}
+    if(target.kind==="equipment"){setSystemPanel("equipment");return}
+    if(target.kind==="characters"){setPanel("characters");return}
+    if(target.kind==="path-project"){setProjectOpen(true);return}
+    if(target.kind==="story"&&target.sceneId)enterScene(target.sceneId);
+  }
+
   return (
     <main className="game-shell">
+      <QuestStateSynchronizer />
       <div className="paper-noise" aria-hidden="true" />
       <header className="topbar">
         <button type="button" className={`map-entry-button ${visibleMapEvents.length ? "has-map-event" : ""}`} onClick={() => setMapOpen(true)} aria-label={visibleMapEvents.length ? `打开山河地图，有${visibleMapEvents.length}处待完成异闻` : "打开山河地图"}><span className="map-fold-icon"><i/><i/><i/></span><small>地图</small>{visibleMapEvents.length > 0 && <b className="map-entry-alert">!</b>}</button>
@@ -692,7 +711,7 @@ export default function GameDemo() {
           <button type="button" onClick={()=>setCollectionOpen(true)}>藏珍 <b>{game.collectedEasterEggs.length}/{easterEggEvents.length}</b></button>
           <button type="button" onClick={()=>setGiftOpen(true)}>行囊</button>
           <button type="button" onClick={feedback.openHistory}>讯息录</button>
-          <button type="button" className="path-project-entry" onClick={()=>setProjectOpen(true)}>道途 <b>{game.medicineShortage.status==="completed"?"成":"!"}</b></button>
+          <button type="button" className="path-project-entry" onClick={()=>setQuestOpen(true)}>{questText("panelTitle")} {claimableQuestCount>0&&<b>{claimableQuestCount}</b>}</button>
           <div className="time-control"><button type="button" className="time-button" onClick={()=>setTimeMenuOpen(value=>!value)}>安排时辰</button>{timeMenuOpen&&<div className="time-action-menu"><button onClick={()=>advanceTime("wait")}><i>候</i><span><b>等待</b><small>推进一个阶段 · 不恢复体力</small></span></button><button onClick={()=>advanceTime("rest")}><i>憩</i><span><b>短休</b><small>推进一个阶段 · 今日第 {(game.shortRestDay===game.day?game.shortRestCount:0)+1} 次</small></span></button><button onClick={()=>advanceTime("sleep")}><i>眠</i><span><b>结束今日</b><small>进入次日清晨 · 恢复全部体力</small></span></button></div>}</div>
         </nav>
       </header>
@@ -711,7 +730,7 @@ export default function GameDemo() {
         {isSpecialEvent && <div key={`${activeDefinition?.id}-${activeDefinition?.openingEffect}`} className={`special-opening special-opening-${activeDefinition?.openingEffect ?? "none"}`} aria-hidden="true" />}
         <div className="stage-wash" aria-hidden="true" />
         <div className="scene-title"><p>{scene.atmosphere}</p><h2>{scene.name}</h2><span>{scene.description}</span></div>
-        {!game.activeEvent&&<PathProjectTracker onOpen={()=>setProjectOpen(true)}/>}
+        {!game.activeEvent&&<CurrentQuestCard onOpen={()=>setQuestOpen(true)} onNavigate={navigateToQuest}/>}
         {restoredClinic&&!game.activeEvent&&<div className="clinic-restored-chip"><i>医</i><span><small>道途结果已生效</small><strong>医馆药路重开</strong></span></div>}
         {activeFortuneSign&&activeFortuneSign.effect!=="none"&&<div className="fortune-buff-chip"><i>✦</i><span><small>今日金运 · {activeFortuneSign.rank}</small><strong>{activeFortuneSign.title}</strong><em>{fortuneEffectLabel(activeFortuneSign.effect).replace("金运 · ","")}</em></span></div>}
         {!game.activeEvent&&!activeExploration&&explorePoints.map((point)=>{const event=eventDefinitions.find((item)=>item.id===point.eventId);if(!event)return null;const egg=event.cardStyle==="easter_egg";return <button type="button" key={event.id} className={`explore-light ${egg?"easter-light":"trigger-light"}`} style={{left:`${point.x}%`,top:`${point.y}%`}} onClick={()=>setActiveExploration(event)} aria-label={egg?"发现彩蛋光点":"发现剧情光点"}><i/><span>{egg?"拾":"寻"}</span></button>})}
@@ -783,6 +802,7 @@ export default function GameDemo() {
       <nav className="fusion-world-dock" aria-label="槐安一梦主要功能">
         <button type="button" className={systemPanel === "profile" ? "active" : ""} onClick={() => setSystemPanel("profile")}><i>我</i><span>修士属性</span></button>
         <button type="button" className={mapOpen ? "active" : ""} onClick={() => { setSystemPanel(null); setMapOpen(true); }}><i>山</i><span>山河地图</span>{visibleMapEvents.length > 0 && <b>{visibleMapEvents.length}</b>}</button>
+        <button type="button" className={questOpen ? "active" : ""} onClick={() => { setSystemPanel(null); setQuestOpen(true); }}><i>任</i><span>{questText("panelTitle")}</span>{claimableQuestCount>0&&<b>{claimableQuestCount}</b>}</button>
         <button type="button" onClick={() => setPanel("characters")}><i>缘</i><span>人物谱</span></button>
         <button type="button" className={systemPanel === "inventory" ? "active" : ""} onClick={() => setSystemPanel("inventory")}><i>囊</i><span>乾坤行囊</span></button>
         <button type="button" className={systemPanel === "cards" ? "active" : ""} onClick={() => setSystemPanel("cards")}><i>契</i><span>太虚名册</span><b>{unifiedState.shared.cards.length}</b></button>
@@ -791,6 +811,7 @@ export default function GameDemo() {
       </nav>
 
       {mapOpen && <WorldMapModal sceneId={game.sceneId} sceneEventHints={sceneEventHints} mapEvents={visibleMapEvents} period={game.period} day={game.day} inspectionHints={inspectionHints} inspectionDays={game.sceneInspectionDays} onClose={() => setMapOpen(false)} onEnterScene={enterScene} onTriggerMapEvent={triggerMapEvent} onInspectScene={inspectScene} onEnterDungeon={(dungeon) => { setActiveModule({ kind: "battle", dungeon }); setMapOpen(false); }} onEnterAlchemy={() => { setActiveModule({ kind: "alchemy" }); setMapOpen(false); }} onEnterFishing={(locationId, randomSpotId) => { setFishingTarget({ locationId, randomSpotId }); setMapOpen(false); }} onEnterMining={(locationId, randomSpotId) => { setMiningTarget({ locationId, randomSpotId }); setMapOpen(false); }} />}
+      {questOpen&&<QuestPanel onClose={()=>setQuestOpen(false)} onNavigate={navigateToQuest}/>}
       {projectOpen&&<PathProjectPanel onClose={()=>setProjectOpen(false)} onNotice={setNotice}/>}
       {forumOpen&&<ForumModal day={game.day} period={game.period} onClose={()=>setForumOpen(false)} player={{name:"槐安行者",title:"云州新秀",level:unifiedState.shared.playerLevel,cultivation:game.experience,dungeons:unifiedState.dungeons.completed.length,bondName:characters.reduce((best,item)=>(game.relationships[item.id]??0)>(game.relationships[best.id]??0)?item:best,characters[0]).name,bond:Math.max(...characters.map(item=>game.relationships[item.id]??0))}}/>}
       {fishingTarget && <FishingModal locationId={fishingTarget.locationId} randomSpotId={fishingTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setFishingTarget(null)} onNotice={setNotice} />}

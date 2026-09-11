@@ -12,7 +12,8 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "check:feedback": "node scripts/check-feedback-texts.mjs",
-    "test:feedback-stress": "node scripts/stress-feedback.mjs"
+    "test:feedback-stress": "node scripts/stress-feedback.mjs",
+    "check:quests": "node scripts/check-quests.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

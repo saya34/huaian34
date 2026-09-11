@@ -8,6 +8,8 @@ import { INITIAL_STATE } from "../event-engine";
 import { createInitialFarm, normalizeFarmProgress, type FarmProgress } from "../farm/farm";
 import { createInitialFishing, normalizeFishingProgress, type FishingProgress } from "../fishing/fishing";
 import { createInitialMining, normalizeMiningProgress, type MiningProgress } from "../mining/mining";
+import { createInitialQuestProgress, normalizeQuestProgress } from "../quests/engine";
+import type { QuestProgress } from "../quests/types";
 import { keyFor, LocalPlayerStateRepository } from "./player-state-repository";
 import { SAVE_VERSION, type AlchemyProgress, type GameEffect, type StateSetter, type UnifiedGameState } from "./types";
 
@@ -44,6 +46,7 @@ function cloneInitial(): UnifiedGameState {
     fishing: createInitialFishing(),
     mining: createInitialMining(),
     dungeons: { highestUnlocked: 1, completed: [], randomVisible: [] },
+    quests: createInitialQuestProgress(),
   };
 }
 
@@ -61,7 +64,7 @@ function mergeSave(saved: UnifiedGameState | null) {
       flags: { ...base.romance.flags, ...saved.romance?.flags },
       activeEvent: null,
     },
-    alchemy: { ...base.alchemy, ...saved.alchemy }, battle: normalizeMetaProgress({ ...base.battle, ...saved.battle }), farm: normalizeFarmProgress(saved.farm), fishing: normalizeFishingProgress(saved.fishing), mining: normalizeMiningProgress(saved.mining), dungeons: { ...base.dungeons, ...saved.dungeons },
+    alchemy: { ...base.alchemy, ...saved.alchemy }, battle: normalizeMetaProgress({ ...base.battle, ...saved.battle }), farm: normalizeFarmProgress(saved.farm), fishing: normalizeFishingProgress(saved.fishing), mining: normalizeMiningProgress(saved.mining), dungeons: { ...base.dungeons, ...saved.dungeons }, quests: normalizeQuestProgress(saved.quests),
   };
 }
 
@@ -74,6 +77,7 @@ type UnifiedContextValue = {
   setFarm: StateSetter<FarmProgress>;
   setFishing: StateSetter<FishingProgress>;
   setMining: StateSetter<MiningProgress>;
+  setQuests: StateSetter<QuestProgress>;
   applyEffects: (effects: GameEffect[]) => void;
   resetGame: () => void;
 };
@@ -160,6 +164,11 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     return mining === current.mining ? current : { ...current, mining };
   }), []);
 
+  const setQuests = useCallback<StateSetter<QuestProgress>>((action) => setState((current) => {
+    const quests = typeof action === "function" ? action(current.quests) : action;
+    return quests === current.quests ? current : { ...current, quests };
+  }), []);
+
   const applyEffects = useCallback((effects: GameEffect[]) => setState((current) => effects.reduce((next, effect) => {
     if (effect.type === "add_currency") { const spiritStones = Math.max(0, next.shared.spiritStones + effect.amount); return { ...next, shared: { ...next.shared, spiritStones }, romance: { ...next.romance, spiritStones }, battle: { ...next.battle, spiritStones } }; }
     if (effect.type === "spend_stamina") { const stamina = Math.max(0, next.shared.stamina - effect.amount); return { ...next, shared: { ...next.shared, stamina }, romance: { ...next.romance, stamina } }; }
@@ -202,7 +211,7 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     return next;
   }, current)), []);
 
-  const value = useMemo(() => ({ state, hydrated, setRomance, setBattle, setAlchemy, setFarm, setFishing, setMining, applyEffects, resetGame: () => setState(cloneInitial()) }), [applyEffects, hydrated, setAlchemy, setBattle, setFarm, setFishing, setMining, setRomance, state]);
+  const value = useMemo(() => ({ state, hydrated, setRomance, setBattle, setAlchemy, setFarm, setFishing, setMining, setQuests, applyEffects, resetGame: () => setState(cloneInitial()) }), [applyEffects, hydrated, setAlchemy, setBattle, setFarm, setFishing, setMining, setQuests, setRomance, state]);
   return <UnifiedGameContext.Provider value={value}>{children}</UnifiedGameContext.Provider>;
 }
 

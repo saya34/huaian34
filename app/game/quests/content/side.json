@@ -1,0 +1,19 @@
+[
+  {
+    "id": "side-medicine-shortage",
+    "type": "side",
+    "order": 10,
+    "name": "坊市药材断供",
+    "summary": "医馆常用药材突然断供。接下委托后，可从生产、关系或战斗中任选一条主解法完成交付。",
+    "initialStatus": "unaccepted",
+    "objectives": [
+      { "id": "restore-medicine-route", "type": "reach", "target": "path:medicine-shortage-completed", "required": 1, "description": "解决坊市药材断供" }
+    ],
+    "destination": { "kind": "path-project" },
+    "rewards": [
+      { "type": "currency", "amount": 120, "label": "灵石" },
+      { "type": "experience", "amount": 40, "label": "修为" },
+      { "type": "item", "itemId": "quest-clinic-record", "itemType": "quest", "rarity": 4, "amount": 1, "label": "医馆纪事" }
+    ]
+  }
+]

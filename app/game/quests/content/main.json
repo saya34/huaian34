@@ -1,0 +1,36 @@
+[
+  {
+    "id": "main-first-alchemy",
+    "type": "main",
+    "order": 10,
+    "name": "丹火初明",
+    "summary": "玄火丹炉已经重新点燃。先亲手炼成一枚丹药，熟悉灵材、炉温与收丹的基本章法。",
+    "initialStatus": "in_progress",
+    "objectives": [
+      { "id": "brew-once", "type": "play", "target": "alchemy:any-product", "required": 1, "description": "完成一次炼丹" }
+    ],
+    "destination": { "kind": "alchemy" },
+    "rewards": [
+      { "type": "currency", "amount": 100, "label": "灵石" },
+      { "type": "experience", "amount": 50, "label": "修为" },
+      { "type": "item", "itemId": "quest-danfire-seal", "itemType": "quest", "rarity": 3, "amount": 1, "label": "丹火印记" }
+    ]
+  },
+  {
+    "id": "main-first-dungeon",
+    "type": "main",
+    "order": 20,
+    "name": "青岚试锋",
+    "summary": "丹药已备，是时候前往青岚秘径验证修行成果。完成一次秘境镇压，并把战果安全带回。",
+    "initialStatus": "unaccepted",
+    "objectives": [
+      { "id": "win-dungeon", "type": "play", "target": "dungeon:any-completed", "required": 1, "description": "完成一次秘境战斗" }
+    ],
+    "destination": { "kind": "battle", "waveId": 1 },
+    "rewards": [
+      { "type": "currency", "amount": 180, "label": "灵石" },
+      { "type": "experience", "amount": 80, "label": "修为" },
+      { "type": "item", "itemId": "quest-qinglan-token", "itemType": "quest", "rarity": 4, "amount": 1, "label": "青岚令" }
+    ]
+  }
+]

@@ -5,7 +5,7 @@ export interface PlayerStateRepository {
   save(state: UnifiedGameState, expectedVersion?: number): Promise<void>;
 }
 
-export const keyFor = (slotId: string) => `huaian-dream-save-${slotId}-v2`;
+export const keyFor = (slotId: string) => `huaian-dream-save-${slotId}-v3`;
 
 export class LocalPlayerStateRepository implements PlayerStateRepository {
   async load(slotId: string) {
