@@ -2,6 +2,8 @@ export type BaitId = "spirit-worm" | "jade-lure" | "star-bait";
 export type ChumId = "none" | "frost-chum" | "jade-chum" | "fire-chum";
 export type FishingMapId = "yunzhou" | "canglan" | "chixia";
 export type FishingLocationId = "lingxiao-cloudpool" | "tavern-pier" | "yunzhou-wild" | "canglan-wild" | "chixia-wild";
+import type { GatheringCareerState } from "../gathering/types";
+import { gatheringLevel, selectedTool } from "../gathering/engine";
 
 export type FishDefinition = {
   id: string;
@@ -158,19 +160,24 @@ export function ensureRandomFishingSpots(progress: FishingProgress, day: number,
   return { ...current, randomSpots: spots, lastSpawnDay: day };
 }
 
-export function weightedPool(location: FishingLocation, baitId: BaitId, chumId: ChumId = "none") {
-  const entries = location.pool.map((entry) => {
+export function weightedPool(location: FishingLocation, baitId: BaitId, chumId: ChumId = "none", career?: GatheringCareerState) {
+  const eligible = career ? location.pool.filter((entry) => (fishById(entry.fishId)?.rarity ?? 1) <= career.toolTier) : location.pool;
+  const lowestRarity = Math.min(...location.pool.map((entry) => fishById(entry.fishId)?.rarity ?? 1));
+  const available = eligible.length ? eligible : location.pool.filter((entry) => (fishById(entry.fishId)?.rarity ?? 1) === lowestRarity);
+  const toolTrait = career ? selectedTool("fishing", career).trait : "stable";
+  const entries = available.map((entry) => {
     const rarity = fishById(entry.fishId)?.rarity ?? 1;
     const multiplier = baitId === "star-bait" ? (rarity >= 4 ? 2.5 : rarity === 3 ? 1.5 : .8) : baitId === "jade-lure" ? (rarity >= 4 ? 1.7 : rarity === 3 ? 1.3 : .92) : 1;
     const chumMultiplier = chumId === "frost-chum" ? (entry.fishId.includes("frost") || entry.fishId.includes("moon") || rarity >= 4 ? 1.65 : .88) : chumId === "fire-chum" ? (entry.fishId.includes("blazing") || entry.fishId.includes("thunder") || location.mapId === "chixia" ? 1.75 : .86) : chumId === "jade-chum" ? (rarity <= 3 ? 1.32 : 1.08) : 1;
-    return { ...entry, adjustedWeight: entry.weight * multiplier * chumMultiplier };
+    const careerMultiplier = career ? 1 + Math.max(0, rarity - 1) * ((gatheringLevel(career.experience)-1)*.018 + (toolTrait === "affinity" ? .08 : 0)) : 1;
+    return { ...entry, adjustedWeight: entry.weight * multiplier * chumMultiplier * careerMultiplier };
   });
   const total = entries.reduce((sum, entry) => sum + entry.adjustedWeight, 0);
   return entries.map((entry) => ({ ...entry, probability: entry.adjustedWeight / total }));
 }
 
-export function rollFish(location: FishingLocation, baitId: BaitId, seed: string, chumId: ChumId = "none") {
-  const pool = weightedPool(location, baitId, chumId);
+export function rollFish(location: FishingLocation, baitId: BaitId, seed: string, chumId: ChumId = "none", career?: GatheringCareerState) {
+  const pool = weightedPool(location, baitId, chumId, career);
   let roll = hash(seed);
   for (const entry of pool) {
     roll -= entry.probability;
@@ -179,20 +186,19 @@ export function rollFish(location: FishingLocation, baitId: BaitId, seed: string
   return fishById(pool.at(-1)?.fishId ?? "") ?? FISH[0];
 }
 
-// Mirrors the reference reducer order: validate the wharf, consume rod + bait,
+// Mirrors the reference reducer order: validate the wharf, consume bait,
 // then persist the pending catch. Reeling is a separate transaction.
-export function castFishing(progress: FishingProgress, input: { day: number; tick: number; location: FishingLocation; baitId: BaitId; chumId?: ChumId; randomSpotId?: string }) {
+export function castFishing(progress: FishingProgress, input: { day: number; tick: number; location: FishingLocation; baitId: BaitId; chumId?: ChumId; randomSpotId?: string; career?: GatheringCareerState }) {
   const { day, tick, location, baitId, randomSpotId, chumId = "none" } = input;
   const current = resetFishingDay(progress, day);
   if (current.pendingCast) return { progress: current, ok: false as const, message: "已有一竿尚未收线" };
   if (current.dailyAttempts >= DAILY_CAST_LIMIT) return { progress: current, ok: false as const, message: "今日垂钓次数已经用尽" };
-  if (current.rods <= 0) return { progress: current, ok: false as const, message: "灵木钓竿已经用尽" };
   if ((current.baits[baitId] ?? 0) <= 0) return { progress: current, ok: false as const, message: `没有${BAITS[baitId].name}了` };
   if (randomSpotId && !current.randomSpots.some((spot) => spot.id === randomSpotId)) return { progress: current, ok: false as const, message: "这处游光钓点已经消散" };
   const seed = `${day}:${tick}:${location.id}:${current.totalCaught}:${current.dailyAttempts}:${baitId}`;
-  const fish = rollFish(location, baitId, seed, chumId);
+  const fish = rollFish(location, baitId, seed, chumId, input.career);
   const pendingCast: PendingFishingCast = { locationId: location.id, randomSpotId, baitId, fishId: fish.id, castedAtTick: tick, seed, chumId };
-  return { ok: true as const, catch: pendingCast, progress: { ...current, rods: current.rods - 1, baits: { ...current.baits, [baitId]: current.baits[baitId] - 1 }, dailyAttempts: current.dailyAttempts + 1, pendingCast, lastEscape: null } };
+  return { ok: true as const, catch: pendingCast, progress: { ...current, baits: { ...current.baits, [baitId]: current.baits[baitId] - 1 }, dailyAttempts: current.dailyAttempts + 1, pendingCast, lastEscape: null } };
 }
 
 export function reelFishing(progress: FishingProgress, success: boolean) {

@@ -209,8 +209,9 @@ export function plotGrowth(plot: FarmPlot, currentTick: number, weather: FarmWea
   return { progress: Math.min(100, (elapsed / required) * 100), ready: elapsed >= required, remaining: Math.max(0, required - elapsed), elapsed, required };
 }
 
-export function plantPlot(farm: FarmProgress, plotId: string, cropId: HerbCropId, currentTick: number) {
+export function plantPlot(farm: FarmProgress, plotId: string, cropId: HerbCropId, currentTick: number, facilityTier = 5) {
   const crop = cropById(cropId);
+  if (crop.unlockLevel > facilityTier) return { farm, ok: false, message: `灵田设施达到 ${crop.unlockLevel} 阶后方可培育${crop.materialName}` };
   if (farmLevel(farm.experience) < crop.unlockLevel) return { farm, ok: false, message: `灵圃达到 ${crop.unlockLevel} 阶后方可培育${crop.materialName}` };
   if ((farm.seeds[cropId] ?? 0) < 1) return { farm, ok: false, message: `${crop.seedName}不足` };
   const index = farm.plots.findIndex((plot) => plot.id === plotId);

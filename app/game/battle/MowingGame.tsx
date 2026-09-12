@@ -57,9 +57,12 @@ import {
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import { CULTIVATOR_PACK_SIZE, organizeEquipment } from "./inventorySystem";
 import type { UnifiedCardInstance, UnifiedRarity } from "../core/types";
-import { MATERIALS as ALCHEMY_MATERIALS } from "../alchemy/item-data";
+import { ITEM_TABLE, MATERIALS as ALCHEMY_MATERIALS } from "../alchemy/item-data";
 import { MainEquipmentPanel } from "../ui/FusionSystemPanel";
 import { useFeedback } from "../feedback/FeedbackProvider";
+import { feedbackText } from "../feedback/texts";
+import { DUNGEONS } from "../core/dungeons";
+import { BattlePreparation, preparationSupplyBonus, readBattlePreparation } from "./BattlePreparation";
 
 type Screen = "loading" | "menu" | "preparing" | "battle" | "result";
 type HeldTreasure = { uid: string; source: ContainerKind | "loot"; treasureId: string };
@@ -161,7 +164,7 @@ function skillVisual(data: GameData | null, choice: UpgradeChoice) {
   return path ? assetUrl(path) : null;
 }
 
-export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWaveId?: number; embedded?: boolean }) {
+export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = false }: { initialWaveId?: number; embedded?: boolean; autoStart?: boolean }) {
   const { state: unifiedState, setBattle: setMeta, applyEffects } = useUnifiedGame();
   const feedback = useFeedback();
   const [screen, setScreen] = useState<Screen>("loading");
@@ -183,6 +186,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
   const [statsOpen, setStatsOpen] = useState(false);
   const [phaseAlert, setPhaseAlert] = useState<{ name: string; subtitle: string } | null>(null);
   const [battleCeremony, setBattleCeremony] = useState<BattleCeremony | null>(null);
+  const [preparedSupplyName, setPreparedSupplyName] = useState<string | undefined>();
   const [partnerCast, setPartnerCast] = useState<{ partner: PartnerDefinition; resonance: boolean } | null>(null);
   const [cardChoices, setCardChoices] = useState<UnifiedCardInstance[]>([]);
   const [heldTreasure, setHeldTreasure] = useState<HeldTreasure | null>(null);
@@ -197,6 +201,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
   const partnerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ceremonyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announcedBossRef = useRef<string | null>(null);
+  const runSupplyBonusRef = useRef<ReturnType<typeof preparationSupplyBonus> | null>(null);
 
   useEffect(() => {
     metaRef.current = meta;
@@ -235,7 +240,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
         if (!active) return;
         setData(loaded);
         setHeroId(Number(loaded.heroes[0]?.id ?? 400001));
-        setScreen(embedded ? "preparing" : "menu");
+        setScreen(autoStart ? "preparing" : "menu");
       })
       .catch((reason) => {
         setError(reason instanceof Error ? reason.message : "资源加载失败");
@@ -247,7 +252,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
       if (partnerTimer.current) clearTimeout(partnerTimer.current);
       if (ceremonyTimer.current) clearTimeout(ceremonyTimer.current);
     };
-  }, [embedded]);
+  }, [autoStart]);
 
   const selectedHero = useMemo(() => data?.heroes.find((hero) => Number(hero.id) === heroId), [data, heroId]);
   const selectedWave = useMemo(() => data?.waves.find((wave) => Number(wave.id) === waveId), [data, waveId]);
@@ -258,7 +263,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
   const permanentAttributes = useMemo(() => addAttributes(computePermanentAttributes(meta), ...passiveCardBonuses), [meta, passiveCardBonuses]);
 
   useEffect(() => {
-    if (screen === "battle") engineRef.current?.updateBaseAttributes(permanentAttributes);
+    if (screen === "battle") engineRef.current?.updateBaseAttributes(runSupplyBonusRef.current ? addAttributes(permanentAttributes, runSupplyBonusRef.current) : permanentAttributes);
   }, [permanentAttributes, screen]);
 
   const showToast = useCallback((message: string) => {
@@ -284,6 +289,13 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
 
   const beginBattle = useCallback(async () => {
     if (!data || !canvasRef.current) return;
+    const preparation = readBattlePreparation(waveId);
+    const supplyStack = preparation?.supplyId ? unifiedState.shared.items[preparation.supplyId] : null;
+    const supplyDefinition = supplyStack?.amount ? ITEM_TABLE.find((item) => item.id === supplyStack.itemId) : null;
+    const supplyBonus = supplyStack?.amount ? preparationSupplyBonus(supplyStack.rarity) : null;
+    const preparedAttributes = supplyBonus ? addAttributes(permanentAttributes, supplyBonus) : permanentAttributes;
+    runSupplyBonusRef.current = supplyBonus;
+    setPreparedSupplyName(supplyDefinition?.name);
     engineRef.current?.destroy();
     setScreen("preparing");
     setSnapshot(emptySnapshot);
@@ -300,7 +312,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
       mapId,
       backpackSize: backpackSize(meta.backpackLevel),
       safeSize: safeSize(meta.safeLevel),
-      baseAttributes: permanentAttributes,
+      baseAttributes: preparedAttributes,
       combatTraits: computeCombatTraits(meta.passiveRanks),
       wmConfig: meta.wmPublished,
       availableSkillIds: learnedSkillIds(meta.skillMastery),
@@ -372,6 +384,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
     engineRef.current = engine;
     try {
       await engine.prepare();
+      if (supplyStack?.amount && supplyDefinition) applyEffects([{ type: "remove_item", itemId: supplyStack.itemId, amount: 1 }]);
       setScreen("battle");
       const mapName = data.maps.find((map) => Number(map.id) === mapId)?.name ?? "无名秘境";
       const waveName = data.waves.find((wave) => Number(wave.id) === waveId)?.name ?? `第 ${waveId} 重试炼`;
@@ -392,7 +405,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
       setError(reason instanceof Error ? reason.message : "战场初始化失败");
       setScreen("menu");
     }
-  }, [applyEffects, data, feedback, heroId, mapId, meta, permanentAttributes, requestCardSummon, setMeta, showToast, waveId]);
+  }, [applyEffects, data, feedback, heroId, mapId, meta, permanentAttributes, requestCardSummon, setMeta, showToast, unifiedState.shared.items, waveId]);
 
   useEffect(() => {
     if (screen === "preparing") {
@@ -463,6 +476,8 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
     : result?.kind === "extracted"
       ? { small: "全身而退", title: "撤离成功", body: "你保住了本次战利品，但本关尚未完成镇压。" }
       : { small: "道心破碎", title: "修炼失败", body: "普通背包遗失，保险箱中的宝物已安全带回。" };
+  const preparationDungeon = DUNGEONS.find((dungeon) => dungeon.waveId === waveId) ?? DUNGEONS[0];
+  const preparationRewards = [0, 9, 19].map((offset) => ALCHEMY_MATERIALS[(waveId * 3 + offset) % ALCHEMY_MATERIALS.length]);
 
   return (
     <main className="game-shell" style={{ "--menu-bg": menuBackground ? `url("${menuBackground}")` : "none" } as CSSProperties}>
@@ -501,6 +516,22 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
       )}
 
       {screen === "menu" && data && (
+        <section className="battle-preparation-screen">
+          <BattlePreparation
+            dungeon={preparationDungeon}
+            mapImage={menuBackground}
+            rewards={preparationRewards}
+            heroName={selectedHero?.name ? String(selectedHero.name) : undefined}
+            maxWave={meta.highestUnlockedWave}
+            onChangeWave={setWaveId}
+            onOpenPanel={(panel) => setMenuPanel(panel === "profile" ? "character" : panel)}
+            onStart={requestStart}
+            onHelp={() => setHelpOpen(true)}
+          />
+        </section>
+      )}
+
+      {false && screen === "menu" && data && (
         <section className="start-screen">
           <div className="start-vignette" />
           <div className="brand-block">
@@ -886,7 +917,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false }: { initialWav
             {result.overflow.length > 0 && <p className="overflow-warning">藏宝阁空间不足，{result.overflow.length} 件宝物未能收纳。</p>}
             {result.equipmentOverflow.length > 0 && <p className="overflow-warning">10×4 法器行囊已满，{result.equipmentOverflow.length} 件装备留在秘境。</p>}
             <div className="result-actions">
-              <button onClick={() => { engineRef.current?.destroy(); if (embedded && window.parent !== window) window.parent.postMessage({ type: "huaian-close-module", settled: true }, window.location.origin); else setScreen("menu"); }}>{embedded ? "返回山河" : "返回选择"}</button>
+              <button onClick={() => { engineRef.current?.destroy(); if (embedded && window.parent !== window) window.parent.postMessage({ type: "huaian-close-module", settled: true, receipt: { kind: result.kind, waveId, dungeonName: DUNGEONS.find((dungeon) => dungeon.waveId === waveId)?.name ?? selectedWave?.name ?? `第 ${waveId} 重秘境`, accepted: result.accepted.length, experience: result.experience, skillBooks: result.skillBooks, attributePoints: availableAttributePoints(metaRef.current), skillPoints: availableSkillPoints(metaRef.current), equippedCount: Object.values(metaRef.current.equipped).filter(Boolean).length, learnedCount: Object.values(metaRef.current.skillMastery).filter((skill) => skill.learned).length, cardCount: unifiedState.shared.cards.length, supplyName: preparedSupplyName } }, window.location.origin); else setScreen("menu"); }}>{embedded ? "返回山河" : "返回整备"}</button>
               <button className="primary" onClick={requestStart}>再次历练</button>
             </div>
           </div>
@@ -1274,7 +1305,7 @@ function EquipmentSystem({ meta, onChange, notify }: { meta: MetaProgress; onCha
             })}
           </div>
           <aside className="gear-inspector">
-            {selected ? (() => { const base = equipmentById(selected.equipmentId); const req = equipmentRequirements(selected); const enabled = canUseEquipment(selected, attributes); const size = equipmentSize(selected); return <><div className="gear-inspector-art" style={{ "--rarity": RARITY_META[selected.rarity ?? base.rarity].color } as CSSProperties}><img src={base.art} alt="" /><span>{selected.identified === false ? "未鉴定法器" : RARITY_META[selected.rarity ?? base.rarity].name}</span></div><small>{SLOT_META[base.slot].name} · {size.width}×{size.height}{selected.twoHanded ? " · 占据双手" : ""}</small><h3>{selected.identified === false ? `未鉴定的${base.name}` : selected.name ?? base.name}</h3><p>{base.description}</p><div className="gear-stat-chips">{formatBonus(equipmentAttributeBonus(selected)).map((line) => <span key={line}>{line}</span>)}</div><div className={`gear-requirements ${enabled ? "met" : "failed"}`}><b>驱使要求</b><span>体魄 {req.strength ?? 0}</span><span>身法 {req.dexterity ?? 0}</span><span>神识 {req.magic ?? 0}</span></div><footer><b>估值 {equipmentValue(selected).toLocaleString()} 灵石</b>{selected.identified === false ? <button onClick={() => identify(selected.uid)}>鉴定并激活词缀</button> : <button disabled={!enabled} onClick={() => equip(selected.uid)}>{enabled ? "装备" : "属性不足"}</button>}</footer></>; })() : <p>行囊中暂无法器</p>}
+            {selected ? (() => { const base = equipmentById(selected.equipmentId); const req = equipmentRequirements(selected); const enabled = canUseEquipment(selected, attributes); const size = equipmentSize(selected); const simulated=enabled&&selected.identified!==false?tryEquipItem(meta,selected.uid).meta:meta; const after=computePermanentAttributes(simulated); const comparisons=[{label:feedbackText("items.statHealth"),before:Math.round(attributes.health),after:Math.round(after.health)},{label:feedbackText("items.statDamage"),before:Math.round(attributes.damage*100),after:Math.round(after.damage*100),unit:"%"},{label:feedbackText("items.statDefense"),before:Math.round(attributes.defense),after:Math.round(after.defense)},{label:feedbackText("items.statHit"),before:Math.round(attributes.hitChance*100),after:Math.round(after.hitChance*100),unit:"%"}]; return <><div className="gear-inspector-art" style={{ "--rarity": RARITY_META[selected.rarity ?? base.rarity].color } as CSSProperties}><img src={base.art} alt="" /><span>{selected.identified === false ? "未鉴定法器" : RARITY_META[selected.rarity ?? base.rarity].name}</span></div><small>{SLOT_META[base.slot].name} · {size.width}×{size.height}{selected.twoHanded ? " · 占据双手" : ""}</small><h3>{selected.identified === false ? `未鉴定的${base.name}` : selected.name ?? base.name}</h3><p>{base.description}</p><div className="gear-compare-strip"><small>{feedbackText("items.compareAfter")}</small>{comparisons.map((entry)=>{const delta=entry.after-entry.before;return <span key={entry.label} className={delta>0?"up":delta<0?"down":"same"}><b>{entry.label}</b><em>{entry.before}{entry.unit} → {entry.after}{entry.unit}</em><i>{delta===0?feedbackText("items.statSame"):`${delta>0?"+":""}${delta}${entry.unit??""}`}</i></span>})}</div><div className="gear-stat-chips">{formatBonus(equipmentAttributeBonus(selected)).map((line) => <span key={line}>{line}</span>)}</div><div className={`gear-requirements ${enabled ? "met" : "failed"}`}><b>驱使要求</b><span>体魄 {req.strength ?? 0}</span><span>身法 {req.dexterity ?? 0}</span><span>神识 {req.magic ?? 0}</span></div><footer><b>估值 {equipmentValue(selected).toLocaleString()} 灵石</b>{selected.identified === false ? <button onClick={() => identify(selected.uid)}>鉴定并激活词缀</button> : <button disabled={!enabled} onClick={() => equip(selected.uid)}>{enabled ? "装备" : "属性不足"}</button>}</footer></>; })() : <p>行囊中暂无法器</p>}
           </aside>
         </div>
       </section>

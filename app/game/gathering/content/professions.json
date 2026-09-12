@@ -1,0 +1,15 @@
+{
+  "levelThresholds": [0, 24, 70, 150, 280, 460, 700, 1000, 1380, 1840],
+  "rarityLabels": ["凡品", "良品", "珍品", "玄品", "仙品"],
+  "professions": [
+    {"id":"fishing","name":"听澜师","icon":"钓","toolName":"灵木钓竿","collectionName":"听澜水阁","description":"以永久灵竿感知鱼讯，鱼场、灵饵与技艺共同决定鱼获。","tools":[{"id":"willow-rod","name":"定波柳竿","trait":"stable","traitName":"定波","description":"收线难度降低，容错更稳定。","minTier":1},{"id":"moon-rod","name":"探月银竿","trait":"treasure","traitName":"寻珍","description":"伴生宝物与河图残片更易出现。","minTier":2},{"id":"jade-rod","name":"引灵碧竿","trait":"affinity","traitName":"亲和","description":"灵饵对高阶鱼群的影响更明显。","minTier":3},{"id":"qinghe-rod","name":"青禾同心竿","trait":"character","traitName":"同心","description":"角色联携款，兼顾稳定与图鉴经验。","minTier":4}]},
+    {"id":"farming","name":"灵植师","icon":"圃","toolName":"青木灵锄","collectionName":"百草温室","description":"以灵田设施和灵锄培育仙草，稳定生产主材并发现伴生灵物。","tools":[{"id":"green-hoe","name":"青木灵锄","trait":"stable","traitName":"稳产","description":"提高基础收获与返种稳定性。","minTier":1},{"id":"dew-hoe","name":"凝露药锄","trait":"treasure","traitName":"灵变","description":"提高伴生药材与异株发现率。","minTier":2},{"id":"five-phase-hoe","name":"五行循生锄","trait":"affinity","traitName":"应时","description":"强化天气、肥料与作物元素的联动。","minTier":3},{"id":"qinghe-ritual-hoe","name":"青禾祈丰锄","trait":"character","traitName":"祈丰","description":"角色联携款，首次发现经验提高。","minTier":4}]},
+    {"id":"mining","name":"寻脉师","icon":"镐","toolName":"玄铁灵镐","collectionName":"地脉珍藏室","description":"以可修复的永久灵镐开拓地宫，深度与矿脉决定产物。","tools":[{"id":"iron-pick","name":"玄铁灵镐","trait":"stable","traitName":"坚韧","description":"降低开掘耐久消耗。","minTier":1},{"id":"star-pick","name":"照星探脉镐","trait":"treasure","traitName":"寻珍","description":"土块伴生物与宝箱线索更易出现。","minTier":2},{"id":"vein-pick","name":"五行辨脉镐","trait":"affinity","traitName":"辨脉","description":"提高深层稀有矿物权重。","minTier":3},{"id":"yue-pick","name":"月娘镇脉镐","trait":"character","traitName":"护脉","description":"角色联携款，发现新矿物时额外获得经验。","minTier":4}]}
+  ],
+  "upgrades": [
+    {"tier":1,"stones":180,"materialId":null,"materialName":null,"amount":0,"unlock":"开放二阶工具与良品产物"},
+    {"tier":2,"stones":420,"materialId":null,"materialName":null,"amount":0,"unlock":"开放横向特性与珍品产物"},
+    {"tier":3,"stones":860,"materialId":null,"materialName":null,"amount":0,"unlock":"开放角色联携工具与玄品产物"},
+    {"tier":4,"stones":1680,"materialId":null,"materialName":null,"amount":0,"unlock":"开放仙品产物与完整收藏陈列"}
+  ]
+}

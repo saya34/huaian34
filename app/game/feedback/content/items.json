@@ -31,5 +31,11 @@
   "items.currentEquipped": "当前装备",
   "items.candidateEquipped": "候选装备",
   "items.currentValue": "当前估值",
-  "items.candidateValue": "候选估值"
+  "items.candidateValue": "候选估值",
+  "items.compareAfter": "换装后",
+  "items.statHealth": "生命",
+  "items.statDamage": "伤害",
+  "items.statDefense": "护甲",
+  "items.statHit": "命中",
+  "items.statSame": "持平"
 }

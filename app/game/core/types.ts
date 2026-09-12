@@ -8,6 +8,7 @@ import type { FarmProgress } from "../farm/farm";
 import type { FishingProgress } from "../fishing/fishing";
 import type { MiningProgress } from "../mining/mining";
 import type { QuestProgress } from "../quests/types";
+import type { GatheringProgress } from "../gathering/types";
 
 export const SAVE_VERSION = 4 as const;
 
@@ -78,6 +79,7 @@ export type UnifiedGameState = {
   farm: FarmProgress;
   fishing: FishingProgress;
   mining: MiningProgress;
+  gathering: GatheringProgress;
   dungeons: DungeonProgress;
   quests: QuestProgress;
 };

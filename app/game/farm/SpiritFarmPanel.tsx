@@ -30,11 +30,13 @@ import LivestockPanel from "./LivestockPanel";
 import { SPIRIT_BEASTS } from "./livestock";
 import { useFeedback } from "../feedback/FeedbackProvider";
 import { feedbackText } from "../feedback/texts";
+import GatheringCareerPanel from "../gathering/GatheringCareerPanel";
+import { resolveGatheringOutcome } from "../gathering/engine";
 
 type Props = { day: number; period: Period; onNotice: (message: string) => void; initialView?: "field" | "livestock"; onClose?: () => void };
 
 export default function SpiritFarmPanel({ day, period, onNotice, initialView = "field", onClose }: Props) {
-  const { state, setFarm, applyEffects } = useUnifiedGame();
+  const { state, setFarm, setGathering, applyEffects } = useUnifiedGame();
   const feedback = useFeedback();
   const [selectedCropId, setSelectedCropId] = useState<HerbCropId>("frost-heart");
   const [message, setMessage] = useState("选中灵种后直接点击空田播种；成熟后再次点击即可收获。仙草只随游戏内时辰成长。");
@@ -48,6 +50,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
   const weather = getFarmWeather(day);
   const farmEvent = getFarmEvent(day);
   const farm = state.farm;
+  const farmingCareer = state.gathering.careers.farming;
   const levelProfile = farmLevelProgress(farm.experience);
   const level = levelProfile.level;
   const unlockedPlots = unlockedPlotCount(level);
@@ -83,7 +86,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
   }
 
   function plant(plotId: string) {
-    const result = plantPlot(farm, plotId, selectedCropId, tick);
+    const result = plantPlot(farm, plotId, selectedCropId, tick, farmingCareer.toolTier);
     if (!result.ok) { setMessage(result.message); return; }
     setFarm(result.farm); pulsePlot(plotId, "plant"); floatPlot(plotId, `播种 · ${selectedCrop.materialName}`, "green");
     feedback.float({ titleKey:"farm.sowFloat", params:{name:selectedCrop.materialName}, icon:"芽", tone:"jade", dedupeKey:`farm:sow:${plotId}:${tick}` });
@@ -105,12 +108,17 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
   function harvest(plotId: string) {
     const result = harvestPlot(farm, plotId, tick, day);
     if (!result.ok) { setMessage(result.message); return; }
-    setFarm(result.farm); pulsePlot(plotId, "harvest"); floatPlot(plotId, result.message, "gold");
-    feedback.float({ titleKey:"farm.harvestFloat", params:{name:cropById(farm.plots.find((entry)=>entry.id===plotId)?.cropId ?? selectedCropId).materialName,amount:result.reward.amount}, icon:"收", tone:"gold", dedupeKey:`farm:harvest:${plotId}:${tick}` });
+    const harvestedCrop=cropById(farm.plots.find((entry)=>entry.id===plotId)?.cropId ?? selectedCropId),material=cropMaterial(harvestedCrop);
+    const careerResult=resolveGatheringOutcome(state.gathering,{professionId:"farming",itemId:result.reward.itemId,name:harvestedCrop.materialName,rarity:result.reward.rarity,art:material.image,location:"云岫灵圃",tick,seed:`farm:${day}:${plotId}:${farm.harvestSerial}`,tags:["农产",harvestedCrop.element,"炼丹"]});
+    setGathering(careerResult.progress);
+    setFarm({...result.farm,seeds:{...result.farm.seeds,[harvestedCrop.id]:(result.farm.seeds[harvestedCrop.id]??0)+1}}); pulsePlot(plotId, "harvest"); floatPlot(plotId, result.message, "gold");
+    feedback.float({ titleKey:"farm.harvestFloat", params:{name:harvestedCrop.materialName,amount:result.reward.amount}, icon:"收", tone:"gold", dedupeKey:`farm:harvest:${plotId}:${tick}` });
     if (!state.shared.items[result.reward.itemId]) feedback.toast({titleKey:"farm.firstCodex",bodyKey:"farm.firstCodexBody",params:{name:cropById(farm.plots.find((entry)=>entry.id===plotId)?.cropId ?? selectedCropId).materialName},icon:"录",tone:"gold",dedupeKey:`farm:first:${result.reward.itemId}`});
     if (result.mutated) feedback.publish({variant:"rare-reward",priority:0,tone:"gold",titleKey:"farm.mutationTitle",bodyKey:"farm.mutationBody",params:{name:cropById(farm.plots.find((entry)=>entry.id===plotId)?.cropId ?? selectedCropId).materialName},icon:"变",dedupeKey:`farm:mutation:${plotId}:${tick}`});
-    applyEffects([{ type: "add_item", item: result.reward }, { type: "add_player_exp", amount: Math.max(1, Math.floor(result.experience / 2)) }]);
-    announce(`${result.message} · 灵圃经验 +${result.experience}`);
+    const effects:Parameters<typeof applyEffects>[0]=[{ type: "add_item", item: {...result.reward,sourceTags:[...result.reward.sourceTags,"农产",harvestedCrop.element]} }, { type: "add_player_exp", amount: Math.max(1, Math.floor(result.experience / 2)) }];
+    if(careerResult.companion)effects.push({type:"add_item",item:{itemId:careerResult.companion.id,itemType:careerResult.companion.tags.includes("宝物")?"treasure":"material",rarity:careerResult.companion.rarity as 1|2|3|4|5,amount:1,sourceTags:["灵圃伴生",...careerResult.companion.tags]}});
+    applyEffects(effects);
+    announce(`${result.message} · 返种 1 · 灵植师经验 +${careerResult.experience}${careerResult.companion?` · 伴生${careerResult.companion.name}`:""}`);
   }
 
   function interactPlot(plotId: string) {
@@ -136,7 +144,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
         {labelKey:"farm.waterLabel",value:feedbackText(plot.watered?"farm.yes":"farm.no")},
         {labelKey:"farm.fertilizerLabel",value:plot.fertilizerId?FERTILIZERS[plot.fertilizerId].name:feedbackText("farm.none")},
         {labelKey:"farm.weatherLabel",value:weather.name},
-        {labelKey:"farm.yieldLabel",value:`${crop.yieldMin}—${crop.yieldMax}`},
+        {labelKey:"farm.yieldLabel",value:`基础 ${crop.baseYield} · 受灵泉、肥料与天时加成`},
       ],
       dedupeKey:`farm:inspect:${plotId}:${tick}`,
     });
@@ -149,7 +157,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
     let count = 0;
     for (const plot of farm.plots.slice(0, unlockedPlots)) {
       if (plot.cropId) continue;
-      const result = plantPlot(next, plot.id, selectedCropId, tick);
+      const result = plantPlot(next, plot.id, selectedCropId, tick, farmingCareer.toolTier);
       if (!result.ok) break;
       next = result.farm; count += 1;
     }
@@ -185,9 +193,11 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
       rewards.set(result.reward.itemId, previous ? { ...result, reward: { ...result.reward, amount: previous.reward.amount + result.reward.amount } } : result);
     }
     if (!count) { setMessage("目前没有已经成熟的仙草。"); return; }
-    setFarm(next);
-    applyEffects([...rewards.values().map((result) => ({ type: "add_item" as const, item: result.reward })), { type: "add_player_exp", amount: Math.max(1, Math.floor(experience / 2)) }]);
-    announce(`一键收获 · 仙草 ${count} 株 · 灵圃经验 +${experience}`);
+    let gathering=state.gathering;const extraEffects:Parameters<typeof applyEffects>[0]=[];let seedReturns={...next.seeds};
+    for(const result of rewards.values()){const crop=HERB_CROPS.find(entry=>cropMaterial(entry).id===result.reward.itemId)!;const material=cropMaterial(crop);const rolled=resolveGatheringOutcome(gathering,{professionId:"farming",itemId:result.reward.itemId,name:crop.materialName,rarity:result.reward.rarity,art:material.image,location:"云岫灵圃",tick,seed:`bulk-farm:${day}:${result.reward.itemId}:${farm.harvestSerial}`,tags:["农产",crop.element,"炼丹"]});gathering=rolled.progress;seedReturns[crop.id]=(seedReturns[crop.id]??0)+1;if(rolled.companion)extraEffects.push({type:"add_item",item:{itemId:rolled.companion.id,itemType:rolled.companion.tags.includes("宝物")?"treasure":"material",rarity:rolled.companion.rarity as 1|2|3|4|5,amount:1,sourceTags:["灵圃伴生",...rolled.companion.tags]}});}
+    setGathering(gathering);setFarm({...next,seeds:seedReturns});
+    applyEffects([...rewards.values().map((result) => ({ type: "add_item" as const, item: {...result.reward,sourceTags:[...result.reward.sourceTags,"农产"]} })),...extraEffects, { type: "add_player_exp", amount: Math.max(1, Math.floor(experience / 2)) }]);
+    announce(`一键收获 · 仙草 ${count} 株 · 已返还每种灵种 · 灵植师历练已记录`);
   }
 
   function gatherDew() {
@@ -227,9 +237,9 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
       <aside className="farm-seed-rack">
         <header><span>种匣</span><small>灵种请向叶青禾购买</small></header>
         <div className="farm-seed-list">{visibleCrops.map((crop) => {
-          const material = cropMaterial(crop); const locked = level < crop.unlockLevel;
+          const material = cropMaterial(crop); const locked = level < crop.unlockLevel || farmingCareer.toolTier < crop.unlockLevel;
           return <button type="button" key={crop.id} className={`${selectedCropId === crop.id ? "active" : ""} ${locked ? "locked" : ""}`} disabled={locked} onClick={() => setSelectedCropId(crop.id)}>
-            <img src={material.image} alt="" /><span><strong>{crop.seedName}</strong><small>{locked ? `${crop.unlockLevel}阶解锁` : `${crop.growTicks}时辰 · ${crop.element}行`}</small></span><b>{farm.seeds[crop.id]}</b>
+            <img src={material.image} alt="" /><span><strong>{crop.seedName}</strong><small>{locked ? `职业与灵田设施达到 ${crop.unlockLevel} 阶` : `${crop.growTicks}时辰 · ${crop.element}行`}</small></span><b>{farm.seeds[crop.id]}</b>
           </button>;
         })}</div>
       </aside>
@@ -264,6 +274,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
       </div>
 
       <aside className="farm-actions">
+        <GatheringCareerPanel professionId="farming" onNotice={announce}/>
         <div className="farm-selected-crop"><img src={cropMaterial(selectedCrop).image} alt="" /><span><small>当前灵种</small><strong>{selectedCrop.materialName}</strong><em>{selectedCrop.lore}</em></span></div>
         <button type="button" onClick={bulkPlant}><i>耕</i><span><strong>连作空田</strong><small>按现有种子连续播种</small></span></button>
         <button type="button" disabled={farm.wellLevel >= 3 || farm.wellUpgradedDay === day} onClick={upgradeWell}><i>泉</i><span><strong>疏浚灵泉 · {farm.wellLevel}阶</strong><small>{farm.wellLevel >= 3 ? "已覆盖全部灵田" : `◉ ${farm.wellLevel * 160} · 扩展润养容量`}</small></span></button>

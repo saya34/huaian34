@@ -55,6 +55,7 @@ import { Inspectable } from "./feedback/Inspectable";
 import { useFeedback } from "./feedback/FeedbackProvider";
 import { feedbackText } from "./feedback/texts";
 import { getFarmWeather } from "./farm/farm";
+import { BattleReturnPanel, type BattleReturnReceipt } from "./battle/BattlePreparation";
 
 const PERIODS: Period[] = ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"];
 
@@ -115,8 +116,10 @@ export default function GameDemo() {
   const [projectOpen,setProjectOpen]=useState(false);
   const [questOpen,setQuestOpen]=useState(false);
   const [questOffer,setQuestOffer]=useState<QuestDefinition|null>(null);
+  const [questConversationMenuOpen,setQuestConversationMenuOpen]=useState(false);
   const [timeMenuOpen,setTimeMenuOpen]=useState(false);
   const [activeModule, setActiveModule] = useState<{ kind: "battle"; dungeon: DungeonDefinition } | { kind: "alchemy" } | null>(null);
+  const [battleReturnReceipt, setBattleReturnReceipt] = useState<BattleReturnReceipt | null>(null);
   const [systemPanel, setSystemPanel] = useState<FusionPanelId | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [activeActivity, setActiveActivity] = useState<PeriodicActivityId | null>(null);
@@ -152,6 +155,7 @@ export default function GameDemo() {
     const receiveModuleMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin || event.data?.type !== "huaian-close-module") return;
       setActiveModule(null);
+      if (event.data?.receipt) setBattleReturnReceipt(event.data.receipt as BattleReturnReceipt);
       setNotice(event.data?.settled ? "秘境结算已归入乾坤行囊，时辰随之推移。" : "已返回当前场景。");
     };
     window.addEventListener("message", receiveModuleMessage);
@@ -444,6 +448,7 @@ export default function GameDemo() {
     // rejecting the transition.
     if (!destination || (!destination.characters.length && destination.id !== "bedroom" && destination.id !== "spirit-farm")) return;
     setInteractionMenuOpen(false);
+    setQuestConversationMenuOpen(false);
     setNotice(`抵达 · ${destination.name}`);
     // Production scenes are intentionally characterless. Do not pass them
     // through character-presence resolution, otherwise an unrelated forced
@@ -471,6 +476,7 @@ export default function GameDemo() {
     if (game.activeEvent) return;
     setGame((state) => ({ ...state, selectedCharacterId: id }));
     setInteractionMenuOpen(false);
+    setQuestConversationMenuOpen(false);
     setNotice(`正在与${characterMap[id].name}相处`);
   }
 
@@ -478,12 +484,26 @@ export default function GameDemo() {
     if (game.activeEvent) return;
     if (availableQuestOffer) {
       setInteractionMenuOpen(false);
-      setQuestOffer(availableQuestOffer);
+      setQuestConversationMenuOpen((open)=>!open);
       setNotice(questText("notice.offered", { name: availableQuestOffer.name, giver: character.name }));
       return;
     }
+    setQuestConversationMenuOpen(false);
     const context: TriggerContext = { trigger: "talk", sceneId: game.sceneId, characterId: character.id };
     setGame((state) => launch(context, state, "talk"));
+  }
+
+  function startCasualConversation() {
+    setQuestConversationMenuOpen(false);
+    const context: TriggerContext = { trigger: "talk", sceneId: game.sceneId, characterId: character.id };
+    setGame((state) => launch(context, state, "talk"));
+  }
+
+  function openQuestConversation() {
+    if (!availableQuestOffer) return;
+    setQuestConversationMenuOpen(false);
+    setQuestOffer(availableQuestOffer);
+    setNotice(questText("notice.offered", { name: availableQuestOffer.name, giver: character.name }));
   }
 
   function giveGift(giftId: GiftId) {
@@ -780,14 +800,15 @@ export default function GameDemo() {
         {!game.activeEvent && hasPresentCharacter && (
           <div className={`interaction-dock ${character.id === "ning" || character.id === "huo" ? "has-shop" : ""}`}>
             {canDrink&&interactionMenuOpen&&<div className="interaction-popover"><p>与{character.name}互动</p><button type="button" onClick={()=>{setInteractionMenuOpen(false);setGiftOpen(true)}}><i>礼</i><span><strong>赠予心意</strong><small>从行囊中选择礼物 · 消耗 1 体力</small></span></button><button type="button" onClick={()=>{setInteractionMenuOpen(false);setDrinkingOpen(true)}}><i>酌</i><span><strong>月下共饮</strong><small>{drinkingProficiency.level}阶「{drinkingProficiency.name}」 · 酒兴 {game.interactionCounts[drinkingCountKey]??0}/{drinkingConfig?.specialWinCount}</small></span></button></div>}
+            {availableQuestOffer&&questConversationMenuOpen&&<div className="interaction-popover quest-conversation-popover"><p>{questText("conversationChoiceTitle",{name:character.name})}</p><button type="button" onClick={startCasualConversation}><i>言</i><span><strong>{questText("casualConversation")}</strong><small>{questText("casualConversationHint")}</small></span></button><button type="button" onClick={openQuestConversation}><i>任</i><span><strong>{questText("viewCommission")}</strong><small>{questText("viewCommissionHint",{name:availableQuestOffer.name})}</small></span></button></div>}
             <div className="bond-panel">
               <div><span>缘分 · {currentStage.name}</span><strong>{relationship}</strong></div>
               <div className="bond-track"><i style={{ width: `${relationship}%` }} /></div>
               <p>{nextHint}</p>
             </div>
-            {(character.id === "ning" || character.id === "huo") && <button type="button" className="shop-action" onClick={() => setShopOpen(true)}><span className="action-glyph">商</span><span><small>进入</small>{character.id === "huo" ? "玄锋号" : "栖珍阁"}</span></button>}
-            <button type="button" className={`ink-action ${availableQuestOffer?"has-quest-offer":""}`} onClick={talk}><span className="action-glyph">{availableQuestOffer?"!":"言"}</span><span><small>{availableQuestOffer?questText("offerAvailable"):"与她"}</small>{availableQuestOffer?questText("meetGiver"):"交谈"}</span></button>
-            <button type="button" className={`gold-action ${interactionMenuOpen?"active":""}`} onClick={() => canDrink?setInteractionMenuOpen(value=>!value):setGiftOpen(true)}><span className="action-glyph">{canDrink?"互":"礼"}</span><span><small>{canDrink?"展开":"赠予"}</small>{canDrink?"互动":"心意"}</span></button>
+            {(character.id === "ning" || character.id === "huo") && <button type="button" className="shop-action" onClick={() => {setQuestConversationMenuOpen(false);setShopOpen(true)}}><span className="action-glyph">商</span><span><small>进入</small>{character.id === "huo" ? "玄锋号" : "栖珍阁"}</span></button>}
+            <button type="button" className={`ink-action ${availableQuestOffer?"has-quest-offer":""} ${questConversationMenuOpen?"active":""}`} onClick={talk}><span className="action-glyph">{availableQuestOffer?"!":"言"}</span><span><small>{availableQuestOffer?questText("offerAvailable"):"与她"}</small>{availableQuestOffer?questText("chooseConversation"):"交谈"}</span></button>
+            <button type="button" className={`gold-action ${interactionMenuOpen?"active":""}`} onClick={() => {setQuestConversationMenuOpen(false);canDrink?setInteractionMenuOpen(value=>!value):setGiftOpen(true)}}><span className="action-glyph">{canDrink?"互":"礼"}</span><span><small>{canDrink?"展开":"赠予"}</small>{canDrink?"互动":"心意"}</span></button>
           </div>
         )}
 
@@ -828,7 +849,7 @@ export default function GameDemo() {
         <button type="button" className={systemPanel === "equipment" ? "active" : ""} onClick={() => setSystemPanel("equipment")}><i>器</i><span>法器阁</span></button>
       </nav>
 
-      {mapOpen && <WorldMapModal sceneId={game.sceneId} sceneEventHints={sceneEventHints} mapEvents={visibleMapEvents} period={game.period} day={game.day} inspectionHints={inspectionHints} inspectionDays={game.sceneInspectionDays} onClose={() => setMapOpen(false)} onEnterScene={enterScene} onTriggerMapEvent={triggerMapEvent} onInspectScene={inspectScene} onEnterDungeon={(dungeon) => { setActiveModule({ kind: "battle", dungeon }); setMapOpen(false); }} onEnterAlchemy={() => { setActiveModule({ kind: "alchemy" }); setMapOpen(false); }} onEnterFishing={(locationId, randomSpotId) => { setFishingTarget({ locationId, randomSpotId }); setMapOpen(false); }} onEnterMining={(locationId, randomSpotId) => { setMiningTarget({ locationId, randomSpotId }); setMapOpen(false); }} />}
+      {mapOpen && <WorldMapModal sceneId={game.sceneId} sceneEventHints={sceneEventHints} mapEvents={visibleMapEvents} period={game.period} day={game.day} inspectionHints={inspectionHints} inspectionDays={game.sceneInspectionDays} onClose={() => setMapOpen(false)} onEnterScene={enterScene} onTriggerMapEvent={triggerMapEvent} onInspectScene={inspectScene} onOpenBattlePreparation={(panel) => setSystemPanel(panel)} onEnterDungeon={(dungeon) => { setActiveModule({ kind: "battle", dungeon }); setMapOpen(false); }} onEnterAlchemy={() => { setActiveModule({ kind: "alchemy" }); setMapOpen(false); }} onEnterFishing={(locationId, randomSpotId) => { setFishingTarget({ locationId, randomSpotId }); setMapOpen(false); }} onEnterMining={(locationId, randomSpotId) => { setMiningTarget({ locationId, randomSpotId }); setMapOpen(false); }} />}
       {questOpen&&<QuestPanel onClose={()=>setQuestOpen(false)} onNavigate={navigateToQuest}/>}
       {questOffer&&<QuestOfferDialogue definition={questOffer} onClose={()=>setQuestOffer(null)}/>}
       {projectOpen&&<PathProjectPanel onClose={()=>setProjectOpen(false)} onNotice={setNotice}/>}
@@ -838,9 +859,10 @@ export default function GameDemo() {
       {systemPanel && <FusionSystemPanel panel={systemPanel} onClose={() => setSystemPanel(null)} />}
       {activeModule && <div className={`fusion-module-backdrop module-${activeModule.kind}`} role="presentation"><section className="fusion-module-window" role="dialog" aria-modal="true" aria-label={activeModule.kind === "battle" ? `${activeModule.dungeon.name}秘境战斗` : "玄火丹炉"}>
         <header><button type="button" onClick={() => setActiveModule(null)} aria-label="返回当前场景">‹</button><div><small>{activeModule.kind === "battle" ? "山河地图 · 秘境投影" : "云州山河 · 常驻生产场景"}</small><strong>{activeModule.kind === "battle" ? activeModule.dungeon.name : "玄火丹炉"}</strong></div><span><b>{game.period}</b><i />灵石 {unifiedState.shared.spiritStones.toLocaleString()}</span></header>
-        <div className="fusion-module-frame"><iframe title={activeModule.kind === "battle" ? `${activeModule.dungeon.name}战斗窗口` : "玄火丹炉窗口"} src={activeModule.kind === "battle" ? `/battle?wave=${activeModule.dungeon.waveId}&embedded=1` : "/alchemy?embedded=1"} /></div>
+        <div className="fusion-module-frame"><iframe title={activeModule.kind === "battle" ? `${activeModule.dungeon.name}战斗窗口` : "玄火丹炉窗口"} src={activeModule.kind === "battle" ? `/battle?wave=${activeModule.dungeon.waveId}&embedded=1&ready=1` : "/alchemy?embedded=1"} /></div>
         {activeModule.kind === "battle" && <div className="module-orientation-note"><i>↻</i><strong>请横置手机进入秘境</strong><span>地图与恋爱场景会在结算后继续</span></div>}
       </section></div>}
+      {battleReturnReceipt && <BattleReturnPanel receipt={battleReturnReceipt} onOpenTasks={() => { setBattleReturnReceipt(null); setQuestOpen(true); }} onOpenPanel={(panel) => { setBattleReturnReceipt(null); setSystemPanel(panel); }} onClose={() => setBattleReturnReceipt(null)} />}
       {calendarOpen && <CalendarModal state={game} events={eventDefinitions} onClose={() => setCalendarOpen(false)} />}
       {activeActivity === "tavern-gambling" && <GamblingModal stones={game.spiritStones} stamina={game.stamina} portrait={characterMap.hua?.image ?? "/assets/characters/hua-zhaoying.webp"} onClose={() => setActiveActivity(null)} onSpend={spendSpiritStones} onSpendStamina={spendStamina} onPayout={gainSpiritStones} onBond={gainHuaBond} />}
       {activeActivity === "monthly-market" && <MarketModal stones={game.spiritStones} stamina={game.stamina} treasures={game.marketTreasures} onClose={() => setActiveActivity(null)} onSpend={spendSpiritStones} onSpendStamina={spendStamina} onTreasure={collectMarketTreasure} onBuyGift={buyMarketGift} />}

@@ -9,6 +9,7 @@ import { ITEM_TABLE, MATERIALS } from "./alchemy/item-data";
 import { fishingLocationById, type FishingLocationId } from "./fishing/fishing";
 import { miningLocationById, type MiningLocationId } from "./mining/mining";
 import { useFeedback } from "./feedback/FeedbackProvider";
+import { BattlePreparation, type BattlePreparationPanelId } from "./battle/BattlePreparation";
 
 type Props = {
   sceneId: SceneId;
@@ -23,12 +24,13 @@ type Props = {
   onTriggerMapEvent: (eventId: string) => void;
   onInspectScene: (sceneId: SceneId) => void;
   onEnterDungeon?: (dungeon: DungeonDefinition) => void;
+  onOpenBattlePreparation?: (panel: BattlePreparationPanelId) => void;
   onEnterAlchemy?: () => void;
   onEnterFishing?: (locationId: FishingLocationId, randomSpotId: string) => void;
   onEnterMining?: (locationId: MiningLocationId, randomSpotId?: string) => void;
 };
 
-export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, period, day, inspectionHints, inspectionDays, onClose, onEnterScene, onTriggerMapEvent, onInspectScene, onEnterDungeon, onEnterAlchemy, onEnterFishing, onEnterMining }: Props) {
+export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, period, day, inspectionHints, inspectionDays, onClose, onEnterScene, onTriggerMapEvent, onInspectScene, onEnterDungeon, onOpenBattlePreparation, onEnterAlchemy, onEnterFishing, onEnterMining }: Props) {
   const { state } = useUnifiedGame();
   const feedback=useFeedback();
   const [currentMapId, setCurrentMapId] = useState<WorldMapId>("yunzhou");
@@ -110,18 +112,7 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
       </button>)}
       <div className="map-compass"><i>北</i><span>✦</span><i>南</i></div>
     </div>
-    {!inspectionMode && selectedDungeon && <aside className="dungeon-brief" aria-label={`${selectedDungeon.name}战前情报`}>
-      <button className="dungeon-brief-close" type="button" onClick={() => setSelectedDungeon(null)} aria-label="收起秘境情报">×</button>
-      <div className="dungeon-brief-visual" style={{ backgroundImage: `url(${map.image})` }}><span>{selectedDungeon.kind === "random" ? "异闻" : `第${selectedDungeon.waveId}境`}</span><b>{selectedDungeon.kind === "random" ? "?" : selectedDungeon.waveId}</b></div>
-      <div className="dungeon-brief-copy">
-        <small>{map.name} · 灵脉重叠区</small><h3>{selectedDungeon.name}</h3>
-        <p>{selectedDungeon.kind === "random" ? "入口只在本轮异象中短暂显现，安全带回的线索可能牵动人物旧事。" : "妖潮沿灵脉分作数阵，镇压后可继续深入本域，并将时辰推进至下一阶段。"}</p>
-        <div className="dungeon-facts"><span><small>推荐战力</small><strong>{selectedDungeon.recommendedPower}</strong></span><span><small>预计历练</small><strong>约 4 分钟</strong></span><span><small>结算代价</small><strong>推进时辰</strong></span></div>
-        <section className="dungeon-loadout"><header><span>本次战斗快照</span><b>入境后锁定</b></header><div><span>主角 Lv.{state.shared.playerLevel}</span><span>已习 {state.shared.learnedSkills.length} 法</span><span>人物卡 {state.shared.cards.length} 张</span><span>体力 {state.shared.stamina}/10</span></div></section>
-        <section className="dungeon-rewards"><header><span>可能带回</span><small>失败时仅保险匣物品保留</small></header><div>{dungeonRewards(selectedDungeon).map((item) => <article key={item.id}><img src={item.image} alt="" /><span><strong>{item.name}</strong><small>{item.category} · {item.quality}</small></span></article>)}</div></section>
-        <button type="button" className="enter-dungeon-button" onClick={() => onEnterDungeon?.(selectedDungeon)}><span>确认战斗配置</span><strong>踏 入 秘 境</strong></button>
-      </div>
-    </aside>}
+    {!inspectionMode && selectedDungeon && <aside className="dungeon-brief dungeon-preparation-shell" aria-label={`${selectedDungeon.name}战前整备`}><BattlePreparation dungeon={selectedDungeon} mapImage={map.image} rewards={dungeonRewards(selectedDungeon)} onClose={() => setSelectedDungeon(null)} onOpenPanel={(panel) => onOpenBattlePreparation?.(panel)} onStart={() => onEnterDungeon?.(selectedDungeon)} /></aside>}
     <footer><div className="world-map-tabs">{WORLD_MAPS.map((item, index) => { const locked = index * 7 + 1 > state.dungeons.highestUnlocked; return <button type="button" key={item.id} className={item.id === currentMapId ? "active" : ""} disabled={locked} onClick={() => { setCurrentMapId(item.id); setNotice(""); }}><span>{item.id === "yunzhou" ? "壹" : item.id === "canglan" ? "贰" : "叁"}</span>{locked ? `${item.name}·未启` : item.name}</button>; })}</div><button type="button" className={`inspection-toggle ${inspectionMode?"active":""}`} onClick={()=>{if(period!=="夜晚"){setNotice("检视只能在夜晚进行。请先推移到夜晚。");return}setSelectedDungeon(null);setInspectionMode(value=>!value);setNotice(inspectionMode?"已退出检视模式":"检视模式已开启：地图仅显现本夜确有异动之处")}}><span>眼</span>{inspectionMode?"退出检视":"夜间检视"}</button><p>{notice || (inspectionMode?(inspectionHints.size ? `神识捕捉到 ${inspectionHints.size} 处异动；其余地点本夜不再显示。` : "本夜山河寂静，未发现可检视事件。") : visibleMapEvents.length ? `此域有 ${visibleMapEvents.length} 处待完成异闻，完成剧情前不会消失。` : map.description)}</p></footer>
   </section></div>;
 }

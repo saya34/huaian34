@@ -9,6 +9,8 @@ import {
 } from "./mining";
 import { useFeedback } from "../feedback/FeedbackProvider";
 import { feedbackText } from "../feedback/texts";
+import GatheringCareerPanel from "../gathering/GatheringCareerPanel";
+import { resolveGatheringOutcome } from "../gathering/engine";
 
 type Props={locationId:MiningLocationId;randomSpotId?:string;day:number;period:string;onClose:()=>void;onNotice:(message:string)=>void};
 const RARITY=["凡品","良品","珍品","极品","神品","神话","太初"];
@@ -29,7 +31,7 @@ function tunnelStyle(from:MineTile,to:MineTile,width:number,height:number):React
 function isPassage(tile:MineTile){return tile.state==="dug"||tile.state==="opened";}
 
 export default function MiningModal({locationId,randomSpotId,day,period,onClose,onNotice}:Props){
-  const{state,setMining,applyEffects}=useUnifiedGame();const location=miningLocationById(locationId)!;const mining=state.mining;const maze=activeMiningMaze(mining,location,randomSpotId);
+  const{state,setMining,setGathering,applyEffects}=useUnifiedGame();const location=miningLocationById(locationId)!;const mining=state.mining;const maze=activeMiningMaze(mining,location,randomSpotId);
   const feedback=useFeedback();
   const [message,setMessage]=useState("从入口开始开掘。只有清除当前土块，四周相邻区域才会显现。");
   const [selectedId,setSelectedId]=useState(maze?.tiles.find(tile=>tile.state==="revealed")?.id??"");
@@ -50,7 +52,9 @@ export default function MiningModal({locationId,randomSpotId,day,period,onClose,
   function announce(copy:string){setMessage(copy);onNotice(copy)}
   function grant(rewards:MiningReward[]){
     const effects:Parameters<typeof applyEffects>[0]=[];
-    for(const reward of rewards){if(reward.kind==="currency")effects.push({type:"add_currency",amount:reward.amount});else if((reward.kind==="item"||reward.kind==="map-fragment")&&reward.itemId)effects.push({type:"add_item",item:{itemId:reward.itemId,itemType:reward.itemType??"treasure",rarity:reward.rarity,amount:reward.amount,sourceTags:[location.name,reward.kind==="map-fragment"?"藏宝图":"地宫开掘"]}});}
+    let gathering=state.gathering;
+    for(const reward of rewards){if(reward.kind==="currency")effects.push({type:"add_currency",amount:reward.amount});else if((reward.kind==="item"||reward.kind==="map-fragment")&&reward.itemId){effects.push({type:"add_item",item:{itemId:reward.itemId,itemType:reward.itemType??"treasure",rarity:reward.rarity,amount:reward.amount,sourceTags:[location.name,"矿物",reward.kind==="map-fragment"?"藏宝图":"地宫开掘"]}});const rolled=resolveGatheringOutcome(gathering,{professionId:"mining",itemId:reward.itemId,name:reward.name,rarity:reward.rarity,art:reward.image,location:location.name,tick:(day-1)*6,seed:`mine:${day}:${mining.strikeSerial}:${reward.itemId}`,tags:[reward.kind==="map-fragment"?"宝物":"矿物","地脉"]});gathering=rolled.progress;if(rolled.companion)effects.push({type:"add_item",item:{itemId:rolled.companion.id,itemType:rolled.companion.tags.includes("宝物")?"treasure":"material",rarity:rolled.companion.rarity as 1|2|3|4|5,amount:1,sourceTags:["挖矿伴生",...rolled.companion.tags]}});}}
+    setGathering(gathering);
     if(effects.length)applyEffects(effects);
     rewards.slice(0,3).forEach((reward,index)=>feedback.float({titleKey:"mining.dropFloat",params:{name:reward.name,amount:reward.amount},icon:"矿",tone:reward.rarity>=4?"gold":"jade",dedupeKey:`mining:drop:${reward.name}:${reward.amount}:${Date.now()}:${index}`}));
   }
@@ -98,7 +102,8 @@ export default function MiningModal({locationId,randomSpotId,day,period,onClose,
         <button type="button" className="mine-selected-info feedback-mining-inspect" onClick={()=>inspectTile(selected)}><small>当前目标 · 点击详查</small><h3>{selected?.kind==="deep-chest"?"太古秘藏":selected?.kind==="chest"?"封印宝箱":selected?.kind&&selected.kind in SOIL_DEFINITIONS?SOIL_DEFINITIONS[selected.kind as keyof typeof SOIL_DEFINITIONS].name:selected?.kind==="wall"?"镇脉黑墙":"地宫甬道"}</h3><p>{tileCopy(selected)}</p></button>
         <section className="mine-keyring"><header>地宫钥环</header>{(Object.keys(KEY_DEFINITIONS) as Array<keyof typeof KEY_DEFINITIONS>).map(id=><span key={id}><i>{KEY_DEFINITIONS[id].glyph}</i><b>{KEY_DEFINITIONS[id].name}</b><em>×{mining.keys[id]}</em></span>)}</section>
         <section className="mine-map-scroll"><span><i>{mining.treasureMapAssembled?"图":"卷"}</i><b>{mining.treasureMapAssembled?"太虚藏宝图已成":"藏宝图残卷"}</b><small>{mining.treasureMapAssembled?"特殊副本已出现在云州地图":`${mining.treasureMapFragments}/3 · 深层秘藏产出`}</small></span>{!mining.treasureMapAssembled&&<button type="button" disabled={mining.treasureMapFragments<3} onClick={assemble}>拼合藏宝图</button>}</section>
-        <section className="mine-tools-dock"><button type="button" onClick={mend}><i>修</i><span><b>修复灵镐</b><small>◉ {repairPrice(mining)} · 恢复全部耐久</small></span></button><button type="button" disabled={mining.pickaxeLevel>=3} onClick={improve}><i>炼</i><span><b>淬炼灵镐</b><small>提高伤害与耐久上限</small></span></button>{location.kind==="resident"&&maze.completed&&<button type="button" className="descend-button" onClick={descend}><i>下</i><span><b>进入下一层</b><small>更深地层 · 更珍稀掉落</small></span></button>}</section>
+        <section className="mine-tools-dock"><button type="button" onClick={mend}><i>修</i><span><b>修复灵镐</b><small>◉ {repairPrice(mining)} · 恢复全部耐久</small></span></button>{location.kind==="resident"&&maze.completed&&<button type="button" className="descend-button" onClick={descend}><i>下</i><span><b>进入下一层</b><small>更深地层 · 更珍稀掉落</small></span></button>}</section>
+        <GatheringCareerPanel professionId="mining" onNotice={announce}/>
         <div className="mine-message"><i>录</i><p>{message}</p></div>
       </aside>
     </div>

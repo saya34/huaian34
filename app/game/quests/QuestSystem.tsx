@@ -8,6 +8,7 @@ import { isQuestVisible, questRewardEffects, questSortRank, questView, synchroni
 import type { QuestDefinition, QuestNavigate, QuestStatus, QuestType } from "./types";
 
 const ART = "/assets/quests/quest-dossier-v1.png";
+const QUEST_CARD_STORAGE_KEY = "huaian:quest-card-collapsed:v1";
 
 function firstObjectiveLine(definition: QuestDefinition, state: ReturnType<typeof useUnifiedGame>["state"], statuses: ReturnType<typeof useUnifiedGame>["state"]["quests"]) {
   const view = questView(definition, statuses, state);
@@ -46,13 +47,29 @@ export function QuestStateSynchronizer() {
 
 export function CurrentQuestCard({ onOpen, onNavigate }: { onOpen: () => void; onNavigate: QuestNavigate }) {
   const { state } = useUnifiedGame();
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    const stored = window.localStorage.getItem(QUEST_CARD_STORAGE_KEY);
+    setCollapsed(stored === null ? window.matchMedia("(max-width: 760px)").matches : stored === "1");
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((current) => {
+      const next = !current;
+      window.localStorage.setItem(QUEST_CARD_STORAGE_KEY, next ? "1" : "0");
+      return next;
+    });
+  }
+
   const definition = QUESTS.find((quest) => quest.id === state.quests.trackedQuestId);
-  if (!definition) return <section className="current-quest-card is-free"><img src={ART} alt=""/><div><small>{questText("freeExplore")}</small><h3>{questText("freeExplore")}</h3><p>{questText("freeExploreBody")}</p><button type="button" onClick={onOpen}>{questText("viewAll")}</button></div></section>;
+  const toggle = <button type="button" className="quest-card-toggle" aria-expanded={!collapsed} aria-label={collapsed ? questText("expandCard") : questText("collapseCard")} title={collapsed ? questText("expandCard") : questText("collapseCard")} onClick={toggleCollapsed}><span aria-hidden="true">{collapsed ? "任" : "‹"}</span></button>;
+  if (!definition) return <section className={`current-quest-card is-free ${collapsed ? "is-collapsed" : ""}`}>{toggle}<img src={ART} alt=""/><div><small>{questText("freeExplore")}</small><h3>{questText("freeExplore")}</h3><p>{questText("freeExploreBody")}</p><button type="button" onClick={onOpen}>{questText("viewAll")}</button></div></section>;
   const view = questView(definition, state.quests, state);
   const objective = view.objectives[0];
   const awaitingDialogue = view.status === "unaccepted" && definition.giver;
   const claimable = view.status === "claimable" || view.status === "completed";
-  return <section className={`current-quest-card type-${definition.type} status-${view.status}`}>
+  return <section className={`current-quest-card type-${definition.type} status-${view.status} ${collapsed ? "is-collapsed" : ""}`}>
+    {toggle}
     <img src={ART} alt=""/>
     <div className="current-quest-copy"><small>{definition.type === "main" ? questText("currentMain") : questText("currentSide")}</small><h3>{definition.name}</h3>{objective && <div className="current-quest-objective"><span>{questText("currentObjective")}</span><strong>{awaitingDialogue ? questText("meetObjective", { name: definition.giver!.name }) : objective.description}</strong><em>{awaitingDialogue ? questText("status.unaccepted") : questText("progress", { current: objective.current, required: objective.required })}</em><i><b style={{ width: awaitingDialogue ? "0%" : `${Math.min(100, objective.current / objective.required * 100)}%` }}/></i></div>}<footer><button type="button" className="quest-primary" onClick={() => claimable ? onOpen() : onNavigate(definition, awaitingDialogue ? "giver" : "objective")}>{primaryLabel(view.status, definition)}</button><button type="button" className="quest-link" onClick={onOpen}>{questText("viewAll")}</button></footer></div>
     <span className="quest-corner-seal">任</span>
@@ -97,6 +114,12 @@ export default function QuestPanel({ onClose, onNavigate }: { onClose: () => voi
   const visible = useMemo(() => QUESTS.filter((quest) => quest.type === tab && isQuestVisible(quest, state.quests)).map((definition) => questView(definition, state.quests, state)).sort((a, b) => questSortRank[a.status] - questSortRank[b.status] || a.definition.order - b.definition.order), [state, tab]);
   const selectedDefinition = QUESTS.find((quest) => quest.id === selectedId && quest.type === tab) ?? visible[0]?.definition;
   const selected = selectedDefinition ? questView(selectedDefinition, state.quests, state) : null;
+
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent) { if (event.key === "Escape") onClose(); }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
 
   function notify(key: string, name: string) {
     feedback.toast({ titleKey: "system.dynamicMessage", params: { message: questText(key, { name }) }, icon: "任", tone: "gold", dedupeKey: `quest:${key}:${name}` });
