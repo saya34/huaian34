@@ -170,6 +170,7 @@ export interface EquipmentDefinition {
 
 export interface EquipmentItem {
   uid: string; equipmentId: string; name?: string; rarity?: GearRarity; price?: number; bonuses?: AttributeBonus; affixes?: string[];
+  art?: string; description?: string;
   prefix?: string; suffix?: string; identified?: boolean; twoHanded?: boolean; width?: number; height?: number;
   requirements?: Partial<Record<"strength" | "dexterity" | "magic", number>>;
   baseBonuses?: AttributeBonus; magicBonuses?: AttributeBonus;

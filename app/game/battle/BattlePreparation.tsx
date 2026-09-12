@@ -124,7 +124,7 @@ export function BattlePreparation({ dungeon, mapImage, rewards, heroName = copy.
           const value = action.id === "profile" ? formatTemplate(copy.levelCount, { count: state.battle.playerLevel }) : action.id === "skills" ? formatTemplate(copy.skillCount, { count: Object.values(state.battle.skillMastery).filter((skill) => skill.learned).length }) : action.id === "equipment" ? formatTemplate(copy.equipmentCount, { count: equipped.length }) : formatTemplate(copy.cardCount, { count: state.shared.cards.length });
           return <button type="button" key={action.id} onClick={() => onOpenPanel(action.id as BattlePreparationPanelId)}><i>{action.mark}</i><span><strong>{action.label}</strong><small>{action.hint}</small></span><b>{value}</b></button>;
         })}</div>
-        <div className="battle-equipped-ribbon">{equipped.map(({ item, definition }) => <span key={item.uid} title={item.name ?? definition.name}><img src={definition.art} alt="" /><small>{item.name ?? definition.name}</small></span>)}{equipped.length === 0 && <p>{copy.equipmentEmpty}</p>}</div>
+        <div className="battle-equipped-ribbon">{equipped.map(({ item, definition }) => <span key={item.uid} title={item.name ?? definition.name}><img src={item.art ?? definition.art} alt="" /><small>{item.name ?? definition.name}</small></span>)}{equipped.length === 0 && <p>{copy.equipmentEmpty}</p>}</div>
       </section>
 
       <section className="battle-supply-card">

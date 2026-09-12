@@ -10,6 +10,9 @@ import { createInitialFishing, normalizeFishingProgress, type FishingProgress } 
 import { createInitialMining, normalizeMiningProgress, type MiningProgress } from "../mining/mining";
 import { createInitialGathering, normalizeGathering } from "../gathering/engine";
 import type { GatheringProgress } from "../gathering/types";
+import { gatheringItemById } from "../gathering/content";
+import { findEquipmentPosition } from "../battle/inventorySystem";
+import type { GearRarity } from "../battle/progression";
 import { createInitialQuestProgress, normalizeQuestProgress } from "../quests/engine";
 import type { QuestProgress } from "../quests/types";
 import { keyFor, LocalPlayerStateRepository } from "./player-state-repository";
@@ -186,7 +189,17 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
       const item = { ...effect.item, amount: (previous?.amount ?? 0) + effect.item.amount };
       const isAlchemyMaterial = MATERIALS.some((entry) => entry.id === item.itemId);
       const romance = item.itemType === "gift" ? { ...next.romance, inventory: { ...next.romance.inventory, [item.itemId]: (next.romance.inventory[item.itemId] ?? 0) + effect.item.amount } } : next.romance;
-      return { ...next, romance, shared: { ...next.shared, items: { ...next.shared.items, [item.itemId]: item } }, alchemy: isAlchemyMaterial ? { ...next.alchemy, materialCounts: { ...next.alchemy.materialCounts, [item.itemId]: (next.alchemy.materialCounts[item.itemId] ?? 0) + effect.item.amount } } : next.alchemy };
+      let battle = next.battle;
+      const gatheringEquipment = item.itemType === "equipment" ? gatheringItemById(item.itemId) : undefined;
+      if (gatheringEquipment?.equipmentId && effect.item.amount > 0) {
+        const rarityByTier:GearRarity[]=["common","common","fine","rare","epic","immortal"];
+        for(let index=0;index<effect.item.amount;index+=1){
+          const equipment={uid:`gathering-${gatheringEquipment.id}-${next.updatedAt}-${battle.equipmentBag.length}-${index}`,equipmentId:gatheringEquipment.equipmentId,name:gatheringEquipment.name,description:gatheringEquipment.description,art:gatheringEquipment.art,price:gatheringEquipment.value,rarity:rarityByTier[gatheringEquipment.rarity]??"common",identified:true};
+          const position=findEquipmentPosition(battle.equipmentBag,battle.equipmentPositions,equipment);
+          if(position)battle={...battle,equipmentBag:[...battle.equipmentBag,equipment],equipmentPositions:{...battle.equipmentPositions,[equipment.uid]:position}};
+        }
+      }
+      return { ...next, romance, battle, shared: { ...next.shared, items: { ...next.shared.items, [item.itemId]: item } }, alchemy: isAlchemyMaterial ? { ...next.alchemy, materialCounts: { ...next.alchemy.materialCounts, [item.itemId]: (next.alchemy.materialCounts[item.itemId] ?? 0) + effect.item.amount } } : next.alchemy };
     }
     if (effect.type === "remove_item") {
       const previous = next.shared.items[effect.itemId]; if (!previous) return next;
