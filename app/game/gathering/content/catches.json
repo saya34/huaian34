@@ -1,0 +1,19 @@
+{
+  "fish": [
+    {"id":"cloud-silk-gourami","name":"云绡斗鱼","description":"尾鳍薄如云绡，收线时会在水面留下三道银纹。","rarity":1,"value":64,"art":"/assets/gathering/fishing/cloud-silk-gourami.webp","icon":"绡"},
+    {"id":"bronze-bell-loach","name":"铜铃灵鳅","description":"鳞片相击如细铃，多在浅滩灵石缝中穿行。","rarity":1,"value":72,"art":"/assets/gathering/fishing/bronze-bell-loach.webp","icon":"铃"},
+    {"id":"glassfin-perch","name":"琉璃鳍鲈","description":"晶莹鱼鳍能折映水下灵光，是炼制明目灵膳的佳品。","rarity":2,"value":146,"art":"/assets/gathering/fishing/glassfin-perch.webp","icon":"璃"},
+    {"id":"mist-pattern-koi","name":"烟岚锦鲤","description":"背纹似远山云岚，常被视为旅途顺遂的征兆。","rarity":2,"value":176,"art":"/assets/gathering/fishing/mist-pattern-koi.webp","icon":"岚"},
+    {"id":"thunder-ray","name":"紫霆灵鳐","description":"宽鳍藏有雷脉，挣扎时会令灵线微微发麻。","rarity":3,"value":386,"art":"/assets/gathering/fishing/thunder-ray.webp","icon":"霆"},
+    {"id":"abyss-lanternfish","name":"幽渊灯鱼","description":"额前灵灯只在寒潭深处亮起，可为夜航修士指路。","rarity":3,"value":432,"art":"/assets/gathering/fishing/abyss-lanternfish.webp","icon":"灯"},
+    {"id":"crimson-lotus-eel","name":"赤莲火鳗","description":"盘游如一朵盛放火莲，鱼油可替代部分火性丹材。","rarity":4,"value":920,"art":"/assets/gathering/fishing/crimson-lotus-eel.webp","icon":"莲"},
+    {"id":"primordial-dragon-whisker","name":"太初龙须鱼","description":"长须牵引古老水脉，传说它只咬有缘人的钩。","rarity":5,"value":2360,"art":"/assets/gathering/fishing/primordial-dragon-whisker.webp","icon":"初"}
+  ],
+  "locationPoolAdditions": {
+    "lingxiao-cloudpool":[{"fishId":"cloud-silk-gourami","weight":28},{"fishId":"glassfin-perch","weight":16},{"fishId":"mist-pattern-koi","weight":10},{"fishId":"primordial-dragon-whisker","weight":1}],
+    "tavern-pier":[{"fishId":"bronze-bell-loach","weight":30},{"fishId":"glassfin-perch","weight":18},{"fishId":"mist-pattern-koi","weight":12},{"fishId":"abyss-lanternfish","weight":2}],
+    "yunzhou-wild":[{"fishId":"cloud-silk-gourami","weight":22},{"fishId":"mist-pattern-koi","weight":18},{"fishId":"abyss-lanternfish","weight":8},{"fishId":"primordial-dragon-whisker","weight":1}],
+    "canglan-wild":[{"fishId":"glassfin-perch","weight":19},{"fishId":"thunder-ray","weight":13},{"fishId":"abyss-lanternfish","weight":11},{"fishId":"primordial-dragon-whisker","weight":1}],
+    "chixia-wild":[{"fishId":"bronze-bell-loach","weight":16},{"fishId":"thunder-ray","weight":14},{"fishId":"crimson-lotus-eel","weight":9},{"fishId":"primordial-dragon-whisker","weight":1}]
+  }
+}

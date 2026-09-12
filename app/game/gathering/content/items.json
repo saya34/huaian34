@@ -1,1 +1,44 @@
-{"companionPools":{"fishing":[{"id":"water-spirit-scale","name":"澄心水鳞","rarity":2,"weight":48,"art":"/assets/moon-lotus.webp","tags":["水产","清凉","药引"]},{"id":"river-pearl","name":"听澜珠","rarity":3,"weight":28,"art":"/assets/star-sand.webp","tags":["水产","导灵","炼器"]},{"id":"ancient-hook","name":"古修遗钩","rarity":4,"weight":16,"art":"/assets/items/item-31.webp","tags":["宝物","寻珍","剧情"]},{"id":"river-map-fragment","name":"河图残片","rarity":5,"weight":8,"art":"/assets/demon-core.webp","tags":["宝物","藏宝图","剧情"]}],"farming":[{"id":"spirit-dew","name":"百草灵露","rarity":2,"weight":48,"art":"/assets/moon-lotus.webp","tags":["农产","清凉","药引"]},{"id":"five-phase-pollen","name":"五行花粉","rarity":3,"weight":30,"art":"/assets/star-sand.webp","tags":["农产","稳定","肥料"]},{"id":"mutant-root","name":"灵变根须","rarity":4,"weight":16,"art":"/assets/jade-mushroom.webp","tags":["农产","黏合","炼丹"]},{"id":"earth-vein-seed","name":"地脉古种","rarity":5,"weight":6,"art":"/assets/flame-herb.webp","tags":["宝物","种子","剧情"]}],"mining":[{"id":"rough-spirit-stone","name":"原生灵石屑","rarity":2,"weight":46,"art":"/assets/star-sand.webp","tags":["矿物","导灵","炼器"]},{"id":"fire-vein-crystal","name":"火脉晶核","rarity":3,"weight":31,"art":"/assets/flame-herb.webp","tags":["矿物","燃烧","炼丹"]},{"id":"ancient-mechanism","name":"古机括","rarity":4,"weight":17,"art":"/assets/items/item-17.webp","tags":["宝物","机关","工具"]},{"id":"treasure-map-fragment","name":"太虚藏宝图残卷","rarity":5,"weight":6,"art":"/assets/demon-core.webp","tags":["宝物","藏宝图","剧情"]}]}}
+{
+  "companionPools": {
+    "fishing": [
+      {"id":"water-spirit-scale","name":"澄心水鳞","description":"薄鳞蕴有清凉水意，可作药引。","itemType":"material","rarity":2,"weight":36,"value":75,"art":"/assets/gathering/fishing/glassfin-perch.webp","tags":["水产","清凉","药引"]},
+      {"id":"river-pearl","name":"听澜珠","description":"受百年潮声打磨的灵珠，适合炼器。","itemType":"material","rarity":3,"weight":22,"value":210,"art":"/assets/gathering/fishing/merfolk-tear.webp","tags":["水产","导灵","炼器"]},
+      {"id":"moon-pact-shell","name":"月契同心贝","description":"双贝合拢时映出一线月光，是温柔而含蓄的赠礼。","itemType":"gift","rarity":2,"weight":24,"value":140,"art":"/assets/gathering/fishing/moon-pact-shell.webp","tags":["礼物","雅致","月色"]},
+      {"id":"tide-incense-sachet","name":"潮生香囊","description":"海盐与水沉香调成的清冽香囊。","itemType":"gift","rarity":3,"weight":17,"value":260,"art":"/assets/gathering/fishing/tide-incense-sachet.webp","tags":["礼物","清雅","水香"]},
+      {"id":"driftwood-flute","name":"流木短笛","description":"河心古木制成，吹响时似有潮声应和。","itemType":"gift","rarity":3,"weight":14,"value":320,"art":"/assets/gathering/fishing/driftwood-flute.webp","tags":["礼物","乐器","旧忆"]},
+      {"id":"river-celadon-mirror","name":"沉江青瓷镜","description":"镜面裂纹间仍流转着古代水府禁制。","itemType":"treasure","rarity":4,"weight":11,"value":720,"art":"/assets/gathering/fishing/river-celadon-mirror.webp","tags":["宝物","水府","收藏"]},
+      {"id":"water-forged-short-sword","name":"潮铸短剑","description":"从水下兵匣中打捞出的短剑，锋芒遇水更盛。","itemType":"equipment","equipmentId":"frost-bow","rarity":4,"weight":8,"value":980,"art":"/assets/gathering/fishing/water-forged-short-sword.webp","tags":["装备","武器","水脉"]},
+      {"id":"merfolk-tear","name":"鲛人泪珠","description":"无风也会泛起涟漪的稀世明珠。","itemType":"treasure","rarity":5,"weight":4,"value":1880,"art":"/assets/gathering/fishing/merfolk-tear.webp","tags":["宝物","鲛人","珍藏"]},
+      {"id":"dragon-palace-key","name":"龙宫旧钥","description":"钥齿与云州现存锁制全不相同，似乎开启某处水府。","itemType":"quest","rarity":5,"weight":3,"value":0,"locked":true,"art":"/assets/gathering/fishing/dragon-palace-key.webp","tags":["剧情","水府线索","不可出售"]},
+      {"id":"fisherman-letter","name":"无名钓叟遗笺","description":"水浸旧笺只剩一句：月缺之夜，循灯鱼而下。","itemType":"quest","rarity":4,"weight":6,"value":0,"locked":true,"art":"/assets/gathering/fishing/fisherman-letter.webp","tags":["剧情","秘闻","不可出售"]}
+    ],
+    "mining": [
+      {"id":"black-gold-iron","name":"玄金铁母","description":"黑铁中游走金线，是稳定的法器胚材。","itemType":"material","rarity":2,"weight":34,"value":95,"art":"/assets/gathering/mining/black-gold-iron.webp","tags":["矿物","炼器","坚固"]},
+      {"id":"frost-marrow-crystal","name":"寒髓晶","description":"晶心终年结霜，可作清凉与稳定材料。","itemType":"material","rarity":2,"weight":30,"value":110,"art":"/assets/gathering/mining/frost-marrow-crystal.webp","tags":["矿物","清凉","稳定"]},
+      {"id":"thunder-vein-geode","name":"雷脉晶洞","description":"紫电被封存在层叠晶瓣之间。","itemType":"material","rarity":3,"weight":22,"value":260,"art":"/assets/gathering/mining/thunder-vein-geode.webp","tags":["矿物","导电","炼器"]},
+      {"id":"fire-cinnabar","name":"朱焰丹砂","description":"受地火煅烧的丹砂，燃烧性极强。","itemType":"material","rarity":3,"weight":20,"value":285,"art":"/assets/gathering/mining/fire-cinnabar.webp","tags":["矿物","燃烧","炼丹"]},
+      {"id":"earth-pulse-jade","name":"地脉玉胎","description":"玉胎内灵气缓慢搏动，适合大型阵基。","itemType":"material","rarity":4,"weight":13,"value":620,"art":"/assets/gathering/mining/earth-pulse-jade.webp","tags":["矿物","阵法","地脉"]},
+      {"id":"meteoric-iron-shard","name":"星陨铁片","description":"表面仍留星火，是高阶武器辅材。","itemType":"material","rarity":4,"weight":11,"value":690,"art":"/assets/gathering/mining/meteoric-iron-shard.webp","tags":["矿物","星辉","炼器"]},
+      {"id":"void-glass","name":"太虚琉璃","description":"每一处切面都映着不同星空。","itemType":"material","rarity":5,"weight":4,"value":1680,"art":"/assets/gathering/mining/void-glass.webp","tags":["矿物","太虚","高阶材料"]},
+      {"id":"mountain-seal-token","name":"镇山古符","description":"古矿监留下的青铜腰符，背面刻有封矿日期。","itemType":"treasure","rarity":3,"weight":14,"value":380,"art":"/assets/gathering/mining/mountain-seal-token.webp","tags":["宝物","古矿","收藏"]},
+      {"id":"cave-compass","name":"寻脉地罗盘","description":"指针会偏向附近尚未开采的灵脉。","itemType":"treasure","rarity":4,"weight":8,"value":840,"art":"/assets/gathering/mining/cave-compass.webp","tags":["宝物","寻脉","工具"]},
+      {"id":"stonebreaker-hammer","name":"裂岳战锤","description":"矿脉深层出土的重兵，挥动时带起山鸣。","itemType":"equipment","equipmentId":"thunder-halberd","rarity":4,"weight":7,"value":1320,"art":"/assets/gathering/mining/stonebreaker-hammer.webp","tags":["装备","武器","重兵"]},
+      {"id":"mountain-heart-pendant","name":"山心双佩","description":"成对的山水玉佩，适合赠给重视守诺之人。","itemType":"gift","rarity":3,"weight":13,"value":330,"art":"/assets/gathering/mining/mountain-heart-pendant.webp","tags":["礼物","玉佩","守诺"]},
+      {"id":"subterranean-map","name":"失落矿路图","description":"图上金线通向常明矿窟更深处的一道封门。","itemType":"quest","rarity":5,"weight":3,"value":0,"locked":true,"art":"/assets/gathering/mining/subterranean-map.webp","tags":["剧情","矿难线索","不可出售"]}
+    ],
+    "farming": [
+      {"id":"moon-dew-bamboo","name":"月露玉笋","description":"只在月露浸润的竹根旁伴生。","itemType":"material","rarity":2,"weight":32,"value":92,"art":"/assets/gathering/farming/moon-dew-bamboo.webp","tags":["农产","清凉","食材"]},
+      {"id":"seven-star-orchid","name":"七曜幽兰","description":"七朵花蕊依次点亮，可安定神识。","itemType":"material","rarity":3,"weight":22,"value":245,"art":"/assets/gathering/farming/seven-star-orchid.webp","tags":["农产","安神","炼丹"]},
+      {"id":"fire-vein-pepper","name":"火脉灵椒","description":"果皮流动火纹，适合制作御寒灵膳。","itemType":"material","rarity":2,"weight":28,"value":125,"art":"/assets/gathering/farming/fire-vein-pepper.webp","tags":["农产","燃烧","食材"]},
+      {"id":"cloud-grain-rice","name":"云粳灵米","description":"米粒蒸熟后会逸出淡淡云气。","itemType":"material","rarity":1,"weight":38,"value":55,"art":"/assets/gathering/farming/cloud-grain-rice.webp","tags":["农产","主食","恢复"]},
+      {"id":"dream-silk-cotton","name":"梦绡灵棉","description":"棉絮轻软，常用来缝制护符内衬。","itemType":"material","rarity":2,"weight":26,"value":138,"art":"/assets/gathering/farming/dream-silk-cotton.webp","tags":["农产","织物","炼器"]},
+      {"id":"yang-ginger","name":"温阳金姜","description":"根茎自带暖意，是驱湿药的重要替代材。","itemType":"material","rarity":2,"weight":29,"value":118,"art":"/assets/gathering/farming/yang-ginger.webp","tags":["农产","温燥","治疗"]},
+      {"id":"cicada-wing-tea","name":"蝉翼云茶","description":"叶片薄透，冲泡时会响起夏蝉余音。","itemType":"material","rarity":3,"weight":18,"value":310,"art":"/assets/gathering/farming/cicada-wing-tea.webp","tags":["农产","清雅","茶饮"]},
+      {"id":"ink-spirit-bean","name":"玄墨灵豆","description":"豆荚含有浓郁土木灵气，耐储存且用途广。","itemType":"material","rarity":2,"weight":30,"value":105,"art":"/assets/gathering/farming/ink-spirit-bean.webp","tags":["农产","稳定","食材"]},
+      {"id":"five-color-pollen","name":"五色灵花粉","description":"五行花粉相互制衡，是珍贵肥料。","itemType":"material","rarity":3,"weight":20,"value":275,"art":"/assets/gathering/farming/five-color-pollen.webp","tags":["农产","稳定","肥料"]},
+      {"id":"concentric-flower-bracelet","name":"同心花绳","description":"以初开的灵花编成，赠予时仍有露珠。","itemType":"gift","rarity":2,"weight":23,"value":155,"art":"/assets/gathering/farming/concentric-flower-bracelet.webp","tags":["礼物","手作","花香"]},
+      {"id":"rain-prayer-bell","name":"祈雨铜铃","description":"古农祭遗物，轻摇便有水汽聚来。","itemType":"treasure","rarity":4,"weight":8,"value":780,"art":"/assets/gathering/farming/rain-prayer-bell.webp","tags":["宝物","节气","收藏"]},
+      {"id":"earth-vein-seed","name":"地脉古种","description":"尚未有人辨认出它会长成何种灵植。","itemType":"quest","rarity":5,"weight":3,"value":0,"locked":true,"art":"/assets/gathering/farming/earth-vein-seed.webp","tags":["剧情","古种","不可出售"]}
+    ]
+  }
+}

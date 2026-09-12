@@ -113,7 +113,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
         { type: "add_item", item: { itemId: target.id, itemType: "fish", rarity: target.rarity, amount: 1, sourceTags: [location.name,"水产", location.kind === "random" ? "游光钓点" : "常驻钓点"] } },
         { type: "add_player_exp", amount: target.rarity * 3 },
       ] as Parameters<typeof applyEffects>[0];
-      if(careerResult.companion)rewards.push({type:"add_item",item:{itemId:careerResult.companion.id,itemType:careerResult.companion.tags.includes("宝物")?"treasure":"material",rarity:careerResult.companion.rarity as 1|2|3|4|5,amount:1,sourceTags:["钓鱼伴生",...careerResult.companion.tags]}});
+      if(careerResult.companion)rewards.push({type:"add_item",item:{itemId:careerResult.companion.id,itemType:careerResult.companion.itemType,rarity:careerResult.companion.rarity as 1|2|3|4|5,amount:1,sourceTags:["钓鱼伴生",...careerResult.companion.tags],locked:careerResult.companion.locked}});
       if (reel.ok && reel.mapFragment) rewards.push({ type: "add_item", item: { itemId: "river-map-fragment", itemType: "quest", rarity: 4, amount: 1, sourceTags: ["钓鱼", "河图残片"] } });
       applyEffects(rewards);
       feedback.publish({

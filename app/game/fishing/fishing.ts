@@ -4,6 +4,7 @@ export type FishingMapId = "yunzhou" | "canglan" | "chixia";
 export type FishingLocationId = "lingxiao-cloudpool" | "tavern-pier" | "yunzhou-wild" | "canglan-wild" | "chixia-wild";
 import type { GatheringCareerState } from "../gathering/types";
 import { gatheringLevel, selectedTool } from "../gathering/engine";
+import catchesJson from "../gathering/content/catches.json";
 
 export type FishDefinition = {
   id: string;
@@ -80,7 +81,7 @@ export const CHUMS: Record<ChumId, { name: string; description: string; material
   "fire-chum": { name: "赤霄诱鱼散", description: "赤霄龙葵入水化为暖流，适合炎脉鱼场。", materialName: "赤霄龙葵", icon: "炎" },
 };
 
-export const FISH: FishDefinition[] = [
+const BASE_FISH: FishDefinition[] = [
   { id: "green-scale-crucian", name: "青鳞灵鲫", description: "云州水巷最常见的灵鱼，鳞粉可作温和药引。", rarity: 1, value: 45, art: "/assets/moon-lotus.webp", icon: "鲫" },
   { id: "silver-tail-carp", name: "银尾灵鲤", description: "摆尾时泛起细碎银光，肉质清甜。", rarity: 2, value: 82, art: "/assets/star-sand.webp", icon: "鲤" },
   { id: "drunken-moon-mandarin", name: "醉月鳜", description: "只在酒香与月色交叠的水榭附近出没。", rarity: 2, value: 118, art: "/assets/jade-mushroom.webp", icon: "鳜" },
@@ -95,9 +96,11 @@ export const FISH: FishDefinition[] = [
   { id: "star-marrow-merling", name: "星髓鲛苗", description: "星辉在骨髓内流转，百年也难遇一尾。", rarity: 5, value: 1980, art: "/assets/star-sand.webp", icon: "星" },
 ];
 
+export const FISH: FishDefinition[] = [...BASE_FISH, ...(catchesJson.fish as FishDefinition[])];
+
 export const fishById = (id: string) => FISH.find((fish) => fish.id === id);
 
-export const FISHING_LOCATIONS: FishingLocation[] = [
+const BASE_FISHING_LOCATIONS: FishingLocation[] = [
   { id: "lingxiao-cloudpool", name: "凌霄云海天池", subtitle: "常驻钓点 · 云气鱼池", kind: "resident", sceneId: "lingxiao", mapId: "yunzhou", pool: [
     { fishId: "cloud-wing-fish", weight: 45 }, { fishId: "frost-fin-sturgeon", weight: 30 }, { fishId: "silver-tail-carp", weight: 17 }, { fishId: "jade-kun-fry", weight: 7 }, { fishId: "void-dragon-carp", weight: 1 },
   ] },
@@ -114,6 +117,12 @@ export const FISHING_LOCATIONS: FishingLocation[] = [
     { fishId: "dream-goldscale", weight: 38 }, { fishId: "thunder-swordfish", weight: 29 }, { fishId: "blazing-bone-shark", weight: 23 }, { fishId: "void-dragon-carp", weight: 8 }, { fishId: "star-marrow-merling", weight: 2 },
   ] },
 ];
+
+const LOCATION_POOL_ADDITIONS = catchesJson.locationPoolAdditions as Record<FishingLocationId, FishPoolEntry[]>;
+export const FISHING_LOCATIONS: FishingLocation[] = BASE_FISHING_LOCATIONS.map((location)=>({
+  ...location,
+  pool:[...location.pool,...(LOCATION_POOL_ADDITIONS[location.id]??[])],
+}));
 
 export const fishingLocationById = (id: string) => FISHING_LOCATIONS.find((location) => location.id === id);
 

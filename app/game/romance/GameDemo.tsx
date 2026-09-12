@@ -33,6 +33,7 @@ import { getProficiencyProfile } from "./proficiency-engine";
 import { getInspectionHints, rollInspectionEvent } from "./inspection-engine";
 import type { CultivationEntry } from "./cultivation-engine";
 import { getAvailableActivities, isMarketReminderDay, marketReminderKey, type PeriodicActivityId } from "./periodic-activities";
+import { GATHERING_GIFT_DEFINITIONS } from "../gathering/content";
 import { drawDailyFortune, FORTUNE_STORAGE_KEY, fortuneBoosts, fortuneEffectLabel, getFortuneSign, getLocalDateKey, type FortuneDrawRecord } from "./fortune-engine";
 import type { CharacterDefinition, CharacterId, CharacterMessageDefinition, DialogueProfileDefinition, EventDefinition, GiftDefinition, GiftId, GameState, GlobalKeyDefinition, Period, RelationshipStageDefinition, SceneDefinition, SceneId, TriggerContext } from "./types";
 
@@ -206,7 +207,7 @@ export default function GameDemo() {
   }, [characters, managedScenes]);
   const playableScenes = scenes.filter((item) => item.characters.length > 0 || item.id === "bedroom");
   const sceneMap = useMemo(() => Object.fromEntries(scenes.map((item) => [item.id, item])) as Record<string, SceneDefinition>, [scenes]);
-  const gifts = useMemo(() => { const ids = new Set(managedGifts.map((item) => item.id)); return [...GIFTS.filter((item) => !ids.has(item.id)), ...managedGifts]; }, [managedGifts]);
+  const gifts = useMemo(() => { const ids = new Set(managedGifts.map((item) => item.id)); return [...GIFTS.filter((item) => !ids.has(item.id)), ...GATHERING_GIFT_DEFINITIONS.filter((item)=>!ids.has(item.id)), ...managedGifts]; }, [managedGifts]);
   const giftMap = useMemo(() => Object.fromEntries(gifts.map((item) => [item.id, item])) as Record<string, GiftDefinition>, [gifts]);
   const messageDefinitions=useMemo(()=>{const ids=new Set(managedMessages.map((item)=>item.id));return[...CHARACTER_MESSAGES.filter((item)=>!ids.has(item.id)),...managedMessages]},[managedMessages]);
 
