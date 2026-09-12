@@ -53,6 +53,13 @@ export type Condition =
   | { type: "dungeon_complete"; waveId: number }
   | { type: "alchemy_result"; itemId: string };
 
+export type ProjectedInventoryItem = {
+  itemType: "gift" | "material" | "pill" | "equipment" | "card" | "treasure" | "quest" | "fish";
+  templateId: string;
+  rarity: number;
+  amount: number;
+};
+
 export type DialogueNode = {
   id: string;
   type: "line";
@@ -218,6 +225,7 @@ export type GameState = {
   completedDungeons?: number[];
   alchemyResults?: string[];
   inventoryRarities?: Record<string, number>;
+  inventoryItems?: Record<string, ProjectedInventoryItem>;
   pendingUnifiedEffects?: Effect[];
 };
 

@@ -1,5 +1,6 @@
 import { ElementType, GameItem, ItemQuality } from "./item-data";
 import { getMarketPrice } from "./market";
+import { inventoryMatches, type InventoryEntry } from "../core/item-query";
 
 export type MutationId = "normal" | "burnt" | "flawed" | "fine" | "supreme" | "perfect";
 export type ProductStack = { productId: string; mutation: MutationId; count: number };
@@ -88,4 +89,9 @@ export function matchesFuzzyCommission(item: GameItem, commission: FuzzyCommissi
   if (item.category !== "丹药") return false;
   if (commission.requirement === "element") return item.element === commission.element;
   return QUALITY_ORDER.indexOf(item.quality) >= QUALITY_ORDER.indexOf(commission.minimumQuality ?? "凡品");
+}
+
+export function matchesCommissionInventory(entry: InventoryEntry, commission: DailyCommission) {
+  if (commission.kind === "specific") return inventoryMatches(entry, { templateId: commission.itemId, minAmount: 1 });
+  return inventoryMatches(entry, { itemType: "pill", minAmount: 1 });
 }

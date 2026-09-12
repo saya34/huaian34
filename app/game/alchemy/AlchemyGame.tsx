@@ -42,6 +42,7 @@ import {
   generateCommissions,
   getMutationValue,
   matchesFuzzyCommission,
+  matchesCommissionInventory,
   MUTATIONS,
   MutationId,
   mutationDisplayName,
@@ -64,7 +65,9 @@ import {
   visibleMythicOptions,
 } from "./advanced-card";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
-import type { AlchemyProgress, UnifiedCardInstance, UnifiedRarity } from "../core/types";
+import type { AlchemyProgress, UnifiedCardInstance } from "../core/types";
+import { normalizeCardName } from "../core/card-service";
+import { ACTION_COSTS, actionCostLabel, checkActionAdmission } from "../core/action-service";
 import { useFeedback } from "../feedback/FeedbackProvider";
 import { feedbackText } from "../feedback/texts";
 
@@ -198,7 +201,8 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
   const selectedMythicProfile = CHARACTER_PROFILES.find((profile) => profile.id === selectedMythicCharacter?.characterId);
   const selectedMythicScene = selectedMythicOptions.find((option) => option.page === "scene");
   const mythicBrewConfigured = Boolean(selectedMythicCharacter && selectedMythicProfile);
-  const canBrew = (hasMythicScroll ? mythicBrewConfigured : filled >= 2) && hasEnoughStock && unifiedState.shared.stamina > 0 && phase !== "brewing" && phase !== "done";
+  const brewAdmission = checkActionAdmission("alchemy", unifiedState.shared);
+  const canBrew = (hasMythicScroll ? mythicBrewConfigured : filled >= 2) && hasEnoughStock && brewAdmission.ok && phase !== "brewing" && phase !== "done";
   const filteredMaterials = INVENTORY_MATERIALS.filter((item) => {
     const matchesCategory = filter === "全部" || item.category === filter;
     const matchesSeries = seriesFilter === "全部系列" || item.group === seriesFilter;
@@ -548,16 +552,16 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
       return;
     }
     if (!canBrew) {
-      setToast(unifiedState.shared.stamina <= 0 ? "当前时段体力已耗尽，请先返回主世界推进时辰" : !hasEnoughStock ? "所选灵材库存不足，请更换材料或重置数量" : hasMythicScroll ? "请先在太初命卷中封存一位人物" : filled === 0 ? "请先选择两味灵材" : "还需一味主材");
+      setToast(!brewAdmission.ok ? brewAdmission.message : !hasEnoughStock ? "所选灵材库存不足，请更换材料或重置数量" : hasMythicScroll ? "请先在太初命卷中封存一位人物" : filled === 0 ? "请先选择两味灵材" : "还需一味主材");
       return;
     }
-    applyEffects([{ type: "spend_stamina", amount: 1 }]);
     if (hasMythicScroll) {
       const rareOptions = selectedMythicOptions.filter((option) => option.tier === "rare");
       if (rareOptions.some((option) => (mythicRareUses[option.id] ?? MYTHIC_RARE_MAX_USES) <= 0)) {
         setToast("所选稀有词条的命数已经耗尽，请重新展开命卷");
         return;
       }
+      applyEffects([{ type: "spend_stamina", amount: ACTION_COSTS.alchemy.stamina }]);
       const card = { id: `mythic-card-${Date.now()}`, createdAt: Date.now(), optionIds: [...mythicSelections] };
       setPendingMythicCard(card);
       mythicRevealStartedRef.current = false;
@@ -573,6 +577,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
       if (soundOn) playTone("ignite");
       return;
     }
+    applyEffects([{ type: "spend_stamina", amount: ACTION_COSTS.alchemy.stamina }]);
     setResultItem(selectAlchemyResult(slots, recipeRules));
     setResultMutation(rollMutation().id);
     setMaterialCounts((current) => {
@@ -598,7 +603,6 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
   function collectResult() {
     const key = productStackKey(resultItem.id, resultMutation);
     setProductStacks((current) => ({ ...current, [key]: { productId: resultItem.id, mutation: resultMutation, count: (current[key]?.count ?? 0) + 1 } }));
-    applyEffects([{ type: "add_item", item: { itemId: resultItem.id, itemType: resultItem.category === "丹药" ? "pill" : "treasure", rarity: Math.max(1, Math.min(7, resultItem.rarity)) as UnifiedRarity, amount: 1, sourceTags: ["alchemy", resultMutation] } }]);
     setShowResult(false);
     setSlots([null, null, null]);
     setPhase("idle");
@@ -627,7 +631,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
     };
     setCharacterCards((current) => [...current, record]);
     const profile = CHARACTER_PROFILES.find((item) => item.id === record.profileId);
-    const unifiedCard: UnifiedCardInstance = { id: record.id, characterId: record.profileId, name: `${profile?.title ?? "命定"}·${profile?.name ?? "人物卡"}`, rarity: 6, mode: characterCards.length % 2 === 0 ? "active" : "passive", source: "alchemy", art: record.image, activeEffect: "sword", bonuses: { damage: .035, health: 35 }, alchemyRecord: record };
+    const unifiedCard: UnifiedCardInstance = { id: record.id, characterId: record.profileId, name: normalizeCardName(`${profile?.title ?? "命定"}·${profile?.name ?? "人物卡"}`), rarity: 6, mode: characterCards.length % 2 === 0 ? "active" : "passive", source: "alchemy", art: record.image, activeEffect: "sword", bonuses: { damage: .035, health: 35 }, alchemyRecord: record };
     applyEffects([{ type: "add_card", card: unifiedCard }]);
     setCharacterCard(null);
     setSlots([null, null, null]);
@@ -793,14 +797,11 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
 
   function consumeProductStacks(candidates: { stack: ProductStack; item: GameItem }[], quantity: number) {
     let remainingToRemove = quantity;
-    const removedByProduct: Record<string, number> = {};
     candidates.forEach(({ stack }) => {
       if (remainingToRemove <= 0) return;
       const used = Math.min(remainingToRemove, stack.count);
-      removedByProduct[stack.productId] = (removedByProduct[stack.productId] ?? 0) + used;
       remainingToRemove -= used;
     });
-    applyEffects(Object.entries(removedByProduct).map(([itemId, amount]) => ({ type: "remove_item" as const, itemId, amount })));
     setProductStacks((current) => {
       const next = { ...current };
       let remaining = quantity;
@@ -817,12 +818,6 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
 
   function consumeSelectedProductKeys(keys: string[]) {
     const required = keys.reduce<Record<string, number>>((counts, key) => ({ ...counts, [key]: (counts[key] ?? 0) + 1 }), {});
-    const removedByProduct = Object.entries(required).reduce<Record<string, number>>((counts, [key, amount]) => {
-      const productId = productStacks[key]?.productId;
-      if (productId) counts[productId] = (counts[productId] ?? 0) + amount;
-      return counts;
-    }, {});
-    applyEffects(Object.entries(removedByProduct).map(([itemId, amount]) => ({ type: "remove_item" as const, itemId, amount })));
     setProductStacks((current) => {
       const next = { ...current };
       Object.entries(required).forEach(([key, count]) => {
@@ -864,7 +859,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
     if (commission.kind === "specific") {
       const item = ITEM_TABLE.find((candidate) => candidate.id === commission.itemId);
       if (!item) return 0;
-      return item.itemType === "material" ? materialCounts[item.id] ?? 0 : productStackList.filter(({ item: product }) => product.id === item.id).reduce((sum, entry) => sum + entry.stack.count, 0);
+      return Object.values(unifiedState.shared.items).filter((entry) => matchesCommissionInventory(entry, commission)).reduce((sum, entry) => sum + entry.amount, 0);
     }
     return (fuzzySelections[commission.id] ?? []).length;
   }
@@ -989,7 +984,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
             <button className={`brew-button ${phase === "done" ? "complete" : ""}`} onClick={primaryAction} disabled={phase === "brewing"}>
               <span className="button-corner corner-left" /><span>{buttonLabel}</span><span className="button-corner corner-right" />
             </button>
-            <p>{phase === "brewing" ? "文火凝丹，切勿心急" : phase === "done" ? "丹光已成，点击开炉" : "拖入灵材，或点击物品自动添加"}</p>
+            <p>{phase === "brewing" ? "文火凝丹，切勿心急" : phase === "done" ? "丹光已成，点击开炉" : `拖入灵材，或点击物品自动添加 · ${actionCostLabel("alchemy")}`}</p>
           </div>
         </div>
 

@@ -19,6 +19,8 @@ import {
 import { CULTIVATOR_PACK_SIZE, PERSONAL_STASH_SIZE, findEquipmentPosition, moveOrSwapEquipment, organizeEquipment } from "./inventorySystem";
 import { DEFAULT_WM_CONFIG, WMConfig, cloneWMConfig, managedTreasureDefinition, mergeWMConfig } from "./weaponManager";
 import { EMPTY_WEAPON_SHOP, normalizeWeaponShop, type WeaponShopState } from "./weaponShop";
+import { grantPlayerExperience, stageClearExperience } from "../core/progression-service";
+export { experienceToNextLevel, MAX_PLAYER_LEVEL, stageClearExperience } from "../core/progression-service";
 import {
   MAX_SKILL_MASTERY_LEVEL,
   SKILL_BOOK_EXP,
@@ -206,20 +208,10 @@ function normalizeCardSlots(value: unknown): Array<string | null> {
 }
 
 export function computePermanentAttributes(meta: MetaProgress): HeroAttributes {
-  const passiveBonuses = meta.ownedCards
-    .map(cardById)
-    .filter((card) => card.type === "passive")
-    .map((card) => card.bonuses);
-  const insertedBonuses = meta.cardSlots
-    .slice(0, meta.cardSlotCount)
-    .filter((id): id is string => Boolean(id))
-    .map((id) => cardById(id).bonuses);
   const root = addAttributes(
     meta.baseAttributes,
     attributeAllocationBonus(meta.attributeAllocation),
     ...passiveAttributeBonuses(meta.passiveRanks),
-    ...passiveBonuses,
-    ...insertedBonuses,
   );
   const equippedItems = [...new Set(Object.values(meta.equipped).filter((uid): uid is string => Boolean(uid)))]
     .map((uid) => meta.equipmentBag.find((entry) => entry.uid === uid))
@@ -235,36 +227,13 @@ export function computePermanentAttributes(meta: MetaProgress): HeroAttributes {
   return attributes;
 }
 
-export const MAX_PLAYER_LEVEL = 60;
-
-export function stageClearExperience(waveId: number) {
-  return Math.round(100 * 1.18 ** Math.max(0, Math.min(20, waveId - 1)));
-}
-
-export function experienceToNextLevel(level: number) {
-  if (level >= MAX_PLAYER_LEVEL) return 0;
-  const matchingWave = 1 + Math.round((level - 1) * 20 / (MAX_PLAYER_LEVEL - 2));
-  const desiredClears = 1 + 9 * (level - 1) / (MAX_PLAYER_LEVEL - 2);
-  return Math.round(stageClearExperience(matchingWave) * desiredClears);
-}
-
-export function awardClearExperience(meta: MetaProgress, waveId: number) {
-  const gained = Math.round(stageClearExperience(waveId) * computePermanentAttributes(meta).expGain);
-  let playerLevel = meta.playerLevel;
-  let playerExp = meta.playerExp + gained;
-  let levelsGained = 0;
-  while (playerLevel < MAX_PLAYER_LEVEL) {
-    const needed = experienceToNextLevel(playerLevel);
-    if (playerExp < needed) break;
-    playerExp -= needed;
-    playerLevel++;
-    levelsGained++;
-  }
-  if (playerLevel >= MAX_PLAYER_LEVEL) playerExp = 0;
+export function awardClearExperience(meta: MetaProgress, waveId: number, experienceMultiplier = computePermanentAttributes(meta).expGain) {
+  const gained = Math.round(stageClearExperience(waveId) * experienceMultiplier);
+  const growth = grantPlayerExperience({ playerLevel: meta.playerLevel, playerExperience: meta.playerExp }, gained);
   return {
-    meta: { ...meta, playerLevel, playerExp, highestUnlockedWave: Math.max(meta.highestUnlockedWave, Math.min(21, waveId + 1)) },
+    meta: { ...meta, playerLevel: growth.playerLevel, playerExp: growth.playerExperience, highestUnlockedWave: Math.max(meta.highestUnlockedWave, Math.min(21, waveId + 1)) },
     gained,
-    levelsGained,
+    levelsGained: growth.levelsGained,
   };
 }
 

@@ -23,8 +23,6 @@ import {
   availableAttributePoints,
   availableSkillPoints,
   backpackSize,
-  computePermanentAttributes,
-  equipCard,
   identifyEquipment,
   experienceToNextLevel,
   feedSkillExperience,
@@ -35,14 +33,13 @@ import {
   sortTreasureContainer,
   settleExpedition,
   upgradeCost,
-  unequipCard,
   transferTreasure,
   tryEquipItem,
   tryUnequipItem,
   moveEquipment,
   warehouseSize,
 } from "./meta";
-import { ATTRIBUTE_POINT_BONUS, AttributeAllocation, BLESSING_META, BlessingPage, EquipmentBodySlot, EquipmentItem, PASSIVE_SKILLS, SLOT_META, addAttributes, canUseEquipment, cardById, computeCombatTraits, equipmentAttributeBonus, equipmentById, equipmentRequirements, equipmentSize, equipmentValue, formatBonus, passiveSkillUnlocked } from "./progression";
+import { ATTRIBUTE_POINT_BONUS, AttributeAllocation, BLESSING_META, BlessingPage, EquipmentBodySlot, EquipmentItem, PASSIVE_SKILLS, SLOT_META, addAttributes, canUseEquipment, computeCombatTraits, equipmentAttributeBonus, equipmentById, equipmentRequirements, equipmentSize, equipmentValue, formatBonus, passiveSkillUnlocked } from "./progression";
 import { DEFAULT_WM_CONFIG, WMAttributeKey, WMConfig, WMEquipmentRule, cloneWMConfig, validateWMConfig } from "./weaponManager";
 import {
   MAX_SKILL_MASTERY_LEVEL,
@@ -63,6 +60,8 @@ import { useFeedback } from "../feedback/FeedbackProvider";
 import { feedbackText } from "../feedback/texts";
 import { DUNGEONS } from "../core/dungeons";
 import { BattlePreparation, preparationSupplyBonus, readBattlePreparation } from "./BattlePreparation";
+import { computeFinalAttributes } from "../core/attributes-service";
+import { itemTemplateId } from "../core/inventory-service";
 
 type Screen = "loading" | "menu" | "preparing" | "battle" | "result";
 type HeldTreasure = { uid: string; source: ContainerKind | "loot"; treasureId: string };
@@ -240,7 +239,8 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
         if (!active) return;
         setData(loaded);
         setHeroId(Number(loaded.heroes[0]?.id ?? 400001));
-        setScreen(autoStart ? "preparing" : "menu");
+        // 无论从主世界还是独立入口进入，都必须先经过统一战前整备。
+        setScreen("menu");
       })
       .catch((reason) => {
         setError(reason instanceof Error ? reason.message : "资源加载失败");
@@ -259,8 +259,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
   const mapId = 1000 + clampWave(waveId) - 1;
   const selectedMap = useMemo(() => data?.maps.find((map) => Number(map.id) === mapId) ?? data?.maps[0], [data, mapId]);
   const menuBackground = "/game-assets/ui/main-menu-xianxia-bg.webp";
-  const passiveCardBonuses = useMemo(() => unifiedState.shared.cards.filter((card) => card.mode === "passive").map((card) => card.bonuses), [unifiedState.shared.cards]);
-  const permanentAttributes = useMemo(() => addAttributes(computePermanentAttributes(meta), ...passiveCardBonuses), [meta, passiveCardBonuses]);
+  const permanentAttributes = useMemo(() => computeFinalAttributes({ ...unifiedState, battle: meta }), [meta, unifiedState]);
 
   useEffect(() => {
     if (screen === "battle") engineRef.current?.updateBaseAttributes(runSupplyBonusRef.current ? addAttributes(permanentAttributes, runSupplyBonusRef.current) : permanentAttributes);
@@ -274,24 +273,27 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
   }, [feedback]);
 
   const requestCardSummon = useCallback(() => {
-    const pool = unifiedState.shared.cards.filter((card) => card.mode === "active").sort(() => Math.random() - .5).slice(0, 3);
+    const equippedIds = new Set(meta.cardSlots.slice(0, meta.cardSlotCount).filter(Boolean));
+    const equippedPool = unifiedState.shared.cards.filter((card) => card.mode === "active" && equippedIds.has(card.id));
+    const pool = (equippedPool.length ? equippedPool : unifiedState.shared.cards.filter((card) => card.mode === "active")).sort(() => Math.random() - .5).slice(0, 3);
     if (!pool.length) return showToast("太虚名册中尚无主动人物卡");
     engineRef.current?.setInventoryPaused(true);
     setCardChoices(pool);
-  }, [showToast, unifiedState.shared.cards]);
+  }, [meta.cardSlotCount, meta.cardSlots, showToast, unifiedState.shared.cards]);
 
   const chooseCardSummon = (card: UnifiedCardInstance) => {
     const partnerId = card.activeEffect === "healing" ? "pill-fairy" : card.activeEffect === "ward" ? "vajra-monk" : card.activeEffect === "frost" ? "moon-demon" : card.activeEffect === "assault" ? "thunder-lord" : "sword-sister";
+    const [name, ...titleParts] = card.name.split("·");
     setCardChoices([]);
     engineRef.current?.setInventoryPaused(false);
-    engineRef.current?.summonPartner(partnerId);
+    engineRef.current?.summonPartner(partnerId, { name, title: titleParts.join("·") || "命格显化", art: card.art });
   };
 
   const beginBattle = useCallback(async () => {
     if (!data || !canvasRef.current) return;
     const preparation = readBattlePreparation(waveId);
     const supplyStack = preparation?.supplyId ? unifiedState.shared.items[preparation.supplyId] : null;
-    const supplyDefinition = supplyStack?.amount ? ITEM_TABLE.find((item) => item.id === supplyStack.itemId) : null;
+    const supplyDefinition = supplyStack?.amount ? ITEM_TABLE.find((item) => item.id === itemTemplateId(supplyStack)) : null;
     const supplyBonus = supplyStack?.amount ? preparationSupplyBonus(supplyStack.rarity) : null;
     const preparedAttributes = supplyBonus ? addAttributes(permanentAttributes, supplyBonus) : permanentAttributes;
     runSupplyBonusRef.current = supplyBonus;
@@ -327,7 +329,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
       onGameOver: (kind, finalSnapshot) => {
         // 宝匣界面允许在战斗中换装，结算时必须读取最新存档，不能使用开局闭包。
         const settlement = settleExpedition(metaRef.current, kind, finalSnapshot.backpack, finalSnapshot.safeBox, finalSnapshot.runEquipment);
-        const progression = kind === "victory" ? awardClearExperience(settlement.meta, waveId) : { meta: settlement.meta, gained: 0, levelsGained: 0 };
+        const progression = kind === "victory" ? awardClearExperience(settlement.meta, waveId, permanentAttributes.expGain) : { meta: settlement.meta, gained: 0, levelsGained: 0 };
         const bookReward = awardSkillBooks(progression.meta, kind, waveId);
         setMeta(bookReward.meta);
         const rarityMap: Record<string, UnifiedRarity> = { common: 1, fine: 2, rare: 3, epic: 4, immortal: 6 };
@@ -978,7 +980,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
           <div className="meta-panel card-panel panel-card" onClick={(event) => event.stopPropagation()}>
             <button className="modal-close" onClick={() => setMenuPanel(null)}>×</button>
             <header><small>命格共鸣</small><h2>卡片</h2><b>插入卡更强 · 长效卡持有生效</b></header>
-            <CardSystem meta={meta} onChange={updateMeta} />
+            <CardSystem meta={meta} cards={unifiedState.shared.cards} onChange={updateMeta} />
           </div>
         </section>
       )}
@@ -1265,9 +1267,10 @@ function CharacterProgression({ meta, relationships, onChange }: { meta: MetaPro
 }
 
 function EquipmentSystem({ meta, onChange, notify }: { meta: MetaProgress; onChange: (meta: MetaProgress) => void; notify: (message: string) => void }) {
+  const { state } = useUnifiedGame();
   const [heldUid, setHeldUid] = useState<string | null>(null);
   const [selectedUid, setSelectedUid] = useState(meta.equipmentBag[0]?.uid ?? null);
-  const attributes = computePermanentAttributes(meta);
+  const attributes = computeFinalAttributes({ ...state, battle: meta });
   const stored = meta.equipmentBag.filter((item) => meta.equipmentPositions[item.uid]);
   const selected = meta.equipmentBag.find((item) => item.uid === selectedUid) ?? stored[0];
   const bodySlots: EquipmentBodySlot[] = ["head", "chest", "hands", "legs", "feet", "weapon", "offhand"];
@@ -1305,7 +1308,7 @@ function EquipmentSystem({ meta, onChange, notify }: { meta: MetaProgress; onCha
             })}
           </div>
           <aside className="gear-inspector">
-            {selected ? (() => { const base = equipmentById(selected.equipmentId); const req = equipmentRequirements(selected); const enabled = canUseEquipment(selected, attributes); const size = equipmentSize(selected); const simulated=enabled&&selected.identified!==false?tryEquipItem(meta,selected.uid).meta:meta; const after=computePermanentAttributes(simulated); const comparisons=[{label:feedbackText("items.statHealth"),before:Math.round(attributes.health),after:Math.round(after.health)},{label:feedbackText("items.statDamage"),before:Math.round(attributes.damage*100),after:Math.round(after.damage*100),unit:"%"},{label:feedbackText("items.statDefense"),before:Math.round(attributes.defense),after:Math.round(after.defense)},{label:feedbackText("items.statHit"),before:Math.round(attributes.hitChance*100),after:Math.round(after.hitChance*100),unit:"%"}]; return <><div className="gear-inspector-art" style={{ "--rarity": RARITY_META[selected.rarity ?? base.rarity].color } as CSSProperties}><img src={base.art} alt="" /><span>{selected.identified === false ? "未鉴定法器" : RARITY_META[selected.rarity ?? base.rarity].name}</span></div><small>{SLOT_META[base.slot].name} · {size.width}×{size.height}{selected.twoHanded ? " · 占据双手" : ""}</small><h3>{selected.identified === false ? `未鉴定的${base.name}` : selected.name ?? base.name}</h3><p>{base.description}</p><div className="gear-compare-strip"><small>{feedbackText("items.compareAfter")}</small>{comparisons.map((entry)=>{const delta=entry.after-entry.before;return <span key={entry.label} className={delta>0?"up":delta<0?"down":"same"}><b>{entry.label}</b><em>{entry.before}{entry.unit} → {entry.after}{entry.unit}</em><i>{delta===0?feedbackText("items.statSame"):`${delta>0?"+":""}${delta}${entry.unit??""}`}</i></span>})}</div><div className="gear-stat-chips">{formatBonus(equipmentAttributeBonus(selected)).map((line) => <span key={line}>{line}</span>)}</div><div className={`gear-requirements ${enabled ? "met" : "failed"}`}><b>驱使要求</b><span>体魄 {req.strength ?? 0}</span><span>身法 {req.dexterity ?? 0}</span><span>神识 {req.magic ?? 0}</span></div><footer><b>估值 {equipmentValue(selected).toLocaleString()} 灵石</b>{selected.identified === false ? <button onClick={() => identify(selected.uid)}>鉴定并激活词缀</button> : <button disabled={!enabled} onClick={() => equip(selected.uid)}>{enabled ? "装备" : "属性不足"}</button>}</footer></>; })() : <p>行囊中暂无法器</p>}
+            {selected ? (() => { const base = equipmentById(selected.equipmentId); const req = equipmentRequirements(selected); const enabled = canUseEquipment(selected, attributes); const size = equipmentSize(selected); const simulated=enabled&&selected.identified!==false?tryEquipItem(meta,selected.uid).meta:meta; const after=computeFinalAttributes({ ...state, battle: simulated }); const comparisons=[{label:feedbackText("items.statHealth"),before:Math.round(attributes.health),after:Math.round(after.health)},{label:feedbackText("items.statDamage"),before:Math.round(attributes.damage*100),after:Math.round(after.damage*100),unit:"%"},{label:feedbackText("items.statDefense"),before:Math.round(attributes.defense),after:Math.round(after.defense)},{label:feedbackText("items.statHit"),before:Math.round(attributes.hitChance*100),after:Math.round(after.hitChance*100),unit:"%"}]; return <><div className="gear-inspector-art" style={{ "--rarity": RARITY_META[selected.rarity ?? base.rarity].color } as CSSProperties}><img src={base.art} alt="" /><span>{selected.identified === false ? "未鉴定法器" : RARITY_META[selected.rarity ?? base.rarity].name}</span></div><small>{SLOT_META[base.slot].name} · {size.width}×{size.height}{selected.twoHanded ? " · 占据双手" : ""}</small><h3>{selected.identified === false ? `未鉴定的${base.name}` : selected.name ?? base.name}</h3><p>{base.description}</p><div className="gear-compare-strip"><small>{feedbackText("items.compareAfter")}</small>{comparisons.map((entry)=>{const delta=entry.after-entry.before;return <span key={entry.label} className={delta>0?"up":delta<0?"down":"same"}><b>{entry.label}</b><em>{entry.before}{entry.unit} → {entry.after}{entry.unit}</em><i>{delta===0?feedbackText("items.statSame"):`${delta>0?"+":""}${delta}${entry.unit??""}`}</i></span>})}</div><div className="gear-stat-chips">{formatBonus(equipmentAttributeBonus(selected)).map((line) => <span key={line}>{line}</span>)}</div><div className={`gear-requirements ${enabled ? "met" : "failed"}`}><b>驱使要求</b><span>体魄 {req.strength ?? 0}</span><span>身法 {req.dexterity ?? 0}</span><span>神识 {req.magic ?? 0}</span></div><footer><b>估值 {equipmentValue(selected).toLocaleString()} 灵石</b>{selected.identified === false ? <button onClick={() => identify(selected.uid)}>鉴定并激活词缀</button> : <button disabled={!enabled} onClick={() => equip(selected.uid)}>{enabled ? "装备" : "属性不足"}</button>}</footer></>; })() : <p>行囊中暂无法器</p>}
           </aside>
         </div>
       </section>
@@ -1313,13 +1316,19 @@ function EquipmentSystem({ meta, onChange, notify }: { meta: MetaProgress; onCha
   );
 }
 
-function CardSystem({ meta, onChange }: { meta: MetaProgress; onChange: (meta: MetaProgress) => void }) {
+const CARD_RARITY_NAMES = ["", "凡品", "良品", "珍品", "绝品", "灵品", "仙品", "神品"];
+
+function CardSystem({ meta, cards, onChange }: { meta: MetaProgress; cards: UnifiedCardInstance[]; onChange: (meta: MetaProgress) => void }) {
   const [detailId, setDetailId] = useState<string | null>(null);
   const quickEquip = (cardId: string) => {
+    if (!cards.some((card) => card.id === cardId && card.mode === "active")) return;
     const open = meta.cardSlots.slice(0, meta.cardSlotCount).findIndex((id) => !id);
-    onChange(equipCard(meta, cardId, open >= 0 ? open : 0));
+    const target = open >= 0 ? open : 0;
+    const slots = meta.cardSlots.map((id) => id === cardId ? null : id);
+    slots[target] = cardId;
+    onChange({ ...meta, cardSlots: slots });
   };
-  const detail = detailId ? cardById(detailId) : null;
+  const detail = detailId ? cards.find((card) => card.id === detailId) ?? null : null;
   return (
     <div className="card-system">
       <aside className="card-slots">
@@ -1327,14 +1336,14 @@ function CardSystem({ meta, onChange }: { meta: MetaProgress; onChange: (meta: M
         {[0, 1, 2].map((index) => {
           const unlocked = index < meta.cardSlotCount;
           const cardId = meta.cardSlots[index];
-          const card = cardId ? cardById(cardId) : null;
+          const card = cardId ? cards.find((entry) => entry.id === cardId) ?? null : null;
           return (
             <button
               key={index}
-              className={`${unlocked ? "unlocked" : "locked"} ${card ? `rarity-${card.rarity}` : ""}`}
+              className={`${unlocked ? "unlocked" : "locked"} ${card ? `rarity-${Math.min(5, card.rarity)}` : ""}`}
               onDragOver={(event) => unlocked && event.preventDefault()}
-              onDrop={(event) => { event.preventDefault(); onChange(equipCard(meta, event.dataTransfer.getData("application/x-blcx-card"), index)); }}
-              onClick={() => card && onChange(unequipCard(meta, index))}
+              onDrop={(event) => { event.preventDefault(); const id = event.dataTransfer.getData("application/x-blcx-card"); if (!unlocked || !cards.some((entry) => entry.id === id && entry.mode === "active")) return; const slots = meta.cardSlots.map((value) => value === id ? null : value); slots[index] = id; onChange({ ...meta, cardSlots: slots }); }}
+              onClick={() => card && onChange({ ...meta, cardSlots: meta.cardSlots.map((id, slot) => slot === index ? null : id) })}
             >
               {card ? <><img src={card.art} alt="" /><strong>{card.name}</strong><small>点击卸下</small></> : <><b>{unlocked ? "+" : "锁"}</b><span>{unlocked ? "拖入插入卡" : "尚未解锁"}</span></>}
             </button>
@@ -1344,19 +1353,18 @@ function CardSystem({ meta, onChange }: { meta: MetaProgress; onChange: (meta: M
       <section className="card-gallery-wrap">
         <h3>卡片展廊 <small>单击查看 · 双击插入</small></h3>
         <div className="card-gallery">
-          {meta.ownedCards.map((id) => {
-            const card = cardById(id);
+          {cards.map((card) => {
             return (
               <article
                 key={card.id}
-                draggable={card.type === "insert"}
+                draggable={card.mode === "active"}
                 onDragStart={(event) => event.dataTransfer.setData("application/x-blcx-card", card.id)}
                 onClick={() => setDetailId(card.id)}
-                onDoubleClick={() => card.type === "insert" && quickEquip(card.id)}
-                className={`rarity-${card.rarity}`}
+                onDoubleClick={() => card.mode === "active" && quickEquip(card.id)}
+                className={`rarity-${Math.min(5, card.rarity)}`}
               >
                 <img src={card.art} alt="" />
-                <i /><div><small>{card.type === "insert" ? "插入卡" : "长效卡 · 持有生效"}</small><strong>{card.name}</strong><p>{formatBonus(card.bonuses).join(" · ")}</p></div>
+                <i /><div><small>{card.mode === "active" ? "主动命契" : "被动命格 · 持有生效"}</small><strong>{card.name}</strong><p>{card.mode === "active" ? "元气充盈时召唤人物施展专属术法" : formatBonus(card.bonuses ?? {}).join(" · ")}</p></div>
               </article>
             );
           })}
@@ -1364,9 +1372,9 @@ function CardSystem({ meta, onChange }: { meta: MetaProgress; onChange: (meta: M
       </section>
       {detail && (
         <div className="card-detail-backdrop" onClick={() => setDetailId(null)}>
-          <article className={`card-detail rarity-${detail.rarity}`} onClick={(event) => event.stopPropagation()}>
+          <article className={`card-detail rarity-${Math.min(5, detail.rarity)}`} onClick={(event) => event.stopPropagation()}>
             <button onClick={() => setDetailId(null)}>×</button><img src={detail.art} alt="" />
-            <div><small>{RARITY_META[detail.rarity].name} · {detail.type === "insert" ? "插入卡" : "长效卡"}</small><h3>{detail.name}</h3><p>{detail.lore}</p><strong>{formatBonus(detail.bonuses).join(" · ")}</strong>{detail.type === "insert" && <button className="card-equip" onClick={() => { quickEquip(detail.id); setDetailId(null); }}>插入可用卡槽</button>}</div>
+            <div><small>{CARD_RARITY_NAMES[detail.rarity]} · {detail.mode === "active" ? "主动命契" : "被动命格"}</small><h3>{detail.name}</h3><p>{detail.source === "story" ? "人物剧情中缔结的命契，人物、术法与立绘均由同一命格记录读取。" : detail.source === "alchemy" ? "由玄火丹炉显化的命格。" : "秘境中偶得的命格。"}</p><strong>{detail.mode === "active" ? "元气满时进入召唤候选" : formatBonus(detail.bonuses ?? {}).join(" · ")}</strong>{detail.mode === "active" && <button className="card-equip" onClick={() => { quickEquip(detail.id); setDetailId(null); }}>插入可用卡槽</button>}</div>
           </article>
         </div>
       )}

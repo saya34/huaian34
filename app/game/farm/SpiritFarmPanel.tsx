@@ -32,6 +32,7 @@ import { useFeedback } from "../feedback/FeedbackProvider";
 import { feedbackText } from "../feedback/texts";
 import GatheringCareerPanel from "../gathering/GatheringCareerPanel";
 import { resolveGatheringOutcome } from "../gathering/engine";
+import { ACTION_COSTS, actionCostLabel, checkActionAdmission } from "../core/action-service";
 
 type Props = { day: number; period: Period; onNotice: (message: string) => void; initialView?: "field" | "livestock"; onClose?: () => void };
 
@@ -202,10 +203,11 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
 
   function gatherDew() {
     if (farm.lastDewDay === day) { setMessage("今日已经凝露培土，明日再来。 "); return; }
-    if (state.shared.stamina < 1) { setMessage("凝露培土需要 1 点体力。 "); return; }
+    const admission = checkActionAdmission("farm-tend", state.shared);
+    if (!admission.ok) { setMessage(admission.message); return; }
     setFarm((current) => ({ ...current, spiritSoil: current.spiritSoil + 2, lastDewDay: day }));
-    applyEffects([{ type: "spend_stamina", amount: 1 }]);
-    announce("凝露培土完成 · 灵壤 +2 · 体力 -1");
+    applyEffects([{ type: "spend_stamina", amount: ACTION_COSTS["farm-tend"].stamina }]);
+    announce(`凝露培土完成 · 灵壤 +2 · ${actionCostLabel("farm-tend")}`);
   }
 
   function refineFertilizer(id: FertilizerId) {

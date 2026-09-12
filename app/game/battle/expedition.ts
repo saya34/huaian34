@@ -126,7 +126,7 @@ export const BUFFS: BuffDefinition[] = [
 ];
 
 export const PARTNERS: PartnerDefinition[] = [
-  { id: "sword-sister", name: "凌霜师姐", title: "万剑归宗", tag: "剑", power: "screenDamage", description: "剑意横扫全场，对所有妖物造成重创。", art: "/game-assets/partners/sword-sister.webp" },
+  { id: "sword-sister", name: "沈清霜", title: "霜华一剑", tag: "剑", power: "screenDamage", description: "霜华剑意横扫全场，对所有妖物造成重创。", art: "/assets/characters/shen-qingshuang.webp" },
   { id: "thunder-lord", name: "玄霆真君", title: "天雷渡厄", tag: "雷", power: "lightning", description: "连续召下天雷，优先轰击精英和妖王。", art: "/game-assets/partners/thunder-lord.webp" },
   { id: "pill-fairy", name: "青璃丹仙", title: "九转回元", tag: "丹", power: "recovery", description: "恢复生命并获得短暂护体灵光。", art: "/game-assets/partners/pill-fairy.webp" },
   { id: "vajra-monk", name: "无相禅师", title: "金身法相", tag: "佛", power: "frenzy", description: "短时间大幅提高攻击、攻速和移动速度。", art: "/game-assets/partners/vajra-monk.webp" },

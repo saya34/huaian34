@@ -543,10 +543,11 @@ export class BattleEngine {
     this.emitSnapshot(true);
   }
 
-  summonPartner(partnerId?: string) {
+  summonPartner(partnerId?: string, identity?: Pick<PartnerDefinition, "name" | "title" | "art">) {
     if (this.ended || this.paused || this.qi < 100) return;
     const pool = PARTNERS.filter((partner) => partner.id !== this.lastPartnerId);
-    const partner = (partnerId ? PARTNERS.find((entry) => entry.id === partnerId) : null) ?? pool[Math.floor(Math.random() * pool.length)] ?? PARTNERS[0];
+    const basePartner = (partnerId ? PARTNERS.find((entry) => entry.id === partnerId) : null) ?? pool[Math.floor(Math.random() * pool.length)] ?? PARTNERS[0];
+    const partner = identity ? { ...basePartner, ...identity } : basePartner;
     this.qi -= 100;
     const resonance = this.lastPartnerTag === partner.tag;
     this.lastPartnerId = partner.id;

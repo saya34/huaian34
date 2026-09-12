@@ -56,6 +56,7 @@ import { useFeedback } from "./feedback/FeedbackProvider";
 import { feedbackText } from "./feedback/texts";
 import { getFarmWeather } from "./farm/farm";
 import { BattleReturnPanel, type BattleReturnReceipt } from "./battle/BattlePreparation";
+import { ACTION_COSTS, actionCostLabel, checkActionUnits } from "./core/action-service";
 
 const PERIODS: Period[] = ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"];
 
@@ -631,8 +632,10 @@ export default function GameDemo() {
 
   function completeCultivation(results:CultivationEntry[]){
     const gained=results.reduce((sum,result)=>sum+result.experience,0);
-    setGame((state)=>({...state,stamina:Math.max(0,state.stamina-results.length*2),experience:state.experience+gained}));
-    setNotice(`练功完成 · 修为 +${gained} · 体力 -${results.length*2}`);
+    const admission=checkActionUnits("cultivation",game,results.length);
+    if(!admission.ok){setNotice(admission.message);return}
+    setGame((state)=>({...state,stamina:Math.max(0,state.stamina-admission.cost.stamina),experience:state.experience+gained}));
+    setNotice(`练功完成 · 修为 +${gained} · 体力 -${admission.cost.stamina}`);
   }
 
   function recordDrinkingWin(wins:number){
@@ -749,7 +752,7 @@ export default function GameDemo() {
           <button type="button" onClick={()=>setGiftOpen(true)}>行囊</button>
           <button type="button" onClick={feedback.openHistory}>讯息录</button>
           <button type="button" className="path-project-entry" onClick={()=>setQuestOpen(true)}>{questText("panelTitle")} {claimableQuestCount>0&&<b>{claimableQuestCount}</b>}</button>
-          <div className="time-control"><button type="button" className="time-button" onClick={()=>setTimeMenuOpen(value=>!value)}>安排时辰</button>{timeMenuOpen&&<div className="time-action-menu"><button onClick={()=>advanceTime("wait")}><i>候</i><span><b>等待</b><small>推进一个阶段 · 不恢复体力</small></span></button><button onClick={()=>advanceTime("rest")}><i>憩</i><span><b>短休</b><small>推进一个阶段 · 今日第 {(game.shortRestDay===game.day?game.shortRestCount:0)+1} 次</small></span></button><button onClick={()=>advanceTime("sleep")}><i>眠</i><span><b>结束今日</b><small>进入次日清晨 · 恢复全部体力</small></span></button></div>}</div>
+          <div className="time-control"><button type="button" className="time-button" onClick={()=>setTimeMenuOpen(value=>!value)}>安排时辰</button>{timeMenuOpen&&<div className="time-action-menu"><button onClick={()=>advanceTime("wait")}><i>候</i><span><b>等待</b><small>{actionCostLabel("wait")} · 不恢复体力</small></span></button><button onClick={()=>advanceTime("rest")}><i>憩</i><span><b>短休</b><small>{actionCostLabel("short-rest")} · 今日第 {(game.shortRestDay===game.day?game.shortRestCount:0)+1} 次</small></span></button><button onClick={()=>advanceTime("sleep")}><i>眠</i><span><b>结束今日</b><small>{actionCostLabel("sleep")} · 恢复全部体力</small></span></button></div>}</div>
         </nav>
       </header>
 
@@ -790,7 +793,7 @@ export default function GameDemo() {
         </div>}
         {isSpecialEvent && <div className="special-portrait-wrap" key={`${game.activeEvent?.eventId}-${game.activeEvent?.nodeId}`}><div className="special-portrait-aura" /><img src={specialPortrait} alt={`${character.name}特殊事件立绘`} /></div>}
         {hasPresentCharacter && <Inspectable className="character-plaque" aria-label={`查看${character.name}详情`} feedback={{ titleKey:"relationship.profileTitle", icon:"缘", imageSrc:character.image, bodyKey:"relationship.stageBody", params:{name:character.name,stage:currentStage.name,description:currentStage.description}, details:[{labelKey:"relationship.nameLabel",value:character.name,emphasis:true},{labelKey:"relationship.roleLabel",value:character.role},{labelKey:"relationship.stageLabel",value:currentStage.name},{labelKey:"relationship.valueLabel",value:relationship},{labelKey:"relationship.addressLabel",value:`「${currentStage.addressing}」`}] }}><p>{character.role}</p><h3>{character.name}</h3><span>{currentStage.name} · 唤你「{currentStage.addressing}」</span></Inspectable>}
-        {!game.activeEvent&&scene.id==="bedroom"&&<div className="bedroom-practice-card"><div className="bedroom-formation"><i/><i/><span>炁</span></div><p>PRIVATE CULTIVATION · 静室</p><h3>聚灵阵已启</h3><span>每次练功消耗 2 点体力，运转一周天需 1 秒。</span><div><b>修为 {game.experience}</b><b>体力 {game.stamina}/10</b></div><button type="button" disabled={game.stamina<2} onClick={()=>setCultivationOpen(true)}>{game.stamina<2?"体力不足":"入阵练功"}</button></div>}
+        {!game.activeEvent&&scene.id==="bedroom"&&<div className="bedroom-practice-card"><div className="bedroom-formation"><i/><i/><span>炁</span></div><p>PRIVATE CULTIVATION · 静室</p><h3>聚灵阵已启</h3><span>每次练功消耗 {ACTION_COSTS.cultivation.stamina} 点体力，运转一周天需 1 秒。</span><div><b>修为 {game.experience}</b><b>体力 {game.stamina}/10</b></div><button type="button" disabled={game.stamina<ACTION_COSTS.cultivation.stamina} onClick={()=>setCultivationOpen(true)}>{game.stamina<ACTION_COSTS.cultivation.stamina?"体力不足":`入阵练功 · ${actionCostLabel("cultivation")}`}</button></div>}
         {!game.activeEvent&&scene.id==="spirit-farm"&&<SpiritFarmScene day={game.day} period={game.period} onNotice={setNotice}/>}
         {!game.activeEvent&&scene.id==="intelligence-bureau"&&<IntelligenceBureauScene day={game.day} period={game.period} onNotice={setNotice} onOpenForum={()=>setForumOpen(true)}/>}
 

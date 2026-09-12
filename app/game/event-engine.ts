@@ -8,6 +8,7 @@ import type {
   GameState,
   TriggerContext,
 } from "./types";
+import { hasInventoryItem } from "./core/item-query";
 
 export const INITIAL_STATE: GameState = {
   day: 1,
@@ -71,7 +72,11 @@ export function checkCondition(condition: Condition, state: GameState, context: 
     case "card_owned":
       return (state.ownedCardIds ?? []).includes(condition.cardId);
     case "item_rarity":
-      return Object.values(state.inventoryRarities ?? {}).some((rarity) => rarity >= condition.minRarity);
+      return hasInventoryItem(state.inventoryItems ?? {}, {
+        itemType: condition.itemType as Parameters<typeof hasInventoryItem>[1]["itemType"],
+        minRarity: condition.minRarity,
+        minAmount: 1,
+      });
     case "dungeon_complete":
       return (state.completedDungeons ?? []).includes(condition.waveId);
     case "alchemy_result":

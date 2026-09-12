@@ -17,11 +17,15 @@ export type UnifiedItemType = "gift" | "material" | "pill" | "equipment" | "card
 
 export type UnifiedItemStack = {
   itemId: string;
+  templateId?: string;
   itemType: UnifiedItemType;
   rarity: UnifiedRarity;
   amount: number;
   sourceTags: string[];
   locked?: boolean;
+  quality?: string;
+  mutation?: string;
+  displayName?: string;
 };
 
 export type UnifiedCardInstance = {

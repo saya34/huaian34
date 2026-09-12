@@ -17,8 +17,21 @@ import { createInitialQuestProgress, normalizeQuestProgress } from "../quests/en
 import type { QuestProgress } from "../quests/types";
 import { keyFor, LocalPlayerStateRepository } from "./player-state-repository";
 import { SAVE_VERSION, type AlchemyProgress, type GameEffect, type StateSetter, type UnifiedGameState } from "./types";
+import { grantPlayerExperience, normalizePlayerGrowth, type PlayerGrowth } from "./progression-service";
+import { inventoryProjection, syncAlchemyProductInventory } from "./inventory-service";
+import { ACTION_COSTS } from "./action-service";
+import { canonicalCard, upsertCard } from "./card-service";
 
 const repository = new LocalPlayerStateRepository();
+
+function projectGrowth(state: UnifiedGameState, growth: PlayerGrowth): UnifiedGameState {
+  return {
+    ...state,
+    shared: { ...state.shared, ...growth },
+    romance: { ...state.romance, playerLevel: growth.playerLevel, experience: growth.playerExperience },
+    battle: { ...state.battle, playerLevel: growth.playerLevel, playerExp: growth.playerExperience },
+  };
+}
 
 function collectedQuestItems(collectedIds: string[] = []) {
   const collected = new Set(collectedIds);
@@ -30,11 +43,12 @@ function collectedQuestItems(collectedIds: string[] = []) {
 }
 
 function cloneInitial(): UnifiedGameState {
-  const romance = { ...INITIAL_STATE, inventory: { ...INITIAL_STATE.inventory }, relationships: { ...INITIAL_STATE.relationships }, flags: { ...INITIAL_STATE.flags }, playerLevel: 1, teacherSkillRanks: {}, learnedSkillIds: [], ownedCardIds: ["story-shen-sword-1", "story-liu-ward-1"], completedDungeons: [], alchemyResults: [], inventoryRarities: {}, pendingUnifiedEffects: [] };
+  const romance = { ...INITIAL_STATE, inventory: { ...INITIAL_STATE.inventory }, relationships: { ...INITIAL_STATE.relationships }, flags: { ...INITIAL_STATE.flags }, playerLevel: 1, teacherSkillRanks: {}, learnedSkillIds: [], ownedCardIds: ["story-shen-sword-1", "story-liu-ward-1"], completedDungeons: [], alchemyResults: [], inventoryRarities: {}, inventoryItems: {}, pendingUnifiedEffects: [] };
   romance.spiritStones = 5000;
   const giftItems = Object.fromEntries(Object.entries(romance.inventory).map(([itemId, amount]) => [itemId, { itemId, itemType: "gift" as const, rarity: 2 as const, amount, sourceTags: ["romance", "starter"] }]));
   const materialItems = Object.fromEntries(MATERIALS.map((item) => [item.id, { itemId: item.id, itemType: "material" as const, rarity: Math.max(1, Math.min(7, item.rarity)) as 1|2|3|4|5|6|7, amount: item.count, sourceTags: ["alchemy", "starter"] }]));
   const items = { ...giftItems, ...materialItems };
+  romance.inventoryItems = inventoryProjection(items);
   return {
     version: SAVE_VERSION,
     updatedAt: Date.now(),
@@ -59,19 +73,29 @@ function cloneInitial(): UnifiedGameState {
 function mergeSave(saved: UnifiedGameState | null) {
   const base = cloneInitial();
   if (!saved || saved.version !== SAVE_VERSION) return base;
-  return {
+  const alchemy = { ...base.alchemy, ...saved.alchemy };
+  const rawItems = { ...base.shared.items, ...saved.shared?.items, ...collectedQuestItems(saved.romance?.collectedEasterEggs) };
+  const items = syncAlchemyProductInventory(rawItems, alchemy.productStacks);
+  const shared = { ...base.shared, ...saved.shared, items, cards: (saved.shared?.cards ?? base.shared.cards).map(canonicalCard), globalKeys: { ...base.shared.globalKeys, ...saved.shared?.globalKeys } };
+  const normalizedBattle = normalizeMetaProgress({ ...base.battle, ...saved.battle });
+  normalizedBattle.cardSlots = normalizedBattle.cardSlots.map((id) => id && shared.cards.some((card) => card.id === id && card.mode === "active") ? id : null);
+  let merged: UnifiedGameState = {
     ...base, ...saved, version: SAVE_VERSION,
-    shared: { ...base.shared, ...saved.shared, items: { ...base.shared.items, ...saved.shared?.items, ...collectedQuestItems(saved.romance?.collectedEasterEggs) }, globalKeys: { ...base.shared.globalKeys, ...saved.shared?.globalKeys } },
+    shared,
     romance: {
       ...base.romance,
       ...saved.romance,
       relationships: { ...base.romance.relationships, ...saved.romance?.relationships },
       inventory: { ...base.romance.inventory, ...saved.romance?.inventory },
       flags: { ...base.romance.flags, ...saved.romance?.flags },
+      inventoryItems: inventoryProjection(items),
       activeEvent: null,
     },
-    alchemy: { ...base.alchemy, ...saved.alchemy }, battle: normalizeMetaProgress({ ...base.battle, ...saved.battle }), farm: normalizeFarmProgress(saved.farm), fishing: normalizeFishingProgress(saved.fishing), mining: normalizeMiningProgress(saved.mining), gathering: normalizeGathering(saved.gathering), dungeons: { ...base.dungeons, ...saved.dungeons }, quests: normalizeQuestProgress(saved.quests),
+    alchemy, battle: normalizedBattle, farm: normalizeFarmProgress(saved.farm), fishing: normalizeFishingProgress(saved.fishing), mining: normalizeMiningProgress(saved.mining), gathering: normalizeGathering(saved.gathering), dungeons: { ...base.dungeons, ...saved.dungeons }, quests: normalizeQuestProgress(saved.quests),
   };
+  const growth = normalizePlayerGrowth({ playerLevel: shared.playerLevel, playerExperience: shared.playerExperience });
+  merged = projectGrowth(merged, growth);
+  return merged;
 }
 
 type UnifiedContextValue = {
@@ -112,27 +136,28 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     if (requested === current.romance) return current;
     const pending = requested.pendingUnifiedEffects ?? [];
     let shared = { ...current.shared };
+    let growth: PlayerGrowth = { playerLevel: shared.playerLevel, playerExperience: shared.playerExperience };
     let alchemy = current.alchemy;
     let dungeons = current.dungeons;
     for (const effect of pending) {
       if (effect.type === "add_currency") shared = { ...shared, spiritStones: Math.max(0, shared.spiritStones + effect.amount) };
-      else if (effect.type === "add_player_exp") shared = { ...shared, playerExperience: shared.playerExperience + effect.amount };
+      else if (effect.type === "add_player_exp") growth = grantPlayerExperience(growth, effect.amount);
       else if (effect.type === "learn_skill") shared = { ...shared, learnedSkills: [...new Set([...shared.learnedSkills, effect.skillId])] };
       else if (effect.type === "trigger_map_event") dungeons = { ...dungeons, randomVisible: [...new Set([...dungeons.randomVisible, effect.eventId])] };
       else if (effect.type === "add_item") {
         const previous = shared.items[effect.itemId];
         shared = { ...shared, items: { ...shared.items, [effect.itemId]: { itemId: effect.itemId, itemType: effect.itemType, rarity: effect.rarity, amount: (previous?.amount ?? 0) + effect.amount, sourceTags: ["story"] } } };
         if (MATERIALS.some((item) => item.id === effect.itemId)) alchemy = { ...alchemy, materialCounts: { ...alchemy.materialCounts, [effect.itemId]: (alchemy.materialCounts[effect.itemId] ?? 0) + effect.amount } };
-      } else if (effect.type === "add_card") shared = { ...shared, cards: [...shared.cards, { id: effect.cardId, characterId: effect.characterId, name: effect.name, rarity: effect.rarity, mode: effect.mode, source: "story", art: effect.art, activeEffect: "sword" }] };
+      } else if (effect.type === "add_card") shared = { ...shared, cards: upsertCard(shared.cards, { id: effect.cardId, characterId: effect.characterId, name: effect.name, rarity: effect.rarity, mode: effect.mode, source: "story", art: effect.art, activeEffect: "sword" }) };
     }
     if (requested.spiritStones !== current.romance.spiritStones) shared = { ...shared, spiritStones: requested.spiritStones };
-    if (requested.experience !== current.romance.experience) shared = { ...shared, playerExperience: requested.experience };
-    if (requested.playerLevel !== current.romance.playerLevel) shared = { ...shared, playerLevel: requested.playerLevel ?? current.romance.playerLevel ?? 1 };
-    const next = { ...requested, pendingUnifiedEffects: [], spiritStones: shared.spiritStones, experience: shared.playerExperience };
+    if (requested.experience !== current.romance.experience) growth = grantPlayerExperience(growth, requested.experience - current.romance.experience);
+    shared = { ...shared, ...growth };
+    const next = { ...requested, pendingUnifiedEffects: [], spiritStones: shared.spiritStones, experience: growth.playerExperience, playerLevel: growth.playerLevel };
     const giftItems = Object.fromEntries(Object.entries(next.inventory).map(([itemId, amount]) => [itemId, { ...(current.shared.items[itemId] ?? { itemId, itemType: "gift" as const, rarity: 2 as const, sourceTags: ["romance"] }), amount }]));
-    shared = { ...shared, spiritStones: next.spiritStones, stamina: next.stamina, playerExperience: next.experience, items: { ...shared.items, ...giftItems }, globalKeys: { ...shared.globalKeys, ...next.flags } };
-    const projected = { ...next, playerLevel: shared.playerLevel, teacherSkillRanks: current.battle.passiveRanks, learnedSkillIds: shared.learnedSkills, ownedCardIds: shared.cards.map((card) => card.id), completedDungeons: dungeons.completed, alchemyResults: Object.values(alchemy.productStacks).filter((stack) => stack.count > 0).map((stack) => stack.productId), inventoryRarities: Object.fromEntries(Object.entries(shared.items).map(([id, item]) => [id, item.rarity])) };
-    return { ...current, romance: projected, shared, alchemy, dungeons, battle: { ...current.battle, spiritStones: shared.spiritStones, playerLevel: shared.playerLevel, playerExp: shared.playerExperience } };
+    shared = { ...shared, spiritStones: next.spiritStones, stamina: next.stamina, items: { ...shared.items, ...giftItems }, globalKeys: { ...shared.globalKeys, ...next.flags } };
+    const projected = { ...next, playerLevel: growth.playerLevel, teacherSkillRanks: current.battle.passiveRanks, learnedSkillIds: shared.learnedSkills, ownedCardIds: shared.cards.map((card) => card.id), completedDungeons: dungeons.completed, alchemyResults: Object.values(alchemy.productStacks).filter((stack) => stack.count > 0).map((stack) => stack.productId), inventoryRarities: Object.fromEntries(Object.entries(shared.items).map(([id, item]) => [id, item.rarity])), inventoryItems: inventoryProjection(shared.items) };
+    return { ...current, romance: projected, shared, alchemy, dungeons, battle: { ...current.battle, spiritStones: shared.spiritStones, playerLevel: growth.playerLevel, playerExp: growth.playerExperience } };
   }), []);
 
   const setBattle = useCallback<StateSetter<UnifiedGameState["battle"]>>((action) => setState((current) => {
@@ -140,20 +165,21 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     if (next === current.battle) return current;
     const spiritStones = next.spiritStones;
     const battleExperienceChanged = next.playerExp !== current.battle.playerExp || next.playerLevel !== current.battle.playerLevel;
-    const playerExperience = battleExperienceChanged ? next.playerExp : current.shared.playerExperience;
-    const playerLevel = battleExperienceChanged ? next.playerLevel : current.shared.playerLevel;
-    const synchronizedBattle = battleExperienceChanged ? next : { ...next, playerExp: playerExperience, playerLevel };
+    const growth = battleExperienceChanged
+      ? normalizePlayerGrowth({ playerLevel: next.playerLevel, playerExperience: next.playerExp })
+      : { playerLevel: current.shared.playerLevel, playerExperience: current.shared.playerExperience };
+    const synchronizedBattle = { ...next, playerExp: growth.playerExperience, playerLevel: growth.playerLevel };
     const learnedSkills = Object.entries(next.skillMastery).filter(([, value]) => value.learned).map(([id]) => Number(id));
-    return { ...current, battle: synchronizedBattle, shared: { ...current.shared, spiritStones, playerLevel, playerExperience, learnedSkills }, romance: { ...current.romance, spiritStones, experience: playerExperience, playerLevel, teacherSkillRanks: next.passiveRanks, learnedSkillIds: learnedSkills } };
+    return { ...current, battle: synchronizedBattle, shared: { ...current.shared, spiritStones, ...growth, learnedSkills }, romance: { ...current.romance, spiritStones, experience: growth.playerExperience, playerLevel: growth.playerLevel, teacherSkillRanks: next.passiveRanks, learnedSkillIds: learnedSkills } };
   }), []);
 
   const setAlchemy = useCallback<StateSetter<AlchemyProgress>>((action) => setState((current) => {
     const alchemy = typeof action === "function" ? action(current.alchemy) : action;
     if (alchemy === current.alchemy) return current;
     const materialItems = Object.fromEntries(MATERIALS.map((item) => [item.id, { ...(current.shared.items[item.id] ?? { itemId: item.id, itemType: "material" as const, rarity: Math.max(1, Math.min(7, item.rarity)) as 1|2|3|4|5|6|7, sourceTags: ["alchemy"] }), amount: alchemy.materialCounts[item.id] ?? 0 }]));
-    const items = { ...current.shared.items, ...materialItems };
+    const items = syncAlchemyProductInventory({ ...current.shared.items, ...materialItems }, alchemy.productStacks);
     const alchemyResults = Object.values(alchemy.productStacks).filter((stack) => stack.count > 0).map((stack) => stack.productId);
-    return { ...current, alchemy, shared: { ...current.shared, items }, romance: { ...current.romance, alchemyResults, inventoryRarities: Object.fromEntries(Object.entries(items).map(([id, item]) => [id, item.rarity])) } };
+    return { ...current, alchemy, shared: { ...current.shared, items }, romance: { ...current.romance, alchemyResults, inventoryRarities: Object.fromEntries(Object.entries(items).map(([id, item]) => [id, item.rarity])), inventoryItems: inventoryProjection(items) } };
   }), []);
 
   const setFarm = useCallback<StateSetter<FarmProgress>>((action) => setState((current) => {
@@ -199,34 +225,44 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
           if(position)battle={...battle,equipmentBag:[...battle.equipmentBag,equipment],equipmentPositions:{...battle.equipmentPositions,[equipment.uid]:position}};
         }
       }
-      return { ...next, romance, battle, shared: { ...next.shared, items: { ...next.shared.items, [item.itemId]: item } }, alchemy: isAlchemyMaterial ? { ...next.alchemy, materialCounts: { ...next.alchemy.materialCounts, [item.itemId]: (next.alchemy.materialCounts[item.itemId] ?? 0) + effect.item.amount } } : next.alchemy };
+      const items = { ...next.shared.items, [item.itemId]: item };
+      return { ...next, romance: { ...romance, inventoryItems: inventoryProjection(items), inventoryRarities: Object.fromEntries(Object.entries(items).map(([id, entry]) => [id, entry.rarity])) }, battle, shared: { ...next.shared, items }, alchemy: isAlchemyMaterial ? { ...next.alchemy, materialCounts: { ...next.alchemy.materialCounts, [item.itemId]: (next.alchemy.materialCounts[item.itemId] ?? 0) + effect.item.amount } } : next.alchemy };
     }
     if (effect.type === "remove_item") {
       const previous = next.shared.items[effect.itemId]; if (!previous) return next;
       const amount = Math.max(0, previous.amount - effect.amount);
       const isAlchemyMaterial = MATERIALS.some((entry) => entry.id === effect.itemId);
+      let alchemy = isAlchemyMaterial ? { ...next.alchemy, materialCounts: { ...next.alchemy.materialCounts, [effect.itemId]: amount } } : next.alchemy;
+      if (previous.sourceTags.includes("alchemy-product") && effect.itemId.startsWith("alchemy:")) {
+        const stackKey = effect.itemId.slice("alchemy:".length);
+        const stack = alchemy.productStacks[stackKey];
+        if (stack) alchemy = { ...alchemy, productStacks: { ...alchemy.productStacks, [stackKey]: { ...stack, count: amount } } };
+      }
+      const items = { ...next.shared.items, [effect.itemId]: { ...previous, amount } };
       const romance = previous.itemType === "gift" ? { ...next.romance, inventory: { ...next.romance.inventory, [effect.itemId]: amount } } : next.romance;
-      return { ...next, romance, shared: { ...next.shared, items: { ...next.shared.items, [effect.itemId]: { ...previous, amount } } }, alchemy: isAlchemyMaterial ? { ...next.alchemy, materialCounts: { ...next.alchemy.materialCounts, [effect.itemId]: amount } } : next.alchemy };
+      return { ...next, romance: { ...romance, inventoryItems: inventoryProjection(items), inventoryRarities: Object.fromEntries(Object.entries(items).map(([id, entry]) => [id, entry.rarity])) }, shared: { ...next.shared, items }, alchemy };
     }
-    if (effect.type === "add_card") { const cards = [...next.shared.cards, effect.card]; return { ...next, shared: { ...next.shared, cards }, romance: { ...next.romance, ownedCardIds: cards.map((card) => card.id) } }; }
+    if (effect.type === "add_card") { const cards = upsertCard(next.shared.cards, effect.card); return { ...next, shared: { ...next.shared, cards }, romance: { ...next.romance, ownedCardIds: cards.map((card) => card.id) } }; }
     if (effect.type === "learn_skill") return { ...next, shared: { ...next.shared, learnedSkills: [...new Set([...next.shared.learnedSkills, effect.skillId])] } };
     if (effect.type === "add_relationship") return { ...next, romance: { ...next.romance, relationships: { ...next.romance.relationships, [effect.characterId]: Math.max(0, Math.min(100, (next.romance.relationships[effect.characterId] ?? 0) + effect.amount)) } } };
-    if (effect.type === "add_player_exp") return { ...next, shared: { ...next.shared, playerExperience: next.shared.playerExperience + effect.amount }, romance: { ...next.romance, experience: next.romance.experience + effect.amount } };
+    if (effect.type === "add_player_exp") return projectGrowth(next, grantPlayerExperience(next.shared, effect.amount));
     if (effect.type === "set_global_key") return { ...next, shared: { ...next.shared, globalKeys: { ...next.shared.globalKeys, [effect.key]: effect.value } }, romance: { ...next.romance, flags: { ...next.romance.flags, [effect.key]: effect.value } } };
     if (effect.type === "reveal_dungeon") return { ...next, dungeons: { ...next.dungeons, randomVisible: [...new Set([...next.dungeons.randomVisible, effect.dungeonId])] } };
     if (effect.type === "complete_dungeon") {
+      const settled = effect.result !== "defeat";
       const completed = effect.result === "victory" ? [...new Set([...next.dungeons.completed, effect.waveId])] : next.dungeons.completed;
       const highestUnlocked = effect.result === "victory" ? Math.max(next.dungeons.highestUnlocked, Math.min(21, effect.waveId + 1)) : next.dungeons.highestUnlocked;
       const periods = ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"] as const;
       const currentPeriodIndex = Math.max(0, periods.indexOf(next.romance.period));
       const wrapsToNextDay = currentPeriodIndex === periods.length - 1;
-      const period = periods[(currentPeriodIndex + 1) % periods.length];
-      const day = next.romance.day + (wrapsToNextDay ? 1 : 0);
+      const period = settled ? periods[(currentPeriodIndex + ACTION_COSTS.battle.timeStages) % periods.length] : next.romance.period;
+      const day = next.romance.day + (settled && wrapsToNextDay ? 1 : 0);
+      const stamina = settled ? Math.max(0, next.shared.stamina - ACTION_COSTS.battle.stamina) : next.shared.stamina;
       return {
         ...next,
         dungeons: { ...next.dungeons, completed, highestUnlocked, lastSettlement: effect.result },
-        shared: { ...next.shared, stamina: Math.max(0, next.shared.stamina - 3) },
-        romance: { ...next.romance, day, period, stamina: Math.max(0, next.romance.stamina - 3), completedDungeons: completed, medicineShortage: effect.result === "victory" && next.romance.medicineShortage.status === "active" ? { ...next.romance.medicineShortage, battleVictories: next.romance.medicineShortage.battleVictories + 1 } : next.romance.medicineShortage },
+        shared: { ...next.shared, stamina },
+        romance: { ...next.romance, day, period, stamina, completedDungeons: completed, medicineShortage: effect.result === "victory" && next.romance.medicineShortage.status === "active" ? { ...next.romance.medicineShortage, battleVictories: next.romance.medicineShortage.battleVictories + 1 } : next.romance.medicineShortage },
         battle: { ...next.battle, highestUnlockedWave: highestUnlocked },
       };
     }

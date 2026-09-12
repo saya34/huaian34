@@ -1,6 +1,7 @@
 import type { GameEffect, UnifiedGameState } from "../core/types";
 import { QUESTS } from "./content";
 import type { QuestDefinition, QuestObjectiveDefinition, QuestProgress, QuestStatus, QuestView } from "./types";
+import { inventoryCount } from "../core/item-query";
 
 export function createInitialQuestProgress(): QuestProgress {
   const firstMain = QUESTS.filter((quest) => quest.type === "main").sort((a, b) => a.order - b.order)[0];
@@ -32,10 +33,10 @@ export function normalizeQuestProgress(value?: Partial<QuestProgress> | null): Q
 }
 
 export function readObjectiveCurrent(objective: QuestObjectiveDefinition, state: UnifiedGameState) {
-  if (objective.target === "alchemy:any-product") return Object.values(state.alchemy.productStacks).reduce((sum, stack) => sum + Math.max(0, stack.count), 0);
+  if (objective.target === "alchemy:any-product") return inventoryCount(state.shared.items, { itemType: "pill" });
   if (objective.target === "dungeon:any-completed") return state.dungeons.completed.length;
   if (objective.target === "path:medicine-shortage-completed") return state.romance.medicineShortage.status === "completed" ? 1 : 0;
-  if (objective.target.startsWith("item:")) return state.shared.items[objective.target.slice(5)]?.amount ?? 0;
+  if (objective.target.startsWith("item:")) return inventoryCount(state.shared.items, { templateId: objective.target.slice(5) });
   if (objective.target === "currency:spirit-stones") return state.shared.spiritStones;
   if (objective.target.startsWith("relationship:")) return state.romance.relationships[objective.target.slice(13)] ?? 0;
   if (objective.target.startsWith("story:")) return state.romance.completedEvents.includes(objective.target.slice(6)) ? 1 : 0;
@@ -67,13 +68,14 @@ export function synchronizeQuestProgress(progress: QuestProgress, state: Unified
 }
 
 export function questRewardEffects(definition: QuestDefinition): GameEffect[] {
-  return definition.rewards.flatMap((reward) => {
-    if (reward.type === "currency") return [{ type: "add_currency" as const, amount: reward.amount }];
-    if (reward.type === "experience") return [{ type: "add_player_exp" as const, amount: reward.amount }];
-    if (reward.type === "relationship" && reward.characterId) return [{ type: "add_relationship" as const, characterId: reward.characterId, amount: reward.amount }];
-    if (reward.type === "item" && reward.itemId && reward.itemType && reward.rarity) return [{ type: "add_item" as const, item: { itemId: reward.itemId, itemType: reward.itemType, rarity: reward.rarity, amount: reward.amount, sourceTags: ["任务奖励", definition.id], locked: reward.itemType === "quest" } }];
-    return [];
-  });
+  const effects: GameEffect[] = [];
+  for (const reward of definition.rewards) {
+    if (reward.type === "currency") effects.push({ type: "add_currency", amount: reward.amount });
+    else if (reward.type === "experience") effects.push({ type: "add_player_exp", amount: reward.amount });
+    else if (reward.type === "relationship" && reward.characterId) effects.push({ type: "add_relationship", characterId: reward.characterId, amount: reward.amount });
+    else if (reward.type === "item" && reward.itemId && reward.itemType && reward.rarity) effects.push({ type: "add_item", item: { itemId: reward.itemId, itemType: reward.itemType, rarity: reward.rarity, amount: reward.amount, sourceTags: ["任务奖励", definition.id], locked: reward.itemType === "quest" } });
+  }
+  return effects;
 }
 
 export const questSortRank: Record<QuestStatus, number> = { claimable: 0, in_progress: 2, completed: 2, unaccepted: 3, claimed: 4 };

@@ -5,8 +5,10 @@ import copy from "./content/preparation.json";
 import type { DungeonDefinition } from "../core/dungeons";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import { ITEM_TABLE, type GameItem } from "../alchemy/item-data";
-import { computePermanentAttributes } from "./meta";
 import { equipmentById } from "./progression";
+import { computeFinalAttributes } from "../core/attributes-service";
+import { itemTemplateId } from "../core/inventory-service";
+import { actionCostLabel, checkActionAdmission } from "../core/action-service";
 
 export type BattlePreparationPanelId = "profile" | "skills" | "equipment" | "cards";
 
@@ -54,7 +56,7 @@ function formatTemplate(template: string, values: Record<string, string | number
   return Object.entries(values).reduce((result, [key, value]) => result.replace(`{${key}}`, String(value)), template);
 }
 
-function estimatePower(attributes: ReturnType<typeof computePermanentAttributes>) {
+function estimatePower(attributes: ReturnType<typeof computeFinalAttributes>) {
   return Math.round(attributes.health * .08 + attributes.defense * .45 + attributes.damage * 420 + attributes.weaponMaxDamage * 1.7 + attributes.hitChance * 90 + attributes.dodge * 300);
 }
 
@@ -80,14 +82,15 @@ type Props = {
 export function BattlePreparation({ dungeon, mapImage, rewards, heroName = copy.defaultHeroName, maxWave, onChangeWave, onOpenPanel, onStart, onClose, onHelp }: Props) {
   const { state } = useUnifiedGame();
   const [selectedSupplyId, setSelectedSupplyId] = useState<string | null>(null);
-  const attributes = useMemo(() => computePermanentAttributes(state.battle), [state.battle]);
+  const attributes = useMemo(() => computeFinalAttributes(state), [state]);
+  const admission = checkActionAdmission("battle", state.shared);
   const power = estimatePower(attributes);
   const equipped = Object.values(state.battle.equipped).filter(Boolean).flatMap((uid) => {
     const item = state.battle.equipmentBag.find((entry) => entry.uid === uid);
     return item ? [{ item, definition: equipmentById(item.equipmentId) }] : [];
   });
   const pills = Object.values(state.shared.items).filter((item) => item.itemType === "pill" && item.amount > 0).flatMap((stack) => {
-    const definition = ITEM_TABLE.find((item) => item.id === stack.itemId);
+    const definition = ITEM_TABLE.find((item) => item.id === itemTemplateId(stack));
     return definition ? [{ stack, definition }] : [];
   }).slice(0, 6);
 
@@ -96,6 +99,7 @@ export function BattlePreparation({ dungeon, mapImage, rewards, heroName = copy.
   }, [dungeon.waveId]);
 
   const saveAndStart = () => {
+    if (!admission.ok) return;
     window.sessionStorage.setItem(BATTLE_PREPARATION_STORAGE_KEY, JSON.stringify({ waveId: dungeon.waveId, dungeonId: dungeon.id, dungeonName: dungeon.name, supplyId: selectedSupplyId, savedAt: Date.now() } satisfies BattlePreparationRecord));
     onStart();
   };
@@ -113,7 +117,7 @@ export function BattlePreparation({ dungeon, mapImage, rewards, heroName = copy.
         <div className="battle-intel-grid">
           <article><small>{copy.mechanismLabel}</small>{regionMechanics(dungeon).map((line) => <p key={line}>{line}</p>)}</article>
           <article><small>{copy.timelineLabel}</small><strong>{copy.timelineValue}</strong><small>{copy.lossLabel}</small><strong>{copy.lossValue}</strong></article>
-          <article><small>{copy.costLabel}</small><strong>{copy.costValue}</strong><small>{copy.recommendedLabel}</small><strong>{dungeon.recommendedPower}</strong></article>
+          <article><small>{copy.costLabel}</small><strong>{actionCostLabel("battle")}</strong><small>{copy.recommendedLabel}</small><strong>{dungeon.recommendedPower}</strong></article>
         </div>
         {onChangeWave && maxWave && <nav className="battle-stage-switch"><button type="button" onClick={() => onChangeWave(dungeon.waveId <= 1 ? maxWave : dungeon.waveId - 1)}>‹ {copy.stagePrevious}</button><b>{dungeon.waveId} / 21</b><button type="button" onClick={() => onChangeWave(dungeon.waveId >= maxWave ? 1 : dungeon.waveId + 1)}>{copy.stageNext} ›</button></nav>}
       </section>
@@ -138,7 +142,7 @@ export function BattlePreparation({ dungeon, mapImage, rewards, heroName = copy.
       <section className="battle-drop-card"><header><div><small>{copy.dropLabel}</small><h3>{copy.dropHint}</h3></div></header><div>{rewards.map((item) => <article key={item.id}><img src={item.image} alt="" /><span><strong>{item.name}</strong><small>{item.category} · {item.quality}</small></span></article>)}</div></section>
     </div>
 
-    <footer className="battle-preparation-footer">{onHelp && <button type="button" className="battle-help-action" onClick={onHelp}>{copy.helpAction}</button>}<button type="button" className="battle-start-action" onClick={saveAndStart}><span>{copy.startKicker}</span><strong>{copy.startAction}</strong></button></footer>
+    <footer className="battle-preparation-footer">{onHelp && <button type="button" className="battle-help-action" onClick={onHelp}>{copy.helpAction}</button>}<button type="button" className="battle-start-action" onClick={saveAndStart} disabled={!admission.ok} title={admission.ok ? actionCostLabel("battle") : admission.message}><span>{admission.ok ? actionCostLabel("battle") : admission.message}</span><strong>{copy.startAction}</strong></button></footer>
   </div>;
 }
 

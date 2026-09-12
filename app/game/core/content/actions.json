@@ -1,0 +1,9 @@
+{
+  "battle":{"label":"进入秘境","stamina":3,"timeStages":1,"chargeOn":"success"},
+  "alchemy":{"label":"开炉炼丹","stamina":1,"timeStages":0,"chargeOn":"start"},
+  "cultivation":{"label":"入阵练功","stamina":2,"timeStages":0,"chargeOn":"start"},
+  "short-rest":{"label":"短休","stamina":0,"timeStages":1,"chargeOn":"start"},
+  "wait":{"label":"等待","stamina":0,"timeStages":1,"chargeOn":"start"},
+  "sleep":{"label":"安睡","stamina":0,"timeStages":1,"chargeOn":"start"},
+  "farm-tend":{"label":"凝露培土","stamina":1,"timeStages":0,"chargeOn":"start"}
+}
