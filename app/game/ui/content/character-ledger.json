@@ -1,0 +1,38 @@
+{
+  "eyebrow": "BONDS OF HUAIAN · 槐安缘录",
+  "title": "人物谱",
+  "subtitle": "一卷记相逢，一笔续前缘",
+  "close": "关闭人物谱",
+  "back": "返回人物谱",
+  "total": "已结识",
+  "present": "此刻同场",
+  "known": "已知偏好",
+  "filter": {
+    "all": "全部人物",
+    "present": "此间相逢",
+    "known": "已知心意"
+  },
+  "empty": "此页尚无人留下姓名。",
+  "presentNow": "此刻在场",
+  "atLocation": "常居 · {scene}",
+  "unknownLocation": "行踪未明",
+  "bond": "缘分",
+  "stage": "缘分境界",
+  "nextStage": "距「{stage}」尚需 {amount} 点缘分",
+  "maxStage": "缘分已至圆满",
+  "addressing": "她如今唤你「{name}」",
+  "biography": "人物小传",
+  "preferences": "已知心意",
+  "unknownPreference": "礼物偏好尚未发现",
+  "knownPreference": "{gift} · {tier}",
+  "view": "展开人物卷",
+  "visit": "前往相见",
+  "location": "所在之处",
+  "portraitAlt": "{name}人物立绘",
+  "preferenceTier": {
+    "loved": "珍爱",
+    "liked": "喜欢",
+    "neutral": "寻常",
+    "disliked": "不喜"
+  }
+}

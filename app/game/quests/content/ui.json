@@ -1,6 +1,12 @@
 {
   "panelTitle": "任务",
   "panelEyebrow": "QUEST JOURNAL · 云州纪事",
+  "panelSubtitle": "循迹问道 · 诸事皆有回响",
+  "activeCount": "进行中 {count}",
+  "claimableCount": "待领取 {count}",
+  "trackedShort": "追踪",
+  "questNumber": "任务 {number}",
+  "progressLabel": "目标进度",
   "close": "关闭任务面板",
   "mainTab": "主线",
   "sideTab": "支线",
