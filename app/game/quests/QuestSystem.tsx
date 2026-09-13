@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import { useFeedback } from "../feedback/FeedbackProvider";
 import { QUESTS, questText } from "./content";
@@ -62,17 +62,30 @@ export function CurrentQuestCard({ onOpen, onNavigate }: { onOpen: () => void; o
   }
 
   const definition = QUESTS.find((quest) => quest.id === state.quests.trackedQuestId);
-  const toggle = <button type="button" className="quest-card-toggle" aria-expanded={!collapsed} aria-label={collapsed ? questText("expandCard") : questText("collapseCard")} title={collapsed ? questText("expandCard") : questText("collapseCard")} onClick={toggleCollapsed}><span aria-hidden="true">{collapsed ? "任" : "‹"}</span></button>;
-  if (!definition) return <section className={`current-quest-card is-free ${collapsed ? "is-collapsed" : ""}`}>{toggle}<img src={ART} alt=""/><div><small>{questText("freeExplore")}</small><h3>{questText("freeExplore")}</h3><p>{questText("freeExploreBody")}</p><button type="button" onClick={onOpen}>{questText("viewAll")}</button></div></section>;
+  const toggle = <button type="button" className="quest-card-toggle" aria-expanded={!collapsed} aria-label={collapsed ? questText("expandCard") : questText("collapseCard")} title={collapsed ? questText("expandCard") : questText("collapseCard")} onClick={toggleCollapsed}><span aria-hidden="true">{collapsed ? "任" : "收"}</span></button>;
+  if (!definition) return <section className={`current-quest-card is-free ${collapsed ? "is-collapsed" : ""}`} aria-label={questText("freeExplore")}>
+    {toggle}<img className="quest-hud-art" src={ART} alt=""/>
+    <span className="quest-hud-crest" aria-hidden="true"><b>游</b><i>{questText("freeExploreTag")}</i></span>
+    <div className="current-quest-copy"><header><small>{questText("hudTitle")}</small><em>{questText("freeExplore")}</em></header><h3>{questText("freeExplore")}</h3><p>{questText("freeExploreBody")}</p><footer><button type="button" className="quest-link" onClick={onOpen}><span aria-hidden="true">卷</span>{questText("viewAll")}</button></footer></div>
+  </section>;
   const view = questView(definition, state.quests, state);
   const objective = view.objectives[0];
   const awaitingDialogue = view.status === "unaccepted" && definition.giver;
   const claimable = view.status === "claimable" || view.status === "completed";
-  return <section className={`current-quest-card type-${definition.type} status-${view.status} ${collapsed ? "is-collapsed" : ""}`}>
+  const progressPercent = objective && !awaitingDialogue ? Math.min(100, objective.required > 0 ? objective.current / objective.required * 100 : 100) : 0;
+  const taskType = definition.type === "main" ? questText("currentMain") : questText("currentSide");
+  const cardStyle = { "--quest-progress": `${progressPercent}%` } as CSSProperties;
+  return <section className={`current-quest-card type-${definition.type} status-${view.status} ${collapsed ? "is-collapsed" : ""}`} style={cardStyle} aria-label={questText("hudAria", { type: taskType, name: definition.name })}>
     {toggle}
-    <img src={ART} alt=""/>
-    <div className="current-quest-copy"><small>{definition.type === "main" ? questText("currentMain") : questText("currentSide")}</small><h3>{definition.name}</h3>{objective && <div className="current-quest-objective"><span>{questText("currentObjective")}</span><strong>{awaitingDialogue ? questText("meetObjective", { name: definition.giver!.name }) : objective.description}</strong><em>{awaitingDialogue ? questText("status.unaccepted") : questText("progress", { current: objective.current, required: objective.required })}</em><i><b style={{ width: awaitingDialogue ? "0%" : `${Math.min(100, objective.current / objective.required * 100)}%` }}/></i></div>}<footer><button type="button" className="quest-primary" onClick={() => claimable ? onOpen() : onNavigate(definition, awaitingDialogue ? "giver" : "objective")}>{primaryLabel(view.status, definition)}</button><button type="button" className="quest-link" onClick={onOpen}>{questText("viewAll")}</button></footer></div>
-    <span className="quest-corner-seal">任</span>
+    <img className="quest-hud-art" src={ART} alt=""/>
+    <span className="quest-hud-crest" aria-hidden="true"><b>任</b><i>{definition.type === "main" ? questText("mainShort") : questText("sideShort")}</i></span>
+    <div className="current-quest-copy">
+      <header><small>{taskType}</small><em>{questText(`status.${view.status}`)}</em></header>
+      <h3>{definition.name}</h3>
+      {objective && <div className="current-quest-objective"><span aria-hidden="true">◆</span><strong>{awaitingDialogue ? questText("meetObjective", { name: definition.giver!.name }) : objective.description}</strong><em>{awaitingDialogue ? questText("status.unaccepted") : questText("progress", { current: objective.current, required: objective.required })}</em><i aria-hidden="true"><b/></i></div>}
+      <footer><button type="button" className="quest-primary" onClick={() => claimable ? onOpen() : onNavigate(definition, awaitingDialogue ? "giver" : "objective")}>{primaryLabel(view.status, definition)}</button><button type="button" className="quest-link" onClick={onOpen}><span aria-hidden="true">卷</span>{questText("viewAll")}</button></footer>
+    </div>
+    <span className="quest-status-pip" aria-hidden="true">{claimable ? "!" : definition.type === "main" ? "主" : "支"}</span>
   </section>;
 }
 
