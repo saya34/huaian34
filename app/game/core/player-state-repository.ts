@@ -1,7 +1,7 @@
 import type { UnifiedGameState } from "./types";
 
 export interface PlayerStateRepository {
-  load(slotId: string): Promise<UnifiedGameState | null>;
+  load(slotId: string): Promise<unknown | null>;
   save(state: UnifiedGameState, expectedVersion?: number): Promise<void>;
 }
 
@@ -12,7 +12,7 @@ export class LocalPlayerStateRepository implements PlayerStateRepository {
     if (typeof window === "undefined") return null;
     try {
       const raw = window.localStorage.getItem(keyFor(slotId));
-      return raw ? JSON.parse(raw) as UnifiedGameState : null;
+      return raw ? JSON.parse(raw) as unknown : null;
     } catch {
       return null;
     }

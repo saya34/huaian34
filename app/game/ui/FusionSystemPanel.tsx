@@ -17,10 +17,11 @@ import { feedbackText } from "../feedback/texts";
 import { gatheringItemById } from "../gathering/content";
 import { computeFinalAttributes } from "../core/attributes-service";
 import { itemTemplateId } from "../core/inventory-service";
+import { CARD_QUALITY_NAMES } from "../core/card-service";
 
 export type FusionPanelId = "profile" | "inventory" | "cards" | "skills" | "equipment";
 
-const RARITY = ["", "凡品", "良品", "珍品", "绝品", "灵品", "仙品", "神品"];
+const RARITY = ["", ...Object.values(CARD_QUALITY_NAMES)];
 const TYPE_LABEL: Record<UnifiedItemType, string> = { gift: "礼物甜品", material: "炼丹灵材", pill: "丹药", equipment: "装备", card: "人物卡", treasure: "秘境宝物", quest: "剧情物品", fish: "灵鱼渔获" };
 const FILTERS: Array<[string, UnifiedItemType | "all"]> = [["全部", "all"], ["礼物", "gift"], ["灵材", "material"], ["丹药", "pill"], ["装备", "equipment"], ["宝物", "treasure"], ["渔获", "fish"], ["剧情", "quest"]];
 

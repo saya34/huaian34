@@ -27,7 +27,7 @@ export default function CalendarModal({ state, events, onClose }: { state: GameS
   }
 
   return <div className="calendar-backdrop" role="presentation" onMouseDown={onClose}><section className="calendar-shell" role="dialog" aria-modal="true" aria-label="云和历" onMouseDown={(event) => event.stopPropagation()}>
-    <header><div><small>YUNHE ALMANAC · 云和历</small><h2>{getCalendarDate(firstAbsolute).eraYear} · {CALENDAR_MONTHS[view.month - 1]}</h2><p>今日：{today.monthName}{today.dayName} · {today.weekdayName}</p></div><button type="button" onClick={onClose} aria-label="关闭日历">×</button></header>
+    <header><div><small>YUNHE ALMANAC · 云和历</small><h2>{getCalendarDate(firstAbsolute).eraYear} · {CALENDAR_MONTHS[view.month - 1]}</h2><p>今日：{today.monthName}{today.dayName} · {today.weekdayName} · 当前{state.period}</p></div><button type="button" onClick={onClose} aria-label="关闭日历">×</button></header>
     <div className="calendar-toolbar"><button type="button" onClick={() => changeMonth(-1)}>‹ 上月</button><button type="button" className="calendar-today" onClick={() => { setView({ year: today.year, month: today.month }); setSelectedDay(today.day); }}>回到今日</button><button type="button" onClick={() => changeMonth(1)}>下月 ›</button></div>
     <div className="calendar-week-row">{CALENDAR_WEEKDAYS.map((weekday) => <span key={weekday}>{weekday}</span>)}</div>
     <div className="calendar-grid">{Array.from({ length: firstWeekday - 1 }, (_, index) => <i key={`blank-${index}`} />)}{Array.from({ length: DAYS_PER_MONTH }, (_, index) => {

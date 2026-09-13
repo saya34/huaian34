@@ -17,6 +17,7 @@ export type MythicCardRecord = {
   id: string;
   createdAt: number;
   optionIds: string[];
+  quality: "神品";
 };
 
 export type FatedCharacterCardRecord = {
@@ -27,6 +28,7 @@ export type FatedCharacterCardRecord = {
   image: string;
   chance: number;
   targeted: boolean;
+  quality: "仙品";
 };
 
 export type CharacterCardRecord = MythicCardRecord | FatedCharacterCardRecord;

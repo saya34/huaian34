@@ -16,7 +16,7 @@ import type { GearRarity } from "../battle/progression";
 import { createInitialQuestProgress, normalizeQuestProgress } from "../quests/engine";
 import type { QuestProgress } from "../quests/types";
 import { keyFor, LocalPlayerStateRepository } from "./player-state-repository";
-import { SAVE_VERSION, type AlchemyProgress, type GameEffect, type StateSetter, type UnifiedGameState } from "./types";
+import { SAVE_VERSION, type AlchemyProgress, type GameEffect, type StateSetter, type UnifiedCardInstance, type UnifiedGameState, type UnifiedItemStack } from "./types";
 import { grantPlayerExperience, normalizePlayerGrowth, type PlayerGrowth } from "./progression-service";
 import { inventoryProjection, syncAlchemyProductInventory } from "./inventory-service";
 import { ACTION_COSTS } from "./action-service";
@@ -25,12 +25,103 @@ import { canonicalCard, upsertCard } from "./card-service";
 const repository = new LocalPlayerStateRepository();
 
 function projectGrowth(state: UnifiedGameState, growth: PlayerGrowth): UnifiedGameState {
+  const shared = { ...state.shared, ...growth };
   return {
     ...state,
-    shared: { ...state.shared, ...growth },
-    romance: { ...state.romance, playerLevel: growth.playerLevel, experience: growth.playerExperience },
-    battle: { ...state.battle, playerLevel: growth.playerLevel, playerExp: growth.playerExperience },
+    shared,
+    romance: {
+      ...state.romance,
+      playerLevel: growth.playerLevel,
+      experience: growth.playerExperience,
+      spiritStones: shared.spiritStones,
+      stamina: shared.stamina,
+      teacherSkillRanks: state.battle.passiveRanks,
+      learnedSkillIds: shared.learnedSkills,
+      ownedCardIds: shared.cards.map((card) => card.id),
+      completedDungeons: state.dungeons.completed,
+      alchemyResults: Object.values(state.alchemy.productStacks).filter((stack) => stack.count > 0).map((stack) => stack.productId),
+      inventoryRarities: Object.fromEntries(Object.entries(shared.items).map(([id, item]) => [id, item.rarity])),
+      inventoryItems: inventoryProjection(shared.items),
+    },
+    battle: { ...state.battle, spiritStones: shared.spiritStones, playerLevel: growth.playerLevel, playerExp: growth.playerExperience },
   };
+}
+
+const ITEM_TYPES = new Set(["gift", "material", "pill", "equipment", "card", "treasure", "quest", "fish"]);
+const PERIODS = new Set(["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"]);
+const CARD_MODES = new Set(["active", "passive"]);
+const CARD_SOURCES = new Set(["story", "alchemy", "dungeon"]);
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function finiteNumber(value: unknown, fallback: number, minimum = -Number.MAX_SAFE_INTEGER, maximum = Number.MAX_SAFE_INTEGER) {
+  const parsed = typeof value === "number" ? value : Number.NaN;
+  return Number.isFinite(parsed) ? Math.max(minimum, Math.min(maximum, parsed)) : fallback;
+}
+
+function integer(value: unknown, fallback: number, minimum = 0, maximum = Number.MAX_SAFE_INTEGER) {
+  return Math.trunc(finiteNumber(value, fallback, minimum, maximum));
+}
+
+function stringArray(value: unknown, fallback: string[] = []) {
+  return Array.isArray(value) ? [...new Set(value.filter((entry): entry is string => typeof entry === "string"))] : fallback;
+}
+
+function numberArray(value: unknown, fallback: number[] = []) {
+  return Array.isArray(value) ? [...new Set(value.filter((entry): entry is number => typeof entry === "number" && Number.isFinite(entry)).map((entry) => Math.trunc(entry)))] : fallback;
+}
+
+function numberRecord(value: unknown, fallback: Record<string, number> = {}, minimum = 0, maximum = Number.MAX_SAFE_INTEGER) {
+  const result = { ...fallback };
+  for (const [key, entry] of Object.entries(asRecord(value))) if (typeof entry === "number" && Number.isFinite(entry)) result[key] = Math.max(minimum, Math.min(maximum, entry));
+  return result;
+}
+
+function booleanRecord(value: unknown, fallback: Record<string, boolean> = {}) {
+  const result = { ...fallback };
+  for (const [key, entry] of Object.entries(asRecord(value))) if (typeof entry === "boolean") result[key] = entry;
+  return result;
+}
+
+function stringArrayRecord(value: unknown, fallback: Record<string, string[]> = {}) {
+  const result = { ...fallback };
+  for (const [key, entry] of Object.entries(asRecord(value))) if (Array.isArray(entry)) result[key] = stringArray(entry);
+  return result;
+}
+
+function sanitizeItems(value: unknown): Record<string, UnifiedItemStack> {
+  const result: Record<string, UnifiedItemStack> = {};
+  for (const [key, raw] of Object.entries(asRecord(value))) {
+    const item = asRecord(raw);
+    const itemId = typeof item.itemId === "string" ? item.itemId : key;
+    if (!itemId || !ITEM_TYPES.has(String(item.itemType))) continue;
+    const rarity = integer(item.rarity, 1, 1, 7) as UnifiedItemStack["rarity"];
+    const amount = integer(item.amount, 0, 0);
+    result[key] = {
+      itemId,
+      itemType: item.itemType as UnifiedItemStack["itemType"],
+      rarity,
+      amount,
+      sourceTags: stringArray(item.sourceTags),
+      ...(typeof item.templateId === "string" ? { templateId: item.templateId } : {}),
+      ...(typeof item.quality === "string" ? { quality: item.quality } : {}),
+      ...(typeof item.mutation === "string" ? { mutation: item.mutation } : {}),
+      ...(typeof item.displayName === "string" ? { displayName: item.displayName } : {}),
+      ...(typeof item.locked === "boolean" ? { locked: item.locked } : {}),
+    };
+  }
+  return result;
+}
+
+function sanitizeCards(value: unknown, fallback: UnifiedCardInstance[]) {
+  if (!Array.isArray(value)) return fallback;
+  return value.flatMap((raw): UnifiedCardInstance[] => {
+    const card = asRecord(raw);
+    if (typeof card.id !== "string" || typeof card.characterId !== "string" || typeof card.name !== "string" || typeof card.art !== "string" || !CARD_MODES.has(String(card.mode)) || !CARD_SOURCES.has(String(card.source))) return [];
+    return [canonicalCard({ ...card, id: card.id, characterId: card.characterId, name: card.name, art: card.art, mode: card.mode, source: card.source, rarity: integer(card.rarity, 1, 1, 7) } as UnifiedCardInstance)];
+  });
 }
 
 function collectedQuestItems(collectedIds: string[] = []) {
@@ -70,28 +161,137 @@ function cloneInitial(): UnifiedGameState {
   };
 }
 
-function mergeSave(saved: UnifiedGameState | null) {
+function mergeSave(saved: unknown) {
   const base = cloneInitial();
-  if (!saved || saved.version !== SAVE_VERSION) return base;
-  const alchemy = { ...base.alchemy, ...saved.alchemy };
-  const rawItems = { ...base.shared.items, ...saved.shared?.items, ...collectedQuestItems(saved.romance?.collectedEasterEggs) };
+  const envelope = asRecord(saved);
+  if (envelope.version !== SAVE_VERSION) return base;
+  const savedShared = asRecord(envelope.shared);
+  const savedRomance = asRecord(envelope.romance);
+  const savedAlchemy = asRecord(envelope.alchemy);
+  const savedBattle = asRecord(envelope.battle);
+  const savedDungeons = asRecord(envelope.dungeons);
+  const savedQuests = asRecord(envelope.quests);
+  const collectedEasterEggs = stringArray(savedRomance.collectedEasterEggs);
+  const productStacks = Object.fromEntries(Object.entries(asRecord(savedAlchemy.productStacks)).flatMap(([key, raw]) => {
+    const stack = asRecord(raw);
+    const mutation = typeof stack.mutation === "string" && ["normal", "burnt", "flawed", "fine", "supreme", "perfect"].includes(stack.mutation) ? stack.mutation : "normal";
+    return typeof stack.productId === "string" ? [[key, { productId: stack.productId, mutation, count: integer(stack.count, 0, 0) }]] : [];
+  })) as AlchemyProgress["productStacks"];
+  const characterCards = Array.isArray(savedAlchemy.characterCards) ? savedAlchemy.characterCards.filter((card) => {
+    const value = asRecord(card);
+    return typeof value.id === "string" && typeof value.createdAt === "number" && (Array.isArray(value.optionIds) || value.origin === "fated");
+  }).map((card) => {
+    const value = asRecord(card);
+    return Array.isArray(value.optionIds) ? { ...value, quality: "神品" } : { ...value, quality: "仙品" };
+  }) as AlchemyProgress["characterCards"] : [];
+  const alchemy: AlchemyProgress = {
+    ...base.alchemy,
+    materialCounts: numberRecord(savedAlchemy.materialCounts, base.alchemy.materialCounts),
+    productStacks,
+    characterCards,
+    mythicRareUses: numberRecord(savedAlchemy.mythicRareUses, {}, 0),
+    marketOffers: Array.isArray(savedAlchemy.marketOffers) ? savedAlchemy.marketOffers.filter((entry) => typeof asRecord(entry).id === "string") as AlchemyProgress["marketOffers"] : [],
+    manualRefreshCount: integer(savedAlchemy.manualRefreshCount, 0, 0),
+    refreshResetAt: finiteNumber(savedAlchemy.refreshResetAt, 0, 0),
+    soldOutRefreshAt: finiteNumber(savedAlchemy.soldOutRefreshAt, 0, 0),
+    commissions: Array.isArray(savedAlchemy.commissions) ? savedAlchemy.commissions.filter((entry) => typeof asRecord(entry).id === "string" && ["specific", "fuzzy"].includes(String(asRecord(entry).kind))) as AlchemyProgress["commissions"] : [],
+    commissionRefreshAt: finiteNumber(savedAlchemy.commissionRefreshAt, 0, 0),
+    discoveredRecipes: stringArray(savedAlchemy.discoveredRecipes),
+  };
+  const rawItems = { ...base.shared.items, ...sanitizeItems(savedShared.items), ...collectedQuestItems(collectedEasterEggs) };
   const items = syncAlchemyProductInventory(rawItems, alchemy.productStacks);
-  const shared = { ...base.shared, ...saved.shared, items, cards: (saved.shared?.cards ?? base.shared.cards).map(canonicalCard), globalKeys: { ...base.shared.globalKeys, ...saved.shared?.globalKeys } };
-  const normalizedBattle = normalizeMetaProgress({ ...base.battle, ...saved.battle });
+  const shared = {
+    ...base.shared,
+    spiritStones: finiteNumber(savedShared.spiritStones, base.shared.spiritStones, 0),
+    stamina: finiteNumber(savedShared.stamina, base.shared.stamina, 0, 10),
+    playerLevel: integer(savedShared.playerLevel, base.shared.playerLevel, 1, 60),
+    playerExperience: finiteNumber(savedShared.playerExperience, base.shared.playerExperience, 0),
+    items,
+    cards: sanitizeCards(savedShared.cards, base.shared.cards),
+    learnedSkills: numberArray(savedShared.learnedSkills, base.shared.learnedSkills),
+    globalKeys: booleanRecord(savedShared.globalKeys, base.shared.globalKeys),
+  };
+  const normalizedBattle = normalizeMetaProgress({ ...base.battle, ...savedBattle });
+  normalizedBattle.spiritStones = shared.spiritStones;
+  normalizedBattle.backpackLevel = integer(savedBattle.backpackLevel, base.battle.backpackLevel, 0);
+  normalizedBattle.safeLevel = integer(savedBattle.safeLevel, base.battle.safeLevel, 0);
+  normalizedBattle.warehouseLevel = integer(savedBattle.warehouseLevel, base.battle.warehouseLevel, 0);
+  normalizedBattle.baseAttributes = numberRecord(savedBattle.baseAttributes, base.battle.baseAttributes, 0) as typeof normalizedBattle.baseAttributes;
+  normalizedBattle.attributeAllocation = numberRecord(savedBattle.attributeAllocation, base.battle.attributeAllocation, 0) as typeof normalizedBattle.attributeAllocation;
+  normalizedBattle.passiveRanks = numberRecord(savedBattle.passiveRanks, {}, 0);
   normalizedBattle.cardSlots = normalizedBattle.cardSlots.map((id) => id && shared.cards.some((card) => card.id === id && card.mode === "active") ? id : null);
+  const romanceCandidate = { ...base.romance, ...savedRomance } as UnifiedGameState["romance"];
   let merged: UnifiedGameState = {
-    ...base, ...saved, version: SAVE_VERSION,
+    ...base, version: SAVE_VERSION, updatedAt: finiteNumber(envelope.updatedAt, Date.now(), 0),
     shared,
     romance: {
-      ...base.romance,
-      ...saved.romance,
-      relationships: { ...base.romance.relationships, ...saved.romance?.relationships },
-      inventory: { ...base.romance.inventory, ...saved.romance?.inventory },
-      flags: { ...base.romance.flags, ...saved.romance?.flags },
+      ...romanceCandidate,
+      day: integer(savedRomance.day, base.romance.day, 1),
+      period: PERIODS.has(String(savedRomance.period)) ? savedRomance.period as typeof base.romance.period : base.romance.period,
+      sceneId: typeof savedRomance.sceneId === "string" ? savedRomance.sceneId as typeof base.romance.sceneId : base.romance.sceneId,
+      selectedCharacterId: typeof savedRomance.selectedCharacterId === "string" ? savedRomance.selectedCharacterId as typeof base.romance.selectedCharacterId : base.romance.selectedCharacterId,
+      spiritStones: shared.spiritStones,
+      stamina: shared.stamina,
+      experience: shared.playerExperience,
+      relationships: numberRecord(savedRomance.relationships, base.romance.relationships, 0, 100) as typeof base.romance.relationships,
+      inventory: numberRecord(savedRomance.inventory, base.romance.inventory, 0) as typeof base.romance.inventory,
+      flags: booleanRecord(savedRomance.flags, base.romance.flags),
+      marketTreasures: numberRecord(savedRomance.marketTreasures, base.romance.marketTreasures, 0),
+      proficiencyExperience: numberRecord(savedRomance.proficiencyExperience, base.romance.proficiencyExperience, 0),
+      eventRuns: numberRecord(savedRomance.eventRuns, base.romance.eventRuns, 0),
+      talkCounts: numberRecord(savedRomance.talkCounts, base.romance.talkCounts, 0),
+      sceneVisits: numberRecord(savedRomance.sceneVisits, base.romance.sceneVisits, 0) as typeof base.romance.sceneVisits,
+      sceneInspectionDays: numberRecord(savedRomance.sceneInspectionDays, base.romance.sceneInspectionDays, 0) as typeof base.romance.sceneInspectionDays,
+      interactionCounts: numberRecord(savedRomance.interactionCounts, base.romance.interactionCounts, 0),
+      seekingEncounterDays: numberRecord(savedRomance.seekingEncounterDays, base.romance.seekingEncounterDays, 0),
+      mapEventSchedules: numberRecord(savedRomance.mapEventSchedules, base.romance.mapEventSchedules, 0),
+      calendarEventRuns: stringArrayRecord(savedRomance.calendarEventRuns, base.romance.calendarEventRuns),
+      discoveredGiftPreferences: stringArrayRecord(savedRomance.discoveredGiftPreferences, base.romance.discoveredGiftPreferences) as typeof base.romance.discoveredGiftPreferences,
+      presentCharacters: stringArrayRecord(savedRomance.presentCharacters, base.romance.presentCharacters) as typeof base.romance.presentCharacters,
+      activityNotices: stringArray(savedRomance.activityNotices, base.romance.activityNotices),
+      announcedGlobalKeys: stringArray(savedRomance.announcedGlobalKeys, base.romance.announcedGlobalKeys),
+      receivedMessages: stringArray(savedRomance.receivedMessages, base.romance.receivedMessages),
+      claimedMessages: stringArray(savedRomance.claimedMessages, base.romance.claimedMessages),
+      collectedEasterEggs,
+      completedEvents: stringArray(savedRomance.completedEvents, base.romance.completedEvents),
+      appearanceTriggersUsed: stringArray(savedRomance.appearanceTriggersUsed, base.romance.appearanceTriggersUsed),
+      shortRestDay: integer(savedRomance.shortRestDay, base.romance.shortRestDay, 0),
+      shortRestCount: integer(savedRomance.shortRestCount, base.romance.shortRestCount, 0),
+      medicineShortage: (() => {
+        const project = asRecord(savedRomance.medicineShortage);
+        if (!["offered", "active", "completed"].includes(String(project.status))) return base.romance.medicineShortage;
+        return {
+          status: project.status as "offered" | "active" | "completed",
+          battleVictories: integer(project.battleVictories, 0, 0),
+          ...(typeof project.acceptedDay === "number" ? { acceptedDay: integer(project.acceptedDay, 1, 1) } : {}),
+          ...(typeof project.deadlineDay === "number" ? { deadlineDay: integer(project.deadlineDay, 1, 1) } : {}),
+          ...(["production", "relationship", "battle"].includes(String(project.route)) ? { route: project.route as "production" | "relationship" | "battle" } : {}),
+          ...(typeof project.farmHarvestsAtAccept === "number" ? { farmHarvestsAtAccept: integer(project.farmHarvestsAtAccept, 0, 0) } : {}),
+          ...(typeof project.completedDay === "number" ? { completedDay: integer(project.completedDay, 1, 1) } : {}),
+          ...(["stabilized", "recovered"].includes(String(project.outcome)) ? { outcome: project.outcome as "stabilized" | "recovered" } : {}),
+        };
+      })(),
       inventoryItems: inventoryProjection(items),
       activeEvent: null,
+      lastContext: null,
+      pendingUnifiedEffects: [],
     },
-    alchemy, battle: normalizedBattle, farm: normalizeFarmProgress(saved.farm), fishing: normalizeFishingProgress(saved.fishing), mining: normalizeMiningProgress(saved.mining), gathering: normalizeGathering(saved.gathering), dungeons: { ...base.dungeons, ...saved.dungeons }, quests: normalizeQuestProgress(saved.quests),
+    alchemy,
+    battle: normalizedBattle,
+    farm: normalizeFarmProgress(envelope.farm as FarmProgress | undefined),
+    fishing: normalizeFishingProgress(envelope.fishing as FishingProgress | undefined),
+    mining: normalizeMiningProgress(envelope.mining as MiningProgress | undefined),
+    gathering: normalizeGathering(envelope.gathering as GatheringProgress | undefined),
+    dungeons: {
+      highestUnlocked: integer(savedDungeons.highestUnlocked, base.dungeons.highestUnlocked, 1),
+      completed: numberArray(savedDungeons.completed).filter((value) => value > 0),
+      randomVisible: stringArray(savedDungeons.randomVisible),
+      ...(["victory", "extracted", "defeat"].includes(String(savedDungeons.lastSettlement)) ? { lastSettlement: savedDungeons.lastSettlement as "victory" | "extracted" | "defeat" } : {}),
+    },
+    quests: normalizeQuestProgress({
+      statuses: Object.fromEntries(Object.entries(asRecord(savedQuests.statuses)).filter(([, status]) => ["unaccepted", "in_progress", "completed", "claimable", "claimed"].includes(String(status)))) as QuestProgress["statuses"],
+      trackedQuestId: typeof savedQuests.trackedQuestId === "string" ? savedQuests.trackedQuestId : null,
+    }),
   };
   const growth = normalizePlayerGrowth({ playerLevel: shared.playerLevel, playerExperience: shared.playerExperience });
   merged = projectGrowth(merged, growth);

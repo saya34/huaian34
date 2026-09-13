@@ -128,6 +128,7 @@ export default function GameDemo() {
   const [fortuneHistory,setFortuneHistory]=useState<Record<string,FortuneDrawRecord>>({});
   const [fortuneHydrated,setFortuneHydrated]=useState(false);
   const [panel, setPanel] = useState<"characters" | "events" | null>(null);
+  const [ledgerCharacterId, setLedgerCharacterId] = useState<CharacterId | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [collectionOpen,setCollectionOpen]=useState(false);
   const [explorePoints,setExplorePoints]=useState<ExplorePoint[]>([]);
@@ -353,6 +354,7 @@ export default function GameDemo() {
   const activeCharacters = presentIds.map((id) => characterMap[id]).filter(Boolean);
   const hasPresentCharacter = activeCharacters.length > 0;
   const character = characterMap[game.selectedCharacterId] ?? activeCharacters[0] ?? characters[0];
+  const ledgerCharacter = ledgerCharacterId ? characterMap[ledgerCharacterId] : undefined;
   const node = currentNode(game, eventDefinitions);
   const activeDefinition = game.activeEvent ? resolveEvent(game.activeEvent, eventDefinitions) : null;
   const audioEvents = eventDefinitions.filter((event)=>event.cardStyle==="audio");
@@ -756,7 +758,7 @@ export default function GameDemo() {
         </nav>
       </header>
 
-      <div className="mobile-calendar-date" aria-label="今日日期">{calendarDate.eraYear} · {calendarDate.monthName}{calendarDate.dayName} · {calendarDate.weekdayName}</div>
+      <div className="mobile-calendar-date" aria-label="当前时辰与行动资源"><span>{calendarDate.monthName}{calendarDate.dayName} · {game.period}</span><b>体 {game.stamina}/10</b><b>石 {game.spiritStones.toLocaleString()}</b></div>
 
       <section className="scene-tabs" aria-label="场景选择">
         {playableScenes.map((item) => (
@@ -917,13 +919,15 @@ export default function GameDemo() {
       )}
 
       {panel && (
-        <div className="modal-backdrop panel-backdrop" role="presentation" onMouseDown={() => setPanel(null)}>
+        <div className="modal-backdrop panel-backdrop" role="presentation" onMouseDown={() => { setPanel(null); setLedgerCharacterId(null); }}>
           <section className="side-sheet" role="dialog" aria-modal="true" aria-label={panel === "events" ? "事件簿" : "人物谱"} onMouseDown={(event) => event.stopPropagation()}>
-            <div className="sheet-heading"><div><p>{panel === "events" ? `${totalEvents}章 · 数据驱动剧情` : `${characters.length}人 · 缘分录`}</p><h3>{panel === "events" ? "事件簿" : "人物谱"}</h3></div><button type="button" onClick={() => setPanel(null)} aria-label="关闭">×</button></div>
-            {panel === "characters" ? (
+            <div className="sheet-heading"><div><p>{panel === "events" ? `${totalEvents}章 · 数据驱动剧情` : `${characters.length}人 · 缘分录`}</p><h3>{panel === "events" ? "事件簿" : "人物谱"}</h3></div><button type="button" onClick={() => { setPanel(null); setLedgerCharacterId(null); }} aria-label="关闭">×</button></div>
+            {panel === "characters" && ledgerCharacter ? (
+              <div className="character-ledger-detail"><button type="button" className="ledger-back" onClick={() => setLedgerCharacterId(null)}>‹ 返回人物谱</button><img src={ledgerCharacter.image} alt=""/><small>{ledgerCharacter.role}</small><h3>{ledgerCharacter.name}</h3><p>{ledgerCharacter.bio}</p><strong>缘分 {game.relationships[ledgerCharacter.id] ?? 4} · {relationshipStage(ledgerCharacter, game.relationships[ledgerCharacter.id] ?? 4).name}</strong><button type="button" className="ledger-visit" onClick={() => { setPanel(null); setLedgerCharacterId(null); if (ledgerCharacter.sceneId !== game.sceneId) enterScene(ledgerCharacter.sceneId); window.setTimeout(() => selectCharacter(ledgerCharacter.id), 50); }}>前往她所在场景</button></div>
+            ) : panel === "characters" ? (
               <div className="character-ledger">
                 {characters.map((item) => (
-                  <button type="button" key={item.id} onClick={() => { setPanel(null); if (item.sceneId !== game.sceneId) enterScene(item.sceneId); window.setTimeout(() => selectCharacter(item.id), 50); }}>
+                  <button type="button" key={item.id} onClick={() => setLedgerCharacterId(item.id)}>
                     <img src={item.image} alt="" /><span><small>{item.role}</small><strong>{item.name}</strong><p>{item.bio}</p><i>缘分 {game.relationships[item.id] ?? 4} · {relationshipStage(item,game.relationships[item.id]??4).name}</i><em className="known-preferences">{(game.discoveredGiftPreferences[item.id]??[]).length?(game.discoveredGiftPreferences[item.id]??[]).map((giftId)=>{const preference=item.giftPreferences?.find((entry)=>entry.giftId===giftId);return `${giftMap[giftId]?.name??giftId} · ${PREFERENCE_LABELS[preference?.tier??(item.lovedGift===giftId?"loved":"neutral")]}`}).join(" ｜ "):"礼物偏好尚未发现"}</em></span>
                   </button>
                 ))}

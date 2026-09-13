@@ -7,6 +7,7 @@ import {
   SetStateAction,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -66,10 +67,11 @@ import {
 } from "./advanced-card";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import type { AlchemyProgress, UnifiedCardInstance } from "../core/types";
-import { normalizeCardName } from "../core/card-service";
+import { cardQualityName, normalizeCardName } from "../core/card-service";
 import { ACTION_COSTS, actionCostLabel, checkActionAdmission } from "../core/action-service";
 import { useFeedback } from "../feedback/FeedbackProvider";
 import { feedbackText } from "../feedback/texts";
+import alchemyUi from "./data/ui.json";
 
 const FILTERS = ["全部", "灵草", "妖丹", "矿骨", "辅材", "法器"];
 const CODEX_FILTERS = ["全部", "材料", "成品", "神品", "神话"];
@@ -256,8 +258,8 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
     }
     if (hasFatedFlower) {
       return dominantCharacter
-        ? { title: "缘影共鸣", result: `人物卡·${dominantCharacter.profile.title}倾向`, chance: "命契必成", quality: "神品" }
-        : { title: "命星入雾", result: "随机命定人物卡", chance: "命契必成", quality: "神品" };
+        ? { title: "缘影共鸣", result: `人物卡·${dominantCharacter.profile.title}倾向`, chance: "命契必成", quality: cardQualityName(6) }
+        : { title: "命星入雾", result: "随机命定人物卡", chance: "命契必成", quality: cardQualityName(6) };
     }
     const linkedCharacter = getDominantCharacter(slots);
     if (linkedCharacter) {
@@ -283,7 +285,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
 
   useEffect(() => setInventoryPage(0), [filter, seriesFilter, qualityFilter, elementFilter, characterFilter]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setAlchemy((current) => {
       const validOffers = current.marketOffers.filter((offer) => MATERIALS.some((item) => item.id === offer.itemId)).slice(0, 6);
       const refreshResetAt=current.refreshResetAt>1_000_000?0:current.refreshResetAt;
@@ -562,7 +564,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
         return;
       }
       applyEffects([{ type: "spend_stamina", amount: ACTION_COSTS.alchemy.stamina }]);
-      const card = { id: `mythic-card-${Date.now()}`, createdAt: Date.now(), optionIds: [...mythicSelections] };
+      const card: MythicCardRecord = { id: `mythic-card-${Date.now()}`, createdAt: Date.now(), optionIds: [...mythicSelections], quality: "神品" };
       setPendingMythicCard(card);
       mythicRevealStartedRef.current = false;
       setMaterialCounts((current) => ({ ...current, [MYTHIC_MATERIAL.id]: Math.max(0, (current[MYTHIC_MATERIAL.id] ?? 0) - 1) }));
@@ -628,6 +630,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
       image: characterCard.image,
       chance: characterCard.chance,
       targeted: characterCard.targeted,
+      quality: "仙品",
     };
     setCharacterCards((current) => [...current, record]);
     const profile = CHARACTER_PROFILES.find((item) => item.id === record.profileId);
@@ -1146,7 +1149,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
             <div className="mythic-reveal-orbit" aria-hidden="true"><i /><i /><i /></div>
             <div className="mythic-reveal-art xian-portrait-mask"><img src={revealedMythicProfile.images[0]} alt={revealedMythicProfile.title} /><span /></div>
             <div className="mythic-reveal-copy">
-              <span>太 初 命 刻 · 诸 天 唯 一</span>
+              <span>{cardQualityName(7)} · 太 初 命 刻 · 诸 天 唯 一</span>
               <h2>太初·{revealedMythicProfile.name}</h2>
               <p>{revealedMythicProfile.relation} · {revealedMythicProfile.trait}</p>
               <div className="mythic-reveal-scene"><small>命定场景</small><strong>{revealedMythicScene?.label ?? "太虚云海"}</strong></div>
@@ -1174,7 +1177,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
                     setCharacterCardFromCodex(true);
                     setCharacterCard({ ...profile, image: card.image, chance: card.chance, targeted: card.targeted });
                   }}>
-                    <span className="codex-card-index">灵契 {String(index + 1).padStart(2, "0")}<b>星命神花</b></span>
+                    <span className="codex-card-index">灵契 {String(index + 1).padStart(2, "0")}<b>{card.quality ?? cardQualityName(6)} · 星命神花</b></span>
                     <span className="codex-card-art xian-portrait-mask"><img src={card.image} alt={profile.title} /><i /></span>
                     <strong>灵契·{profile.name}</strong><small>{profile.relation} · {profile.trait}</small>
                     <em>查看灵契</em>
@@ -1269,7 +1272,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
                       <button onClick={(event) => {event.stopPropagation();deliverCommission(commission);}} disabled={stock < commission.quantity}>交 付</button>
                     </article>;
                   })}
-                  {commissions.length === 0 && <div className="commission-empty">本轮委托均已完成，请静候下次张榜</div>}
+                  {commissions.length === 0 && <div className="commission-empty">{commissionRefreshAt <= 0 ? alchemyUi.commissionLoading : alchemyUi.commissionEmpty}</div>}
                 </section>
                 <aside className="product-vault">
                   <header><span>炼 成 物</span><h3>成品库</h3><small>{productStackList.length} 个独立格</small></header>
@@ -1349,7 +1352,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
             <div className="character-runes" aria-hidden="true">乾 · 坎 · 艮 · 震 · 巽 · 离 · 坤 · 兑</div>
             <div className="character-image xian-portrait-mask"><img src={characterCard.image} alt={characterCard.title} /><span /></div>
             <div className="character-copy">
-              <span className="character-kicker">灵 契 人 物 卡 · {characterCard.targeted ? `缘物定向 ${characterCard.chance}%` : "星命随机"}</span>
+              <span className="character-kicker">{cardQualityName(6)} · 灵 契 人 物 卡 · {characterCard.targeted ? `缘物定向 ${characterCard.chance}%` : "星命随机"}</span>
               <h2>灵契·{characterCard.name}</h2>
               <p>{characterCard.targeted ? "人物缘物在十息丹火中显化，星命神花循着熟悉气息找到了她。" : "未有缘物指引，星命神花自万千命轨中随机照见了她。"}</p>
               <div className="character-stats"><span>人物关系<strong>{characterCard.relation}</strong></span><span>本炉概率<strong>{characterCard.chance}%</strong></span><span>命格特性<strong>{characterCard.trait}</strong></span></div>

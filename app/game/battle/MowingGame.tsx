@@ -62,6 +62,7 @@ import { DUNGEONS } from "../core/dungeons";
 import { BattlePreparation, preparationSupplyBonus, readBattlePreparation } from "./BattlePreparation";
 import { computeFinalAttributes } from "../core/attributes-service";
 import { itemTemplateId } from "../core/inventory-service";
+import { CARD_QUALITY_NAMES } from "../core/card-service";
 
 type Screen = "loading" | "menu" | "preparing" | "battle" | "result";
 type HeldTreasure = { uid: string; source: ContainerKind | "loot"; treasureId: string };
@@ -1316,7 +1317,7 @@ function EquipmentSystem({ meta, onChange, notify }: { meta: MetaProgress; onCha
   );
 }
 
-const CARD_RARITY_NAMES = ["", "凡品", "良品", "珍品", "绝品", "灵品", "仙品", "神品"];
+const CARD_RARITY_NAMES = ["", ...Object.values(CARD_QUALITY_NAMES)];
 
 function CardSystem({ meta, cards, onChange }: { meta: MetaProgress; cards: UnifiedCardInstance[]; onChange: (meta: MetaProgress) => void }) {
   const [detailId, setDetailId] = useState<string | null>(null);
