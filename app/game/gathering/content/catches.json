@@ -15,5 +15,10 @@
     "yunzhou-wild":[{"fishId":"cloud-silk-gourami","weight":22},{"fishId":"mist-pattern-koi","weight":18},{"fishId":"abyss-lanternfish","weight":8},{"fishId":"primordial-dragon-whisker","weight":1}],
     "canglan-wild":[{"fishId":"glassfin-perch","weight":19},{"fishId":"thunder-ray","weight":13},{"fishId":"abyss-lanternfish","weight":11},{"fishId":"primordial-dragon-whisker","weight":1}],
     "chixia-wild":[{"fishId":"bronze-bell-loach","weight":16},{"fishId":"thunder-ray","weight":14},{"fishId":"crimson-lotus-eel","weight":9},{"fishId":"primordial-dragon-whisker","weight":1}]
+  },
+  "testTuning": {
+    "enabled": true,
+    "featuredFishId": "crimson-lotus-eel",
+    "featuredProbability": 0.5
   }
 }

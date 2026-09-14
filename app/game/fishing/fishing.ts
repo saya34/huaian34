@@ -119,6 +119,7 @@ const BASE_FISHING_LOCATIONS: FishingLocation[] = [
 ];
 
 const LOCATION_POOL_ADDITIONS = catchesJson.locationPoolAdditions as Record<FishingLocationId, FishPoolEntry[]>;
+const FISHING_TEST_TUNING = catchesJson.testTuning as { enabled: boolean; featuredFishId: string; featuredProbability: number } | undefined;
 export const FISHING_LOCATIONS: FishingLocation[] = BASE_FISHING_LOCATIONS.map((location)=>({
   ...location,
   pool:[...location.pool,...(LOCATION_POOL_ADDITIONS[location.id]??[])],
@@ -170,17 +171,24 @@ export function ensureRandomFishingSpots(progress: FishingProgress, day: number,
 }
 
 export function weightedPool(location: FishingLocation, baitId: BaitId, chumId: ChumId = "none", career?: GatheringCareerState) {
-  const eligible = career ? location.pool.filter((entry) => (fishById(entry.fishId)?.rarity ?? 1) <= career.toolTier) : location.pool;
+  const tuning = FISHING_TEST_TUNING?.enabled ? FISHING_TEST_TUNING : undefined;
+  const sourcePool = tuning && !location.pool.some((entry) => entry.fishId === tuning.featuredFishId) ? [...location.pool, { fishId: tuning.featuredFishId, weight: 1 }] : location.pool;
+  const eligible = career ? sourcePool.filter((entry) => (fishById(entry.fishId)?.rarity ?? 1) <= career.toolTier || entry.fishId === tuning?.featuredFishId) : sourcePool;
   const lowestRarity = Math.min(...location.pool.map((entry) => fishById(entry.fishId)?.rarity ?? 1));
   const available = eligible.length ? eligible : location.pool.filter((entry) => (fishById(entry.fishId)?.rarity ?? 1) === lowestRarity);
   const toolTrait = career ? selectedTool("fishing", career).trait : "stable";
-  const entries = available.map((entry) => {
+  let entries = available.map((entry) => {
     const rarity = fishById(entry.fishId)?.rarity ?? 1;
     const multiplier = baitId === "star-bait" ? (rarity >= 4 ? 2.5 : rarity === 3 ? 1.5 : .8) : baitId === "jade-lure" ? (rarity >= 4 ? 1.7 : rarity === 3 ? 1.3 : .92) : 1;
     const chumMultiplier = chumId === "frost-chum" ? (entry.fishId.includes("frost") || entry.fishId.includes("moon") || rarity >= 4 ? 1.65 : .88) : chumId === "fire-chum" ? (entry.fishId.includes("blazing") || entry.fishId.includes("thunder") || location.mapId === "chixia" ? 1.75 : .86) : chumId === "jade-chum" ? (rarity <= 3 ? 1.32 : 1.08) : 1;
     const careerMultiplier = career ? 1 + Math.max(0, rarity - 1) * ((gatheringLevel(career.experience)-1)*.018 + (toolTrait === "affinity" ? .08 : 0)) : 1;
     return { ...entry, adjustedWeight: entry.weight * multiplier * chumMultiplier * careerMultiplier };
   });
+  if (tuning && entries.some((entry) => entry.fishId === tuning.featuredFishId)) {
+    const probability = Math.max(.01, Math.min(.95, tuning.featuredProbability));
+    const otherWeight = entries.reduce((sum, entry) => entry.fishId === tuning.featuredFishId ? sum : sum + entry.adjustedWeight, 0);
+    entries = entries.map((entry) => entry.fishId === tuning.featuredFishId ? { ...entry, adjustedWeight: otherWeight * probability / (1 - probability) } : entry);
+  }
   const total = entries.reduce((sum, entry) => sum + entry.adjustedWeight, 0);
   return entries.map((entry) => ({ ...entry, probability: entry.adjustedWeight / total }));
 }

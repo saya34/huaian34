@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import { MATERIALS } from "../alchemy/item-data";
-import FishingBar, { type FishingBarHit, type FishingBarResult } from "../FishingBar";
+import FishingEncounter from "./FishingEncounter";
+import type { FishingReelResult } from "./FishingReelGame";
+import RareCatchReveal from "./RareCatchReveal";
 import {
   BAITS,
   CHUMS,
@@ -56,7 +58,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
   const [phase, setPhase] = useState<Phase>(resumedCast ? "reeling" : "ready");
   const [target, setTarget] = useState<FishDefinition | null>(resumedCast ? fishById(resumedCast.fishId) ?? null : null);
   const [castRound, setCastRound] = useState(0);
-  const [lastHit, setLastHit] = useState<FishingBarHit["zone"] | null>(null);
+  const [showRareReveal, setShowRareReveal] = useState(false);
   const fishingCareer = state.gathering.careers.fishing;
   const activeRod = selectedTool("fishing", fishingCareer);
   const pool = useMemo(() => weightedPool(location, baitId, chumId, fishingCareer), [baitId, chumId, location, fishingCareer]);
@@ -94,17 +96,18 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
     if (!cast.ok) { onNotice(cast.message); return; }
     const fish = fishById(cast.catch.fishId)!;
     setTarget(fish);
-    setPhase("reeling"); setCastRound((value) => value + 1); setLastHit(null);
+    setPhase("reeling"); setCastRound((value) => value + 1);
     setFishing(cast.progress);
     if (chumMaterial) applyEffects([{ type: "remove_item", itemId: chumMaterial.id, amount: 1 }]);
     if (fish.rarity >= 4) feedback.toast({priority:1,tone:"gold",titleKey:"system.toastWarning",bodyKey:"fishing.rareHint",icon:"异",dedupeKey:`fishing:rare-hint:${castRound+1}`});
     onNotice(`${activeRod.name}抛入水中 · 消耗${BAITS[baitId].name}${chumMaterial ? `与${chum.materialName}` : ""}`);
   }
 
-  function finishReeling(result: FishingBarResult) {
+  function finishReeling(result: FishingReelResult) {
     if (!target) return;
     if (result.success) {
       setPhase("success");
+      setShowRareReveal(target.rarity >= 4);
       const reel = reelFishing(progress.pendingCast ? progress : state.fishing, true);
       setFishing((current) => reelFishing(current, true).progress);
       const careerResult=resolveGatheringOutcome(state.gathering,{professionId:"fishing",itemId:target.id,name:target.name,rarity:target.rarity,art:target.art,location:location.name,tick,seed:`fish:${day}:${tick}:${target.id}:${progress.totalCaught}`,tags:["水产",location.kind === "random" ? "游光钓点" : "常驻钓点"]});
@@ -142,7 +145,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
     const result = retryFishing(state.fishing);
     if (!result.ok) { onNotice(result.message); return; }
     applyEffects([{ type: "add_currency", amount: -cost }]);
-    setFishing(result.progress); setTarget(fishById(result.catch.fishId) ?? null); setPhase("reeling"); setCastRound((value) => value + 1); setLastHit(null); onNotice(`${result.message} · 灵石 -${cost}`);
+    setFishing(result.progress); setTarget(fishById(result.catch.fishId) ?? null); setPhase("reeling"); setCastRound((value) => value + 1); onNotice(`${result.message} · 灵石 -${cost}`);
   }
 
   function leaveFishing() {
@@ -152,7 +155,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
 
   function continueFishing() {
     if (phase === "failed") setFishing((current) => abandonFishingEscape(current));
-    setPhase("ready"); setTarget(null); setLastHit(null);
+    setShowRareReveal(false); setPhase("ready"); setTarget(null);
   }
 
   function ageCatch() {
@@ -202,21 +205,14 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
             <button className="cast-rod-button" type="button" disabled={attemptsLeft <= 0 || (progress.baits[baitId] ?? 0) <= 0} onClick={castRod}><span>{activeRod.name}为永久灵具 · 消耗{BAITS[baitId].name} 1</span><strong>抛 竿 入 境</strong></button>
           </div>}
 
-          {phase === "reeling" && target && <FishingBar key={`${target.id}-${castRound}`} theme="fish" config={{ maxAttempts: 6 + target.rarity, targetScore: 6 + target.rarity * 2, difficultyLevel: Math.max(1,Math.min(9, target.rarity * 2 + (location.kind === "random" ? 1 : 0)-(activeRod.trait==="stable"?1:0))), difficultyName: `${RARITY_LABELS[target.rarity - 1]}鱼影`, rarity:target.rarity }} onHit={(hit) => setLastHit(hit.zone)} onFinish={finishReeling}>
-            <div className={`fishing-reel-scene reel-${lastHit ?? "waiting"} ${target.rarity>=4?`rare-water rarity-${target.rarity}`:""}`}>
-              <div className="fishing-night-sky"><i /><i /><i /></div>
-              <div className="fishing-far-bank"><i /><i /><i /></div>
-              <div className="fishing-water-stage"><span className="water-current current-one" /><span className="water-current current-two" /><span className="water-current current-three" />{target.rarity>=4&&<span className="rare-water-runes"><i/><i/><i/><b>{target.rarity===5?"星":"玄"}</b></span>}<div className={`fish-shadow rarity-${target.rarity}`}><i /><b /></div><div className="hook-ripple"><i /><i /><b /></div></div>
-              <div className="fishing-angler"><span className="angler-head" /><span className="angler-body" /><i className="angler-rod" /><b className="angler-line" /></div>
-              <div className="reel-instruction"><small>灵线已动 · 不要让鱼影挣脱</small><strong>{lastHit === "target" ? "绝佳收线！" : lastHit === "near" ? "顺势拉扯" : lastHit === "miss" ? "鱼影反扑" : "看准红区 · 点击水面收线"}</strong><span>鱼影越稀有，游速与变向越难预测</span></div>
-            </div>
-          </FishingBar>}
+          {phase === "reeling" && target && <FishingEncounter key={`${target.id}-${castRound}`} fishId={target.id} rarity={target.rarity} config={{ maxAttempts: 6 + target.rarity, targetScore: 6 + target.rarity * 2, difficultyLevel: Math.max(1,Math.min(9, target.rarity * 2 + (location.kind === "random" ? 1 : 0)-(activeRod.trait==="stable"?1:0))), difficultyName: `${RARITY_LABELS[target.rarity - 1]}鱼影`, rarity:target.rarity }} onFinish={finishReeling} />}
 
           {(phase === "success" || phase === "failed") && <div className={`fishing-result ${phase}`}>
             {phase === "success" && target ? <><div className="catch-art" style={{ backgroundImage: `url(${target.art})` }}><b>{target.icon}</b></div><small>{RARITY_LABELS[target.rarity - 1]} · 估值 {target.value} 灵石</small><h3>{target.name}</h3><p>{target.description}</p><strong>已收入乾坤行囊</strong><div className="catch-processing"><button type="button" onClick={ageCatch}>收入听澜篓陈化</button><button type="button" onClick={processCatch}>就地制成鱼饵</button></div></> : <><div className="catch-art escaped"><b>澜</b></div><small>灵线已静</small><h3>鱼影脱钩</h3><p>水纹判断失误，鱼影潜回了深处。常驻鱼场仍可再试，游光钓点则已随波消散。</p></>}
             {phase === "failed" && <button type="button" className="retry-fish" onClick={retryEscaped}>循波追回 · ◉ 1000</button>}
             <button type="button" onClick={() => location.kind === "resident" ? continueFishing() : leaveFishing()}>{location.kind === "resident" ? "放弃鱼影 · 再听一竿" : "放弃鱼影 · 返回山河图"}</button>
           </div>}
+          {showRareReveal && target && <RareCatchReveal fish={target} onClose={() => setShowRareReveal(false)} />}
         </main>
 
         <aside className="bait-shop-panel">
