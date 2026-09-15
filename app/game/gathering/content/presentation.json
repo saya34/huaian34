@@ -1,0 +1,45 @@
+{
+  "farm": {
+    "kicker": "SPIRIT FIELD · 灵植作业",
+    "readyObjective": "收获成熟仙草",
+    "growingObjective": "照看生长中的灵株",
+    "emptyObjective": "选取灵种，播入空畦",
+    "readyValue": "{count} 畦可收",
+    "growingValue": "{count} 畦生长中",
+    "emptyValue": "等待播种",
+    "hint": "点击田畦直接执行当前工具；成熟田畦始终优先收获",
+    "stats": ["成熟", "生长", "灵泉"],
+    "mobileViews": {
+      "field": { "icon": "田", "label": "灵田" },
+      "seeds": { "icon": "种", "label": "种匣" },
+      "career": { "icon": "圃", "label": "修圃" },
+      "plant": "连作空田",
+      "harvest": "一键收获"
+    }
+  },
+  "livestock": {
+    "kicker": "SPIRIT HUSBANDRY · 灵兽照料",
+    "readyObjective": "收取凝成的灵兽产物",
+    "sleepingObjective": "抚灵并等待生产完成",
+    "idleObjective": "投喂灵兽，启动生产",
+    "emptyObjective": "前往宁绾秋处迎养灵兽",
+    "readyValue": "产物已成",
+    "sleepingValue": "尚余 {count} 时辰",
+    "idleValue": "等待投喂",
+    "emptyValue": "栏舍尚空",
+    "hint": "先选中苑中灵兽，再从下方选择本次主要照料动作",
+    "stats": ["苑中", "可收", "栏舍"]
+  },
+  "mining": {
+    "kicker": "EARTH VEIN EXPEDITION · 地脉勘探",
+    "digObjective": "开掘当前显现土块",
+    "chestObjective": "开启已抵达的地宫宝箱",
+    "blockedObjective": "沿已开甬道寻找新通路",
+    "entranceObjective": "选择相邻土块开始开掘",
+    "digValue": "深度 {depth} · 坚固 {hp}",
+    "chestValue": "秘藏已抵达",
+    "blockedValue": "暂不可达",
+    "hint": "只可开掘与甬道相邻的亮起区域；越深入，稀有发现概率越高",
+    "stats": ["勘探", "耐久", "深度"]
+  }
+}

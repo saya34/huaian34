@@ -11,6 +11,8 @@ import { useFeedback } from "../feedback/FeedbackProvider";
 import { feedbackText } from "../feedback/texts";
 import GatheringCareerPanel from "../gathering/GatheringCareerPanel";
 import { resolveGatheringOutcome } from "../gathering/engine";
+import GatheringFocusHud from "../gathering/GatheringFocusHud";
+import { GATHERING_PRESENTATION, gatheringCopy } from "../gathering/content";
 
 type Props={locationId:MiningLocationId;randomSpotId?:string;day:number;period:string;onClose:()=>void;onNotice:(message:string)=>void};
 const RARITY=["凡品","良品","珍品","极品","神品","神话","太初"];
@@ -46,6 +48,11 @@ export default function MiningModal({locationId,randomSpotId,day,period,onClose,
   },[maze]);
   const explorerTile=useMemo(()=>{if(!maze)return undefined;if(selected&&isPassage(selected))return selected;if(selected){const neighbor=maze.tiles.find(tile=>isPassage(tile)&&Math.abs(tile.x-selected.x)+Math.abs(tile.y-selected.y)===1);if(neighbor)return neighbor;}return [...maze.tiles].filter(isPassage).sort((a,b)=>b.depth-a.depth)[0];},[maze,selected]);
   const impactTile=maze?.tiles.find(tile=>tile.id===strikeFx),lootTile=maze?.tiles.find(tile=>tile.id===lootAt);
+  const mineUi=GATHERING_PRESENTATION.mining;
+  const selectedChest=selected?.kind==="chest"||selected?.kind==="deep-chest";
+  const selectedBlocked=Boolean(selected&&selected.state!=="revealed"&&selected.kind!=="entrance");
+  const mineObjective=selectedChest&&selected?.state==="revealed"?mineUi.chestObjective:selectedBlocked?mineUi.blockedObjective:selected?.kind==="entrance"?mineUi.entranceObjective:mineUi.digObjective;
+  const mineValue=selectedChest&&selected?.state==="revealed"?mineUi.chestValue:selectedBlocked?mineUi.blockedValue:selected?gatheringCopy(mineUi.digValue,{depth:selected.depth+1,hp:`${selected.hp}/${selected.maxHp}`}):mineUi.entranceObjective;
 
   useEffect(()=>{const key="huaian-mining-tutorial-v1";if(window.localStorage.getItem(key))return;window.localStorage.setItem(key,"shown");feedback.inspect({titleKey:"mining.tutorialTitle",bodyKey:"mining.tutorialBody",icon:"镐",details:[{labelKey:"mining.reachableLabel",value:feedbackText("mining.tutorialReachable")},{labelKey:"mining.costLabel",value:feedbackText("mining.tutorialDurability")},{labelKey:"mining.keyLabel",value:feedbackText("mining.tutorialChest")}],dedupeKey:key});},[feedback]);
 
@@ -85,8 +92,9 @@ export default function MiningModal({locationId,randomSpotId,day,period,onClose,
     <header className="mine-maze-heading"><button type="button" onClick={close}>‹</button><div><small>EARTH VEIN LABYRINTH · {location.kind==="resident"?`常明第 ${maze.floor} 层`:"游光地宫"}</small><h2>{location.name}</h2></div><div className="pickaxe-durability"><span><i>镐</i>{mining.pickaxeLevel}阶玄铁灵镐</span><strong>{mining.pickaxeDurability}<small> / {mining.pickaxeMaxDurability}</small></strong><b><i style={{width:`${mining.pickaxeDurability/mining.pickaxeMaxDurability*100}%`}}/></b></div><button type="button" onClick={close}>×</button></header>
     <div className="mine-maze-body">
       <aside className="mine-depth-rail"><header><small>本层勘探</small><strong>{progress}%</strong></header><div className="mine-depth-track"><i style={{height:`${Math.max(3,progress)}%`}}/><span style={{top:`${Math.min(94,progress)}%`}}>深 {maze.deepestOpened+1}</span></div><footer><b>{opened}</b><small>已开区域</small></footer></aside>
-      <main className="mine-maze-scene">
+      <main className={`mine-maze-scene ${strikeFx?"is-striking":""} ${selectedChest?"targeting-chest":""}`}>
         <div className="mine-cave-atmosphere" aria-hidden="true"><i/><i/><i/><span/><b className="cave-stalactites"/><b className="cave-ground-mist"/><em className="cave-lantern-glow" style={explorerTile?caveTileStyle(explorerTile,maze.width,maze.height):undefined}/></div>
+        <GatheringFocusHud theme="mining" kicker={mineUi.kicker} objective={mineObjective} value={mineValue} hint={mineUi.hint} icon={selectedChest?"匣":"镐"} attention={selectedChest&&selected?.state==="revealed"} meter={progress} stats={[{label:mineUi.stats[0],value:`${progress}%`},{label:mineUi.stats[1],value:`${mining.pickaxeDurability}/${mining.pickaxeMaxDurability}`},{label:mineUi.stats[2],value:`${maze.deepestOpened+1}/${maze.height}`}]} />
         <div className="mine-grid cavern-map" style={{"--mine-cols":maze.width,"--mine-depth":progress} as React.CSSProperties}>
           <div className="mine-tunnels" aria-hidden="true">{tunnels.map(tunnel=><i key={tunnel.key} style={tunnelStyle(tunnel.from,tunnel.to,maze.width,maze.height)}/>)}</div>
           {maze.tiles.map(tile=>{const soil=tile.kind in SOIL_DEFINITIONS?SOIL_DEFINITIONS[tile.kind as keyof typeof SOIL_DEFINITIONS]:null;return <button type="button" key={tile.id} style={caveTileStyle(tile,maze.width,maze.height)} className={`mine-tile kind-${tile.kind} state-${tile.state} ${selectedId===tile.id?"selected":""} ${strikeFx===tile.id?"struck":""}`} onClick={()=>hit(tile)} aria-label={tileCopy(tile)}>
@@ -99,12 +107,12 @@ export default function MiningModal({locationId,randomSpotId,day,period,onClose,
         {chestFx&&<div className={`mine-chest-opening ${chestFx}`}><i/><span>{chestFx==="deep"?"太古秘藏":"地宫宝箱"}</span><strong>{loot.map(item=>`${item.name} ×${item.amount}`).join(" · ")}</strong><button type="button" onClick={()=>setChestFx(null)}>收入行囊</button></div>}
       </main>
       <aside className="mine-expedition-hud">
-        <button type="button" className="mine-selected-info feedback-mining-inspect" onClick={()=>inspectTile(selected)}><small>当前目标 · 点击详查</small><h3>{selected?.kind==="deep-chest"?"太古秘藏":selected?.kind==="chest"?"封印宝箱":selected?.kind&&selected.kind in SOIL_DEFINITIONS?SOIL_DEFINITIONS[selected.kind as keyof typeof SOIL_DEFINITIONS].name:selected?.kind==="wall"?"镇脉黑墙":"地宫甬道"}</h3><p>{tileCopy(selected)}</p></button>
+        <button type="button" className={`mine-selected-info feedback-mining-inspect ${selected?.state==="revealed"?"actionable":""}`} onClick={()=>inspectTile(selected)}><small>当前目标 · 点击详查</small><h3>{selected?.kind==="deep-chest"?"太古秘藏":selected?.kind==="chest"?"封印宝箱":selected?.kind&&selected.kind in SOIL_DEFINITIONS?SOIL_DEFINITIONS[selected.kind as keyof typeof SOIL_DEFINITIONS].name:selected?.kind==="wall"?"镇脉黑墙":"地宫甬道"}</h3><p>{tileCopy(selected)}</p></button>
         <section className="mine-keyring"><header>地宫钥环</header>{(Object.keys(KEY_DEFINITIONS) as Array<keyof typeof KEY_DEFINITIONS>).map(id=><span key={id}><i>{KEY_DEFINITIONS[id].glyph}</i><b>{KEY_DEFINITIONS[id].name}</b><em>×{mining.keys[id]}</em></span>)}</section>
         <section className="mine-map-scroll"><span><i>{mining.treasureMapAssembled?"图":"卷"}</i><b>{mining.treasureMapAssembled?"太虚藏宝图已成":"藏宝图残卷"}</b><small>{mining.treasureMapAssembled?"特殊副本已出现在云州地图":`${mining.treasureMapFragments}/3 · 深层秘藏产出`}</small></span>{!mining.treasureMapAssembled&&<button type="button" disabled={mining.treasureMapFragments<3} onClick={assemble}>拼合藏宝图</button>}</section>
         <section className="mine-tools-dock"><button type="button" onClick={mend}><i>修</i><span><b>修复灵镐</b><small>◉ {repairPrice(mining)} · 恢复全部耐久</small></span></button>{location.kind==="resident"&&maze.completed&&<button type="button" className="descend-button" onClick={descend}><i>下</i><span><b>进入下一层</b><small>更深地层 · 更珍稀掉落</small></span></button>}</section>
         <GatheringCareerPanel professionId="mining" onNotice={announce}/>
-        <div className="mine-message"><i>录</i><p>{message}</p></div>
+        <div className="mine-message" aria-live="polite"><i>录</i><p>{message}</p></div>
       </aside>
     </div>
   </section></div>;

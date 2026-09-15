@@ -28,6 +28,7 @@ export type FishingReelResult = {
   success: boolean;
   score: number;
   attempts: number;
+  failureReason?: "missed-bite" | "line-break" | "escaped";
 };
 
 type Pace = "slow" | "steady" | "fast";
@@ -103,9 +104,9 @@ export default function FishingReelGame({ config, children, onHit, onFinish }: {
     };
   }, [difficulty, maxSpeed, minSpeed]);
 
-  const finish = (success: boolean, nextScore: number, nextAttempts: number) => {
+  const finish = (success: boolean, nextScore: number, nextAttempts: number, failureReason?: FishingReelResult["failureReason"]) => {
     finishedRef.current = true;
-    window.setTimeout(() => onFinish({ success, score: nextScore, attempts: nextAttempts }), 780);
+    window.setTimeout(() => onFinish({ success, score: nextScore, attempts: nextAttempts, failureReason }), 780);
   };
 
   const strike = () => {
@@ -127,7 +128,7 @@ export default function FishingReelGame({ config, children, onHit, onFinish }: {
     if (clearHitRef.current) window.clearTimeout(clearHitRef.current);
     clearHitRef.current = window.setTimeout(() => setLastHit(null), 540);
     if (nextScore >= config.targetScore) finish(true, nextScore, nextAttempts);
-    else if (nextAttempts >= config.maxAttempts || nextTension >= 100) finish(false, nextScore, nextAttempts);
+    else if (nextAttempts >= config.maxAttempts || nextTension >= 100) finish(false, nextScore, nextAttempts, nextTension >= 100 ? "line-break" : "escaped");
     else {
       directionRef.current *= zone === "miss" ? -1 : 1;
       targetSpeedRef.current = randomBetween(minSpeed, maxSpeed);
@@ -156,9 +157,11 @@ export default function FishingReelGame({ config, children, onHit, onFinish }: {
   const fishCopy = fishStrength > 66 ? reelUi.fishStrong : fishStrength > 28 ? reelUi.fishWeak : reelUi.fishFading;
   const tensionCopy = tension > 82 ? reelUi.tensionDanger : tension < 24 ? reelUi.tensionLoose : reelUi.tensionSafe;
   const paceCopy = pace === "fast" ? reelUi.paceFast : pace === "slow" ? reelUi.paceSlow : reelUi.paceSteady;
-  const stageStyle = { "--fish-x": `${fishX}%`, "--fish-y": `${fishY}%`, "--focus-width": `${focusWidth}%`, "--near-width": `${nearWidth}%`, "--fish-facing": directionRef.current > 0 ? "1" : "-1", "--tension": `${tension * 3.6}deg`, "--fish-energy": `${fishStrength * 3.6}deg` } as CSSProperties;
+  const distanceProgress = Math.max(0, Math.min(100, score / config.targetScore * 100));
+  const tensionState = tension > 82 ? "danger" : tension > 62 ? "warning" : "safe";
+  const stageStyle = { "--fish-x": `${fishX}%`, "--fish-y": `${fishY}%`, "--focus-width": `${focusWidth}%`, "--near-width": `${nearWidth}%`, "--fish-facing": directionRef.current > 0 ? "1" : "-1", "--tension": `${tension * 3.6}deg`, "--fish-energy": `${fishStrength * 3.6}deg`, "--mobile-tension": `${Math.max(0, Math.min(100, tension)) * 1.8}deg`, "--distance-progress": `${distanceProgress}%` } as CSSProperties;
 
-  return <div className={`fishing-reel-game hit-${lastHit ?? "none"} pace-${pace} ${rare ? `rare-fish rarity-${rarity}` : ""}`} style={stageStyle} role="button" tabIndex={0} aria-label={reelUi.ariaLabel} onPointerDown={handlePointer} onKeyDown={handleKey}>
+  return <div className={`fishing-reel-game hit-${lastHit ?? "none"} pace-${pace} swim-${directionRef.current > 0 ? "right" : "left"} ${rare ? `rare-fish rarity-${rarity}` : ""}`} style={stageStyle} role="button" tabIndex={0} aria-label={reelUi.ariaLabel} onPointerDown={handlePointer} onKeyDown={handleKey}>
     <div className="fishing-reel-art" aria-hidden="true" />
     <div className="fishing-reel-mist mist-a" aria-hidden="true" /><div className="fishing-reel-mist mist-b" aria-hidden="true" />
     <header className="fishing-reel-hud">
@@ -167,6 +170,10 @@ export default function FishingReelGame({ config, children, onHit, onFinish }: {
       <section className={`reel-orb tension-orb ${tension > 82 ? "danger" : ""}`}><span><strong>{reelUi.lineTension}</strong><small>{tensionCopy}</small></span><i style={{ "--orb-fill": `${tension * 3.6}deg` } as CSSProperties}><b>{tension}</b><small>%</small></i></section>
     </header>
     {rare && <div className="reel-rare-omen"><i /><span>{rarity === 5 ? reelUi.rareTitle5 : reelUi.rareTitle4}</span><strong>{rarity === 5 ? reelUi.rareBody5 : reelUi.rareBody4}</strong><b>{reelUi.rareBadge}</b></div>}
+    <section className={`mobile-reel-hud tension-${tensionState} pace-${pace}`} aria-label={`${reelUi.lineTension} ${tension}%，${reelUi.distanceLabel} ${Math.ceil(distanceProgress)}%`}>
+      <div className="mobile-tension-arc"><i /><span><small>{reelUi.lineTension}</small><strong>{tension}</strong></span><em>{tensionCopy}</em></div>
+      <div className="mobile-distance"><span><small>{reelUi.distanceLabel}</small><b>{Math.ceil(distanceProgress)}%</b></span><i><u /></i><em>{fishCopy}</em></div>
+    </section>
     <div className={`reel-water-playfield ${inFocus ? "fish-in-focus" : ""}`}>
       <div className="reel-judgement-bar"><small>{reelUi.barTitle}</small><i><u /><b /></i><span>{reelUi.barHint}</span></div>
       <div className="reel-focus-zone"><i /><i /><b>{inFocus ? reelUi.focusReady : reelUi.focusWaiting}</b><span>{reelUi.focusTitle}</span></div>
@@ -179,7 +186,7 @@ export default function FishingReelGame({ config, children, onHit, onFinish }: {
     <footer className="fishing-reel-command">
       <div><small>{reelUi.instructionEyebrow}</small><strong>{instruction}</strong><span>{fillText(reelUi.difficulty, { level: difficulty, name: config.difficultyName ?? paceCopy })}</span></div>
       {combo >= 2 && <div className="reel-combo" key={combo}><small>{reelUi.combo}</small><b>×{combo}</b></div>}
-      <button type="button" onPointerDown={(event) => { event.stopPropagation(); strike(); }}><i /><strong>{reelUi.tapAction}</strong><small>{reelUi.keyboardHint}</small></button>
+      <button type="button" className="mobile-thumb-action" onPointerDown={(event) => { event.stopPropagation(); strike(); }}><i /><strong>{reelUi.tapAction}</strong><small>{reelUi.keyboardHint}</small></button>
     </footer>
   </div>;
 }

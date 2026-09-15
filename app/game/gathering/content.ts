@@ -2,6 +2,7 @@ import professionsJson from "./content/professions.json";
 import itemsJson from "./content/items.json";
 import recipesJson from "./content/recipes.json";
 import uiJson from "./content/ui.json";
+import presentationJson from "./content/presentation.json";
 import type { GatheringProfessionId, GatheringToolTrait } from "./types";
 import type { UnifiedItemType } from "../core/types";
 
@@ -25,4 +26,8 @@ export const GATHERING_GIFT_DEFINITIONS = GATHERING_ITEM_CATALOG.filter((entry)=
 }));
 export const GATHERING_RECIPES = recipesJson.recipes as GatheringRecipe[];
 export const GATHERING_UI = uiJson;
+export const GATHERING_PRESENTATION = presentationJson;
+export function gatheringCopy(template: string, values: Record<string, string | number>) {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ""));
+}
 export const gatheringProfession = (id:GatheringProfessionId) => GATHERING_PROFESSIONS.find((entry)=>entry.id===id)!;

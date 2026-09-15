@@ -1,0 +1,10 @@
+.phone-game-host{--host-ratio:430/932;height:100dvh;min-height:0;display:grid;place-content:center;gap:8px;padding:0;background:radial-gradient(circle at 50% 15%,rgba(87,126,104,.2),transparent 33%),linear-gradient(145deg,#07130f,#17140e 68%,#080d0a);overflow:hidden}
+.phone-game-host-landscape{--host-ratio:932/430}
+.phone-game-device{position:relative;width:min(100vw,430px,calc((100dvh - 24px) * 430 / 932));aspect-ratio:var(--host-ratio);overflow:hidden;border:1px solid rgba(224,194,124,.46);border-radius:20px;background:#07140f;box-shadow:0 30px 90px #000c,0 0 0 5px #15150f,0 0 0 6px rgba(209,177,102,.24)}
+.phone-game-host-landscape .phone-game-device{width:min(100vw,932px,calc((100dvh - 24px) * 932 / 430))}
+.phone-game-device:before{content:"";position:absolute;z-index:5;inset:4px;border:1px solid rgba(224,194,124,.1);border-radius:16px;pointer-events:none}
+.phone-device-speaker{position:absolute;z-index:7;left:50%;top:4px;width:42px;height:3px;border-radius:3px;background:rgba(225,210,170,.23);transform:translateX(-50%);pointer-events:none}
+.phone-game-device iframe{display:block;width:100%;height:100%;border:0;background:#07140f}
+.phone-host-caption{margin:0;color:#847c67;font:9px/1.2 Georgia,"STSong",serif;letter-spacing:.22em;text-align:center}
+@media(max-width:760px){.phone-game-host{padding:0;display:block}.phone-game-device,.phone-game-host-landscape .phone-game-device{width:100vw;height:100dvh;max-width:none;aspect-ratio:auto;border:0;border-radius:0;box-shadow:none}.phone-game-device:before,.phone-device-speaker,.phone-host-caption{display:none}}
+@media(prefers-reduced-motion:reduce){.phone-game-host *{scroll-behavior:auto!important}}

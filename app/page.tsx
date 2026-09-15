@@ -1,7 +1,6 @@
-import GameDemo from "./game/GameDemo";
-import "./romance/romance.css";
-import "./fusion.css";
+import PhoneGameHost from "./game/ui/PhoneGameHost";
+import "./phone-host.css";
 
 export default function Home() {
-  return <GameDemo />;
+  return <PhoneGameHost src="/romance?embedded=1" title="槐安一梦" />;
 }

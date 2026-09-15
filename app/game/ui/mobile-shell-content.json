@@ -1,0 +1,25 @@
+{
+  "drawerEyebrow": "HUAIAN FIELD KIT",
+  "drawerTitle": "百宝匣",
+  "drawerSubtitle": "整备、记录与日程",
+  "close": "收起百宝匣",
+  "sections": {
+    "prepare": "随身整备",
+    "records": "江湖见闻",
+    "schedule": "今日安排"
+  },
+  "actions": {
+    "inventory": { "icon": "囊", "label": "乾坤行囊", "hint": "查看物品与剧情珍藏" },
+    "equipment": { "icon": "器", "label": "法器阁", "hint": "换装并比较最终属性" },
+    "cards": { "icon": "契", "label": "太虚名册", "hint": "查看命格与出战人物卡" },
+    "skills": { "icon": "法", "label": "万法谱", "hint": "查看已习功法与熟练度" },
+    "events": { "icon": "卷", "label": "事件簿", "hint": "回看已知剧情线索" },
+    "messages": { "icon": "笺", "label": "传音匣", "hint": "阅读人物来信" },
+    "gallery": { "icon": "忆", "label": "云上展馆", "hint": "重温已解锁音画" },
+    "collection": { "icon": "藏", "label": "藏珍录", "hint": "查看剧情物品与彩蛋" },
+    "history": { "icon": "讯", "label": "讯息录", "hint": "查看最近的重要反馈" },
+    "wait": { "icon": "候", "label": "等待", "hint": "推进一阶段，不恢复体力" },
+    "rest": { "icon": "憩", "label": "短休", "hint": "推进一阶段，恢复少量体力" },
+    "sleep": { "icon": "眠", "label": "结束今日", "hint": "结束当天并恢复体力" }
+  }
+}

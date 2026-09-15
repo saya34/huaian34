@@ -32,6 +32,11 @@
   "startKicker": "确认目标与配装",
   "startAction": "踏 入 秘 境",
   "helpAction": "战斗说明",
+  "mobileTabs": [
+    { "id": "mission", "mark": "境", "label": "敌情" },
+    { "id": "loadout", "mark": "装", "label": "配装" },
+    { "id": "supply", "mark": "丹", "label": "补给与掉落" }
+  ],
   "stagePrevious": "上一境",
   "stageNext": "下一境",
   "prepActions": [

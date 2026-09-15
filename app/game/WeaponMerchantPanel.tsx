@@ -37,6 +37,7 @@ export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: 
   const feedback = useFeedback();
   const [shelf, setShelf] = useState<"weekly" | "buyback" | "identify">("weekly");
   const [selection, setSelection] = useState<Selection>(null);
+  const [mobileBoard, setMobileBoard] = useState<"store" | "pack">("store");
   const [message, setMessage] = useState("左边是本周兵架，右边是你的法器背包。拖过去，买卖就算成了。");
   const [seenWeek,setSeenWeek]=useState(()=>weaponShopWeekNumber(state.romance.day));
 
@@ -118,7 +119,7 @@ export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: 
     setSelection({ source: "store", uid });
     setMessage(`${copy}；在本周结束前可按原收购价赎回。`);
     onNotice(copy);
-    feedback.publish({variant:"identification-reveal",priority:1,tone:"gold",titleKey:"items.identifiedTitle",bodyKey:"items.identifiedBody",params:{name:item.name??base.name},icon:"鉴",imageSrc:base.art,details:[{labelKey:"items.rarityLabel",value:RARITY_META[publicWeaponRarity(item)??base.rarity].name},{labelKey:"items.bonusLabel",value:formatBonus(equipmentAttributeBonus(item)).join(" · ")},{labelKey:"shop.identifyCostLabel",value:cost}],dedupeKey:`weapon-identify:${uid}`});
+    feedback.publish({variant:"identification-reveal",priority:1,tone:"gold",titleKey:"items.identifiedTitle",bodyKey:"items.identifiedBody",params:{name:item.name??base.name},icon:"鉴",imageSrc:base.art,details:[{labelKey:"items.rarityLabel",value:RARITY_META[publicWeaponRarity(item)??base.rarity].name},{labelKey:"items.bonusLabel",value:formatBonus(equipmentAttributeBonus(item)).join(" · ")},{labelKey:"items.valueLabel",value:gain}],dedupeKey:`weapon-sale:${uid}`});
   }
 
   function identify(uid: string) {
@@ -192,11 +193,12 @@ export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: 
 
   const gameWeek = weaponShopWeekNumber(state.romance.day);
   const nextRefreshDay = nextWeaponShopRefreshDay(state.romance.day);
-  return <div className="weapon-merchant-workspace">
+  return <div className={`weapon-merchant-workspace mobile-board-${mobileBoard}`}>
     <header className="weapon-merchant-toolbar">
       <div><small>XUANFENG WEEKLY ARMS · 暗黑式占格交易</small><h3>玄锋号兵器行</h3><p>霍青翎每七个游戏日换一批兵刃；封匣购入后才揭示稀有度，也可付费鉴定背包中的未知法器。</p></div>
       <div className="weapon-week-mark"><span>槐安历 · 当前批次</span><strong>第 {gameWeek} 周</strong><small>下次刷新 · 第 {nextRefreshDay} 日清晨</small></div>
     </header>
+    <nav className="weapon-mobile-board-tabs" aria-label="选择交易区域"><button type="button" className={mobileBoard === "store" ? "active" : ""} onClick={() => setMobileBoard("store")}><i>铺</i><span>玄锋货架</span><b>{shopItems.length}</b></button><button type="button" className={mobileBoard === "pack" ? "active" : ""} onClick={() => setMobileBoard("pack")}><i>囊</i><span>我的兵囊</span><b>{playerItems.length}</b></button></nav>
     <div className="weapon-trade-board">
       <section className="weapon-grid-panel vendor-grid-panel" onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }} onDrop={handleShopDrop}>
         <header><div><small>LEFT · 玄锋号货架</small><h4>{shelf === "weekly" ? "本周兵器" : shelf === "buyback" ? "近期回购物" : "待鉴法器清单"}</h4></div><nav><button className={shelf === "weekly" ? "active" : ""} onClick={() => { setShelf("weekly"); setSelection(null); }}>周货 <b>{battle.weaponShop.stock.length}</b></button><button className={shelf === "buyback" ? "active" : ""} onClick={() => { setShelf("buyback"); setSelection(null); }}>回购 <b>{battle.weaponShop.buyback.length}</b></button><button className={shelf === "identify" ? "active" : ""} onClick={() => { setShelf("identify"); setSelection(null); }}>鉴定 <b>{unidentifiedItems.length}</b></button></nav></header>

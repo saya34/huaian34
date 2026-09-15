@@ -32,6 +32,7 @@ import { useFeedback } from "../feedback/FeedbackProvider";
 import { feedbackText } from "../feedback/texts";
 import GatheringCareerPanel from "../gathering/GatheringCareerPanel";
 import { resolveGatheringOutcome, selectedTool } from "../gathering/engine";
+import reelUi from "./content/reel-ui.json";
 
 type Props = {
   locationId: FishingLocationId;
@@ -43,6 +44,7 @@ type Props = {
 };
 
 type Phase = "ready" | "reeling" | "success" | "failed";
+type MobileDrawer = "codex" | "kit" | null;
 const RARITY_LABELS = ["凡品", "灵品", "珍品", "玄品", "仙品"];
 
 export default function FishingModal({ locationId, randomSpotId, day, period, onClose, onNotice }: Props) {
@@ -59,6 +61,8 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
   const [target, setTarget] = useState<FishDefinition | null>(resumedCast ? fishById(resumedCast.fishId) ?? null : null);
   const [castRound, setCastRound] = useState(0);
   const [showRareReveal, setShowRareReveal] = useState(false);
+  const [mobileDrawer, setMobileDrawer] = useState<MobileDrawer>(null);
+  const [failureReason, setFailureReason] = useState<FishingReelResult["failureReason"]>("escaped");
   const fishingCareer = state.gathering.careers.fishing;
   const activeRod = selectedTool("fishing", fishingCareer);
   const pool = useMemo(() => weightedPool(location, baitId, chumId, fishingCareer), [baitId, chumId, location, fishingCareer]);
@@ -95,7 +99,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
     const cast = castFishing(progress, { day, tick, location, baitId, chumId, randomSpotId, career:fishingCareer });
     if (!cast.ok) { onNotice(cast.message); return; }
     const fish = fishById(cast.catch.fishId)!;
-    setTarget(fish);
+    setTarget(fish); setMobileDrawer(null); setFailureReason(undefined);
     setPhase("reeling"); setCastRound((value) => value + 1);
     setFishing(cast.progress);
     if (chumMaterial) applyEffects([{ type: "remove_item", itemId: chumMaterial.id, amount: 1 }]);
@@ -134,6 +138,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
       return;
     }
     setPhase("failed");
+    setFailureReason(result.failureReason ?? "escaped");
     setFishing((current) => reelFishing(current, false).progress);
     feedback.toast({ priority:3, tone:"muted", titleKey:"system.toastInfo", bodyKey:"fishing.fail", icon:"澜", dedupeKey:`fishing:escape:${castRound}` });
     onNotice("灵线失衡，鱼影挣脱了。 ");
@@ -180,12 +185,13 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
       <header className="fishing-heading">
         <div className="fishing-location-heading" role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"fishing.pointTitle",bodyKey:"world.changeBody",params:{message:location.subtitle},icon:"钓",details:[{labelKey:"world.locationLabel",value:location.name,emphasis:true},{labelKey:"fishing.kindLabel",value:feedbackText(location.kind === "random" ? "fishing.kindRandom" : "fishing.kindResident")},{labelKey:"fishing.periodLabel",value:period},{labelKey:"fishing.poolLabel",value:pool.map((entry)=>FISH.find((fish)=>fish.id===entry.fishId)?.name).filter(Boolean).join(feedbackText("system.listSeparator"))},{labelKey:"fishing.baitLabel",value:BAITS[baitId].name}],dedupeKey:`fishing:location:${location.id}:${day}:${period}`})} onKeyDown={(event)=>{if(event.key==="Enter"||event.key===" ")event.currentTarget.click()}}><small>SPIRIT ANGLING · {feedbackText(location.kind === "random" ? "fishing.kindRandom" : "fishing.kindResident")}</small><h2>{location.name}</h2><p>{location.subtitle} · 第 {day} 日 {period}</p></div>
         <div className="fishing-attempts"><span>今日抛竿</span><strong>{attemptsLeft}<small> / {DAILY_CAST_LIMIT}</small></strong><em>{activeRod.name} · {fishingCareer.toolTier}阶</em></div>
+        <div className="fishing-mobile-vitals" aria-label={`${location.name}，${period}，体力 ${state.romance.stamina}，灵石 ${state.shared.spiritStones}`}><span><small>{location.name}</small><b>{period}</b></span><i>{reelUi.staminaShort} {state.romance.stamina}</i><i>{reelUi.currencyShort} {state.shared.spiritStones.toLocaleString()}</i></div>
         <button type="button" onClick={leaveFishing} aria-label="离开钓点">×</button>
       </header>
 
-      <div className={`fishing-content ${phase === "reeling" ? "fishing-content-active" : ""}`}>
-        <aside className="fish-pool-panel">
-          <header><span>本地鱼谱</span><small>鱼饵会改变咬钩权重</small></header>
+      <div className={`fishing-content fishing-phase-${phase} ${phase === "reeling" ? "fishing-content-active" : ""} ${mobileDrawer ? "has-mobile-drawer" : ""}`}>
+        <aside className={`fish-pool-panel mobile-game-drawer ${mobileDrawer === "codex" ? "drawer-open" : ""}`}>
+          <header><span>本地鱼谱</span><small>鱼饵会改变咬钩权重</small><button type="button" className="mobile-drawer-close" onClick={() => setMobileDrawer(null)}>{reelUi.drawerClose}</button></header>
           <div className="fish-pool-list">{pool.map((entry) => { const fish = FISH.find((item) => item.id === entry.fishId)!; const known=Boolean(progress.records[fish.id]); return <article key={fish.id} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"fishing.codexTitle",bodyKey:known?"fishing.codexBody":"fishing.codexUnknown",params:{name:known?fish.name:"?",description:known?fish.description:"",probability:`${(entry.probability*100).toFixed(entry.probability<.1?1:0)}%`},icon:known?fish.icon:"?",imageSrc:known?fish.art:undefined,details:[{labelKey:"items.rarityLabel",value:known?RARITY_LABELS[fish.rarity-1]:feedbackText("shop.unidentifiedLabel")},{labelKey:"items.valueLabel",value:known?fish.value:feedbackText("system.none")},{labelKey:"fishing.catchChance",value:`${(entry.probability*100).toFixed(entry.probability<.1?1:0)}%`},{labelKey:"items.countLabel",value:progress.records[fish.id]??0}],dedupeKey:`fish-codex:${fish.id}:${known}`})} onKeyDown={(event)=>{if(event.key==="Enter"||event.key===" ")event.currentTarget.click()}} className={known ? "caught" : "unknown"}>
             <div className="fish-token" style={{ backgroundImage: `url(${fish.art})` }}><b>{progress.records[fish.id] ? fish.icon : "?"}</b></div>
             <div><strong>{progress.records[fish.id] ? fish.name : "未录灵鱼"}</strong><small>{RARITY_LABELS[fish.rarity - 1]} · {(entry.probability * 100).toFixed(entry.probability < .1 ? 1 : 0)}%</small></div>
@@ -196,32 +202,32 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
 
         <main className="fishing-stage-panel">
           {phase === "ready" && <div className="fishing-ready">
-            <div className="fishing-water-orb"><i /><span>钓</span><b /></div>
-            <h3>择饵听澜</h3><p>{location.kind === "random" ? "这处游光只容一次抛竿；无论得失，收线后光点都会散去。" : "水面灵息平稳，可以反复垂钓，直到今日定力耗尽。"}</p>
-            <div className="bait-selector">{(Object.keys(BAITS) as BaitId[]).map((id) => <button key={id} className={baitId === id ? "active" : ""} onClick={() => setBaitId(id)}><b>{BAITS[id].icon}</b><span><strong>{BAITS[id].name}</strong><small>持有 {progress.baits[id] ?? 0}</small></span></button>)}</div>
+            <div className="fishing-ready-scene"><div className="fishing-cast-rig" aria-hidden="true"><i /><b /><u /><span /></div><div className="fishing-water-orb"><i /><span>钓</span><b /></div><h3>择饵听澜</h3><p>{location.kind === "random" ? "这处游光只容一次抛竿；无论得失，收线后光点都会散去。" : "水面灵息平稳，可以反复垂钓，直到今日定力耗尽。"}</p></div>
+            <div className="fishing-ready-controls"><div className="bait-selector">{(Object.keys(BAITS) as BaitId[]).map((id) => <button key={id} className={baitId === id ? "active" : ""} onClick={() => setBaitId(id)}><b>{BAITS[id].icon}</b><span><strong>{BAITS[id].name}</strong><small>持有 {progress.baits[id] ?? 0}</small></span></button>)}</div>
             <div className="chum-selector">{(Object.keys(CHUMS) as ChumId[]).map((id) => { const chum = CHUMS[id]; const material = chum.materialName ? MATERIALS.find((item) => item.name === chum.materialName) : null; return <button type="button" key={id} className={chumId === id ? "active" : ""} onClick={() => setChumId(id)}><b>{chum.icon}</b><span><strong>{chum.name}</strong><small>{material ? `持有 ${state.shared.items[material.id]?.amount ?? 0}` : "不消耗仙草"}</small></span></button>; })}</div>
             <div className="fish-aging-rack">{progress.aging.map((slot) => { const fish = fishById(slot.fishId)!; const ready = slot.readyAtTick <= tick; return <button type="button" key={slot.id} className={ready ? "ready" : ""} onClick={() => collectAged(slot.id)}><span style={{backgroundImage:`url(${fish.art})`}}/><b>{ready ? "收" : slot.readyAtTick - tick}</b><small>{ready ? `${fish.name}陈化完成` : `${fish.name} · 听澜陈化中`}</small></button>; })}{Array.from({length: Math.max(0, 3 - progress.aging.length)},(_,index)=><i key={index}>空篓</i>)}</div>
             <div className="fishing-mobile-career"><GatheringCareerPanel professionId="fishing" onNotice={onNotice}/></div>
-            <button className="cast-rod-button" type="button" disabled={attemptsLeft <= 0 || (progress.baits[baitId] ?? 0) <= 0} onClick={castRod}><span>{activeRod.name}为永久灵具 · 消耗{BAITS[baitId].name} 1</span><strong>抛 竿 入 境</strong></button>
+            <button className="cast-rod-button mobile-thumb-action" type="button" disabled={attemptsLeft <= 0 || (progress.baits[baitId] ?? 0) <= 0} onClick={castRod}><span>{activeRod.name} · {BAITS[baitId].name} -1</span><strong>{reelUi.castAction}</strong></button></div>
           </div>}
 
           {phase === "reeling" && target && <FishingEncounter key={`${target.id}-${castRound}`} fishId={target.id} rarity={target.rarity} config={{ maxAttempts: 6 + target.rarity, targetScore: 6 + target.rarity * 2, difficultyLevel: Math.max(1,Math.min(9, target.rarity * 2 + (location.kind === "random" ? 1 : 0)-(activeRod.trait==="stable"?1:0))), difficultyName: `${RARITY_LABELS[target.rarity - 1]}鱼影`, rarity:target.rarity }} onFinish={finishReeling} />}
 
-          {(phase === "success" || phase === "failed") && <div className={`fishing-result ${phase}`}>
-            {phase === "success" && target ? <><div className="catch-art" style={{ backgroundImage: `url(${target.art})` }}><b>{target.icon}</b></div><small>{RARITY_LABELS[target.rarity - 1]} · 估值 {target.value} 灵石</small><h3>{target.name}</h3><p>{target.description}</p><strong>已收入乾坤行囊</strong><div className="catch-processing"><button type="button" onClick={ageCatch}>收入听澜篓陈化</button><button type="button" onClick={processCatch}>就地制成鱼饵</button></div></> : <><div className="catch-art escaped"><b>澜</b></div><small>灵线已静</small><h3>鱼影脱钩</h3><p>水纹判断失误，鱼影潜回了深处。常驻鱼场仍可再试，游光钓点则已随波消散。</p></>}
+          {(phase === "success" || phase === "failed") && <div className={`fishing-result ${phase} failure-${failureReason ?? "escaped"}`}>
+            {phase === "success" && target ? <><div className="catch-art" style={{ backgroundImage: `url(${target.art})` }}><b>{target.icon}</b></div><small>{RARITY_LABELS[target.rarity - 1]} · 估值 {target.value} 灵石</small><h3>{target.name}</h3><p>{target.description}</p><strong>已收入乾坤行囊</strong><div className="catch-processing"><button type="button" onClick={ageCatch}>收入听澜篓陈化</button><button type="button" onClick={processCatch}>就地制成鱼饵</button></div></> : <><div className="catch-art escaped"><b>{failureReason === "line-break" ? "断" : failureReason === "missed-bite" ? "迟" : "澜"}</b></div><small>灵线已静</small><h3>{failureReason === "line-break" ? reelUi.failureBreakTitle : failureReason === "missed-bite" ? reelUi.failureMissedTitle : reelUi.failureEscapeTitle}</h3><p>{failureReason === "line-break" ? reelUi.failureBreakBody : failureReason === "missed-bite" ? reelUi.failureMissedBody : reelUi.failureEscapeBody}</p></>}
             {phase === "failed" && <button type="button" className="retry-fish" onClick={retryEscaped}>循波追回 · ◉ 1000</button>}
             <button type="button" onClick={() => location.kind === "resident" ? continueFishing() : leaveFishing()}>{location.kind === "resident" ? "放弃鱼影 · 再听一竿" : "放弃鱼影 · 返回山河图"}</button>
           </div>}
           {showRareReveal && target && <RareCatchReveal fish={target} onClose={() => setShowRareReveal(false)} />}
         </main>
 
-        <aside className="bait-shop-panel">
-          <header><span>行脚渔篓</span><small>补充灵饵与垂钓定力</small></header>
+        <aside className={`bait-shop-panel mobile-game-drawer ${mobileDrawer === "kit" ? "drawer-open" : ""}`}>
+          <header><span>行脚渔篓</span><small>补充灵饵与垂钓定力</small><button type="button" className="mobile-drawer-close" onClick={() => setMobileDrawer(null)}>{reelUi.drawerClose}</button></header>
           <GatheringCareerPanel professionId="fishing" onNotice={onNotice}/>
           {(Object.keys(BAITS) as BaitId[]).map((id) => <article key={id}><b>{BAITS[id].icon}</b><div><strong>{BAITS[id].name}</strong><p>{BAITS[id].description}</p><small>现有 {progress.baits[id] ?? 0}</small></div><button type="button" onClick={() => buyBait(id)}>◉ {BAITS[id].price}</button></article>)}
           <footer><span>当前灵石</span><strong>◉ {state.shared.spiritStones.toLocaleString()}</strong></footer>
           <button type="button" className="extra-reel-pack" onClick={buyExtraReels}>追加五次定力 · ◉ {extraReelPackPrice(progress.reelPacksBought)}</button>
         </aside>
+        {phase !== "reeling" && <nav className="fishing-mobile-drawer-tabs" aria-label="垂钓次级功能"><button type="button" className={mobileDrawer === "codex" ? "active" : ""} onClick={() => setMobileDrawer((value) => value === "codex" ? null : "codex")}><i>谱</i><span>{reelUi.drawerCodex}</span></button><button type="button" className={mobileDrawer === "kit" ? "active" : ""} onClick={() => setMobileDrawer((value) => value === "kit" ? null : "kit")}><i>篓</i><span>{reelUi.drawerKit}</span></button></nav>}
       </div>
     </section>
   </div>;

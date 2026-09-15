@@ -38,6 +38,7 @@ export default function ForumModal({player,day,period,onClose}:Props){
   const feedback=useFeedback();
   const [snapshot,setSnapshot]=useState<ForumSnapshot|null>(null);
   const [section,setSection]=useState<ForumSection>("square");
+  const [mobilePane,setMobilePane]=useState<"feed"|"ranking">("feed");
   const [announcement,setAnnouncement]=useState(0);
   const [content,setContent]=useState("");
   const [attachments,setAttachments]=useState<ForumAttachment[]>([]);
@@ -79,9 +80,10 @@ export default function ForumModal({player,day,period,onClose}:Props){
     try{await gateway.toggleLike(postId)}catch{/* Optimistic local interaction remains visible. */}
   }
 
-  return <div className="forum-backdrop" role="presentation"><section className="forum-shell" role="dialog" aria-modal="true" aria-label="槐安情报局论坛">
+  return <div className="forum-backdrop" role="presentation"><section className={`forum-shell mobile-pane-${mobilePane}`} role="dialog" aria-modal="true" aria-label="槐安情报局论坛">
     <header className="forum-heading"><button type="button" className="forum-close" onClick={onClose} aria-label="离开论坛">‹</button><div className="forum-brand"><span>闻</span><div><small>HUAIAN INTELLIGENCE BUREAU</small><h2>槐安情报局</h2></div></div><div className="forum-clock"><i className="forum-live-dot"/><span>第 {day} 日 · {period}</span><b>{snapshot?.syncMode==="online"?"诸界在线":"本地演示"}</b></div></header>
     <div className="forum-announcement"><span>{currentAnnouncement?.tag??"传讯"}</span><button type="button" onClick={()=>currentAnnouncement&&feedback.inspect({titleKey:"forum.announcementLabel",bodyKey:"world.changeBody",params:{message:currentAnnouncement.detail},icon:"闻",details:[{labelKey:"items.nameLabel",value:currentAnnouncement.title,emphasis:true},{labelKey:"items.tagsLabel",value:currentAnnouncement.tag},{labelKey:"calendar.dateLabel",value:`第 ${day} 日 · ${period}`}],dedupeKey:`forum-announcement:${currentAnnouncement.id}`})}><strong>{currentAnnouncement?.title??"正在展开世界传讯……"}</strong><small>{currentAnnouncement?.detail}</small></button><div>{snapshot?.announcements.map((item,index)=><button type="button" key={item.id} className={index===announcement?"active":""} onClick={()=>setAnnouncement(index)} aria-label={`查看公告${index+1}`}/>)}</div></div>
+    <nav className="forum-mobile-panes" aria-label="情报局功能"><button type="button" className={mobilePane==="feed"?"active":""} onClick={()=>setMobilePane("feed")}><i>帖</i><span>诸界闻壁</span></button><button type="button" className={mobilePane==="ranking"?"active":""} onClick={()=>setMobilePane("ranking")}><i>榜</i><span>问道榜</span></button></nav>
     <div className="forum-layout">
       <aside className="forum-nav"><p>闻壁分卷</p>{NAV.map(item=><button type="button" key={item.id} className={section===item.id?"active":""} onClick={()=>setSection(item.id)}><i>{item.seal}</i><span><strong>{item.name}</strong><small>{item.note}</small></span><b>{snapshot?.posts.filter(post=>post.channel===item.id).length??"·"}</b></button>)}<div className="forum-npc-note"><img src="/assets/characters/wenren-fei-v1.png" alt="闻人绯"/><span><small>情报局主事</small><strong>闻人绯</strong><p>“真假消息都能开价，但只有证据能落印。”</p></span></div></aside>
       <main className="forum-main">

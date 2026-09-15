@@ -1,8 +1,10 @@
 import AlchemyGame from "../game/alchemy/AlchemyGame";
-import Link from "next/link";
+import PhoneGameHost from "../game/ui/PhoneGameHost";
+import "../phone-host.css";
 
-export default async function AlchemyPage({ searchParams }: { searchParams: Promise<{ embedded?: string }> }) {
+export default async function AlchemyPage({ searchParams }: { searchParams: Promise<{ embedded?: string; framed?: string }> }) {
   const query = await searchParams;
   const embedded = query.embedded === "1";
-  return <div className={embedded ? "alchemy-embedded-page" : "alchemy-standalone-page"}>{!embedded && <Link className="module-home-link" href="/">返回云州</Link>}<AlchemyGame embedded={embedded} /></div>;
+  if (!embedded && query.framed !== "1") return <PhoneGameHost src="/alchemy?framed=1" title="玄火丹炉" />;
+  return <div className={embedded ? "alchemy-embedded-page" : "alchemy-standalone-page"}><AlchemyGame embedded={embedded} /></div>;
 }

@@ -127,6 +127,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
   const [elementFilter, setElementFilter] = useState("全部属性");
   const [characterFilter, setCharacterFilter] = useState("全部人物");
   const [inventoryPage, setInventoryPage] = useState(0);
+  const [mobileView, setMobileView] = useState<"furnace" | "inventory" | "visitors">("furnace");
   const [phase, setPhase] = useState<"idle" | "ready" | "brewing" | "done">("idle");
   const [timeLeft, setTimeLeft] = useState(8);
   const [showResult, setShowResult] = useState(false);
@@ -907,14 +908,14 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
   const quickItems = [MATERIALS[0], MATERIALS[1], MATERIALS[24]];
 
   return (
-    <main className={`game-shell phase-${phase} ${hasFatedFlower ? "has-fated-flower" : ""} ${hasMythicScroll ? "has-mythic-scroll" : ""} ${starArrivalPulse ? "star-arrival" : ""}`}>
+    <main className={`game-shell mobile-alchemy-${mobileView} phase-${phase} ${hasFatedFlower ? "has-fated-flower" : ""} ${hasMythicScroll ? "has-mythic-scroll" : ""} ${starArrivalPulse ? "star-arrival" : ""}`}>
       <div className="backdrop" aria-hidden="true" />
       <div className="mist mist-one" aria-hidden="true" />
       <div className="mist mist-two" aria-hidden="true" />
       <div className="vignette" aria-hidden="true" />
 
       <header className="topbar">
-        <button className="round-button" aria-label="返回主界面" onClick={() => embedded && window.parent !== window ? window.parent.postMessage({ type: "huaian-close-module" }, window.location.origin) : window.location.assign("/")}>返</button>
+        <button className="round-button" aria-label="返回主界面" onClick={() => window.parent !== window ? window.parent.postMessage({ type: "huaian-close-module" }, window.location.origin) : window.location.assign("/")}>返</button>
         <div className="title-lockup">
           <span className="eyebrow">太虚仙府 · 炼丹房</span>
           <h1>玄火丹炉</h1>
@@ -1077,6 +1078,14 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
           </button>
         </div>
       </section>
+
+      <nav className="mobile-alchemy-nav" aria-label="炼丹房主要功能">
+        <button type="button" className={mobileView === "furnace" ? "active" : ""} onClick={() => setMobileView("furnace")}><i>炉</i><span>玄火丹炉</span></button>
+        <button type="button" className={mobileView === "inventory" ? "active" : ""} onClick={() => setMobileView("inventory")}><i>囊</i><span>乾坤灵囊</span></button>
+        <button type="button" className={mobileView === "visitors" ? "active" : ""} onClick={() => setMobileView("visitors")}><i>客</i><span>仙门来客</span></button>
+        <button type="button" onClick={() => setShowMarket(true)}><i>市</i><span>云游集市</span></button>
+        <button type="button" onClick={() => setShowCodex(true)}><i>鉴</i><span>万物图鉴</span></button>
+      </nav>
 
       {dragging && <div className="drag-ghost" style={{ left: dragging.x, top: dragging.y }} aria-hidden="true"><img src={dragging.item.image} alt="" /><span>{dragging.item.name}</span></div>}
       {toast && <div className="toast" role="status"><span>◇</span>{toast}<span>◇</span></div>}

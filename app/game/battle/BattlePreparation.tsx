@@ -82,6 +82,7 @@ type Props = {
 export function BattlePreparation({ dungeon, mapImage, rewards, heroName = copy.defaultHeroName, maxWave, onChangeWave, onOpenPanel, onStart, onClose, onHelp }: Props) {
   const { state } = useUnifiedGame();
   const [selectedSupplyId, setSelectedSupplyId] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<"mission" | "loadout" | "supply">("mission");
   const attributes = useMemo(() => computeFinalAttributes(state), [state]);
   const admission = checkActionAdmission("battle", state.shared);
   const power = estimatePower(attributes);
@@ -111,7 +112,11 @@ export function BattlePreparation({ dungeon, mapImage, rewards, heroName = copy.
       {onClose && <button type="button" className="battle-preparation-close" onClick={onClose} aria-label={copy.closeLabel}>×</button>}
     </header>
 
-    <div className="battle-preparation-body">
+    <nav className="battle-preparation-tabs" aria-label="战前整备分类">
+      {copy.mobileTabs.map((tab) => <button type="button" key={tab.id} className={mobileView === tab.id ? "active" : ""} onClick={() => setMobileView(tab.id as typeof mobileView)}><i>{tab.mark}</i><span>{tab.label}</span></button>)}
+    </nav>
+
+    <div className={`battle-preparation-body mobile-view-${mobileView}`}>
       <section className="battle-mission-card">
         <div className="battle-mission-heading"><span>{String(dungeon.waveId).padStart(2, "0")}</span><div><small>{copy.objectiveLabel}</small><h3>{dungeon.kind === "random" ? copy.randomObjective : formatTemplate(copy.permanentObjective, { name: dungeon.name })}</h3><p>{heroName} · {dungeon.kind === "random" ? copy.randomKind : copy.permanentKind}</p></div></div>
         <div className="battle-intel-grid">

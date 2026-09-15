@@ -33,6 +33,8 @@ import { feedbackText } from "../feedback/texts";
 import GatheringCareerPanel from "../gathering/GatheringCareerPanel";
 import { resolveGatheringOutcome } from "../gathering/engine";
 import { ACTION_COSTS, actionCostLabel, checkActionAdmission } from "../core/action-service";
+import GatheringFocusHud from "../gathering/GatheringFocusHud";
+import { GATHERING_PRESENTATION, gatheringCopy } from "../gathering/content";
 
 type Props = { day: number; period: Period; onNotice: (message: string) => void; initialView?: "field" | "livestock"; onClose?: () => void };
 
@@ -46,6 +48,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
   const [toolMode, setToolMode] = useState<"inspect" | "water" | "fertilize">("inspect");
   const [selectedFertilizer, setSelectedFertilizer] = useState<FertilizerId>("rapid-root");
   const [livestockOpen, setLivestockOpen] = useState(initialView === "livestock");
+  const [mobileSheet, setMobileSheet] = useState<"seeds" | "career" | null>(null);
   const readyRef = useRef(new Set<string>());
   const tick = gameTick(day, period);
   const weather = getFarmWeather(day);
@@ -61,6 +64,12 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
 
   const readyCount = useMemo(() => farm.plots.filter((plot) => plotGrowth(plot, tick, weather).ready).length, [farm.plots, tick, weather]);
   const growingCount = farm.plots.filter((plot) => plot.cropId && !plotGrowth(plot, tick, weather).ready).length;
+  const openCount = farm.plots.slice(0, Math.min(unlockedPlots, supportedPlots)).filter((plot) => !plot.cropId).length;
+  const fieldUi = GATHERING_PRESENTATION.farm;
+  const fieldObjective = readyCount ? fieldUi.readyObjective : growingCount ? fieldUi.growingObjective : fieldUi.emptyObjective;
+  const fieldValue = readyCount
+    ? gatheringCopy(fieldUi.readyValue, { count: readyCount })
+    : growingCount ? gatheringCopy(fieldUi.growingValue, { count: growingCount }) : fieldUi.emptyValue;
 
   useEffect(() => {
     const ready = new Set(farm.plots.filter((plot) => plot.cropId && plotGrowth(plot, tick, weather).ready).map((plot) => plot.id));
@@ -226,7 +235,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
 
   if (livestockOpen) return <LivestockPanel day={day} period={period} onBack={() => setLivestockOpen(false)} onClose={onClose} onNotice={onNotice} />;
 
-  return <section className="spirit-farm-panel" aria-label="云岫灵圃">
+  return <section className={`spirit-farm-panel field-mode-${toolMode} ${readyCount ? "has-ready-harvest" : ""}`} aria-label="云岫灵圃">
     <header className="farm-status-bar">
       <div><small>HERBAL CULTIVATION · 云岫灵圃</small><h3>灵田 · 灵兽苑</h3></div>
       <nav className="farm-scene-tabs"><button type="button" className="active">灵田十二畦</button><button type="button" onClick={() => setLivestockOpen(true)}>灵兽苑</button></nav>
@@ -235,7 +244,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
       {onClose && <button type="button" className="farm-panel-close" onClick={onClose} aria-label="返回灵圃场景">×</button>}
     </header>
 
-    <div className="farm-main-grid farm-world-layout">
+    <div className={`farm-main-grid farm-world-layout ${mobileSheet ? `mobile-sheet-${mobileSheet}` : "mobile-sheet-field"}`}>
       <aside className="farm-seed-rack">
         <header><span>种匣</span><small>灵种请向叶青禾购买</small></header>
         <div className="farm-seed-list">{visibleCrops.map((crop) => {
@@ -248,6 +257,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
 
       <div className="farm-field-wrap">
         <div className="farm-world-decor" aria-hidden="true"><i className="farm-mountain"/><i className="farm-stream"/><i className="farm-pavilion"/><span className="farm-fireflies"><b/><b/><b/><b/></span></div>
+        <GatheringFocusHud theme="farm" kicker={fieldUi.kicker} objective={fieldObjective} value={fieldValue} hint={fieldUi.hint} icon={readyCount ? "收" : "芽"} attention={readyCount > 0} meter={readyCount ? 100 : growingCount ? Math.round(farm.plots.filter((plot) => plot.cropId).reduce((sum, plot) => sum + plotGrowth(plot, tick, weather).progress, 0) / Math.max(1, growingCount)) : 0} stats={[{ label: fieldUi.stats[0], value: readyCount }, { label: fieldUi.stats[1], value: growingCount }, { label: fieldUi.stats[2], value: `${supportedPlots}/${unlockedPlots}` }]} />
         <div className="farm-field-head"><span>已成熟 <b>{readyCount}</b></span><span>生长中 <b>{growingCount}</b></span><span>灵泉润养 <b>{supportedPlots}/{unlockedPlots} 畦</b></span><span>灵壤 <b>{farm.spiritSoil}</b></span></div>
         <div className="farm-tool-dock" aria-label="灵田工具">
           <button type="button" className={toolMode === "inspect" ? "active" : ""} onClick={() => setToolMode("inspect")}><i>察</i><span>察看与收获</span></button>
@@ -255,7 +265,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
           <button type="button" className={toolMode === "fertilize" ? "active" : ""} onClick={() => setToolMode("fertilize")}><i>{FERTILIZERS[selectedFertilizer].icon}</i><span>{FERTILIZERS[selectedFertilizer].name}</span></button>
           <button type="button" disabled={farm.toolLevel >= 3} onClick={improveFarmTool}><i>锄</i><span>{farm.toolLevel}阶 · 蕴养</span></button>
         </div>
-        <div className="farm-plots">{farm.plots.map((plot, index) => {
+        <div className={`farm-plots ${openCount ? "has-open-plots" : ""}`}>{farm.plots.map((plot, index) => {
           const locked = index >= unlockedPlots;
           const unsupported = !locked && index >= supportedPlots;
           const crop = plot.cropId ? cropById(plot.cropId) : null;
@@ -278,14 +288,21 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
       <aside className="farm-actions">
         <GatheringCareerPanel professionId="farming" onNotice={announce}/>
         <div className="farm-selected-crop"><img src={cropMaterial(selectedCrop).image} alt="" /><span><small>当前灵种</small><strong>{selectedCrop.materialName}</strong><em>{selectedCrop.lore}</em></span></div>
-        <button type="button" onClick={bulkPlant}><i>耕</i><span><strong>连作空田</strong><small>按现有种子连续播种</small></span></button>
+        <button type="button" className={!readyCount && openCount ? "primary-gather-action" : ""} onClick={bulkPlant}><i>耕</i><span><strong>连作空田</strong><small>按现有种子连续播种</small></span></button>
         <button type="button" disabled={farm.wellLevel >= 3 || farm.wellUpgradedDay === day} onClick={upgradeWell}><i>泉</i><span><strong>疏浚灵泉 · {farm.wellLevel}阶</strong><small>{farm.wellLevel >= 3 ? "已覆盖全部灵田" : `◉ ${farm.wellLevel * 160} · 扩展润养容量`}</small></span></button>
-        <button type="button" className={readyCount ? "harvest-ready" : ""} onClick={bulkHarvest}><i>收</i><span><strong>一键收获</strong><small>{readyCount ? `${readyCount} 畦已成熟` : "暂无成熟仙草"}</small></span></button>
+        <button type="button" className={readyCount ? "harvest-ready primary-gather-action" : ""} onClick={bulkHarvest}><i>收</i><span><strong>一键收获</strong><small>{readyCount ? `${readyCount} 畦已成熟` : "暂无成熟仙草"}</small></span></button>
         <button type="button" disabled={farm.lastDewDay === day} onClick={gatherDew}><i>露</i><span><strong>凝露培土</strong><small>{farm.lastDewDay === day ? "今日已完成" : "体力 -1 · 灵壤 +2"}</small></span></button>
         <div className="fertilizer-wheel" aria-label="灵壤炼制">{(Object.keys(FERTILIZERS) as FertilizerId[]).map((id) => <button type="button" key={id} className={selectedFertilizer === id ? "active" : ""} onClick={() => { if (selectedFertilizer === id && toolMode === "fertilize") refineFertilizer(id); else { setSelectedFertilizer(id); setToolMode("fertilize"); } }}><i>{FERTILIZERS[id].icon}</i><strong>{FERTILIZERS[id].name}</strong><small>持有 {farm.fertilizers[id]} · 再点炼制</small></button>)}<button type="button" onClick={compostBeastProduce}><i>融</i><strong>灵兽沃土</strong><small>消耗产物 · 丰穗灵壤 +2</small></button></div>
       </aside>
     </div>
 
-    <footer className="farm-message"><span>圃</span><p>{message}</p><b>第 {day} 日 · {period} · 时序 {tick + 1}</b></footer>
+    <nav className="farm-mobile-nav" aria-label="灵田主要操作">
+      <button type="button" className={!mobileSheet ? "active" : ""} onClick={() => setMobileSheet(null)}><i>{fieldUi.mobileViews.field.icon}</i><span>{fieldUi.mobileViews.field.label}</span></button>
+      <button type="button" className={mobileSheet === "seeds" ? "active" : ""} onClick={() => setMobileSheet("seeds")}><i>{fieldUi.mobileViews.seeds.icon}</i><span>{fieldUi.mobileViews.seeds.label}</span></button>
+      <button type="button" className={mobileSheet === "career" ? "active" : ""} onClick={() => setMobileSheet("career")}><i>{fieldUi.mobileViews.career.icon}</i><span>{fieldUi.mobileViews.career.label}</span></button>
+      <button type="button" className="primary" onClick={readyCount ? bulkHarvest : bulkPlant}><i>{readyCount ? "收" : "耕"}</i><span>{readyCount ? fieldUi.mobileViews.harvest : fieldUi.mobileViews.plant}</span></button>
+    </nav>
+
+    <footer className="farm-message" aria-live="polite"><span>圃</span><p>{message}</p><b>第 {day} 日 · {period} · 时序 {tick + 1}</b></footer>
   </section>;
 }

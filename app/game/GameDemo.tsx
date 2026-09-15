@@ -58,6 +58,7 @@ import { feedbackText } from "./feedback/texts";
 import { getFarmWeather } from "./farm/farm";
 import { BattleReturnPanel, type BattleReturnReceipt } from "./battle/BattlePreparation";
 import { ACTION_COSTS, actionCostLabel, checkActionUnits } from "./core/action-service";
+import MobileUtilityDrawer from "./ui/MobileUtilityDrawer";
 
 const PERIODS: Period[] = ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"];
 
@@ -120,6 +121,7 @@ export default function GameDemo() {
   const [questOffer,setQuestOffer]=useState<QuestDefinition|null>(null);
   const [questConversationMenuOpen,setQuestConversationMenuOpen]=useState(false);
   const [timeMenuOpen,setTimeMenuOpen]=useState(false);
+  const [utilityOpen,setUtilityOpen]=useState(false);
   const [activeModule, setActiveModule] = useState<{ kind: "battle"; dungeon: DungeonDefinition } | { kind: "alchemy" } | null>(null);
   const [battleReturnReceipt, setBattleReturnReceipt] = useState<BattleReturnReceipt | null>(null);
   const [systemPanel, setSystemPanel] = useState<FusionPanelId | null>(null);
@@ -725,7 +727,7 @@ export default function GameDemo() {
   }
 
   return (
-    <main className="game-shell">
+    <main className="game-shell huaian-phone-viewport">
       <QuestStateSynchronizer />
       <div className="paper-noise" aria-hidden="true" />
       <header className="topbar">
@@ -758,7 +760,7 @@ export default function GameDemo() {
         </nav>
       </header>
 
-      <div className="mobile-calendar-date" aria-label="当前时辰与行动资源"><span>{calendarDate.monthName}{calendarDate.dayName} · {game.period}</span><b>体 {game.stamina}/10</b><b>石 {game.spiritStones.toLocaleString()}</b></div>
+      <div className="mobile-calendar-date" aria-label="当前地点、时辰与行动资源"><span>{scene.name} · {calendarDate.monthName}{calendarDate.dayName} · {game.period}</span><b>体 {game.stamina}/10</b><b>石 {game.spiritStones.toLocaleString()}</b></div>
 
       <section className="scene-tabs" aria-label="场景选择">
         {playableScenes.map((item) => (
@@ -848,11 +850,21 @@ export default function GameDemo() {
         <button type="button" className={mapOpen ? "active" : ""} onClick={() => { setSystemPanel(null); setMapOpen(true); }}><i>山</i><span>山河地图</span>{visibleMapEvents.length > 0 && <b>{visibleMapEvents.length}</b>}</button>
         <button type="button" className={questOpen ? "active" : ""} onClick={() => { setSystemPanel(null); setQuestOpen(true); }}><i>任</i><span>{questText("panelTitle")}</span>{claimableQuestCount>0&&<b>{claimableQuestCount}</b>}</button>
         <button type="button" onClick={() => setPanel("characters")}><i>缘</i><span>人物谱</span></button>
-        <button type="button" className={systemPanel === "inventory" ? "active" : ""} onClick={() => setSystemPanel("inventory")}><i>囊</i><span>乾坤行囊</span></button>
-        <button type="button" className={systemPanel === "cards" ? "active" : ""} onClick={() => setSystemPanel("cards")}><i>契</i><span>太虚名册</span><b>{unifiedState.shared.cards.length}</b></button>
-        <button type="button" className={systemPanel === "skills" ? "active" : ""} onClick={() => setSystemPanel("skills")}><i>法</i><span>万法谱</span></button>
-        <button type="button" className={systemPanel === "equipment" ? "active" : ""} onClick={() => setSystemPanel("equipment")}><i>器</i><span>法器阁</span></button>
+        <button type="button" className={utilityOpen ? "active" : ""} onClick={() => setUtilityOpen(true)}><i>匣</i><span>百宝匣</span><b>{game.receivedMessages.length}</b></button>
       </nav>
+
+      <MobileUtilityDrawer open={utilityOpen} stamina={game.stamina} stones={game.spiritStones} cardCount={unifiedState.shared.cards.length} messageCount={game.receivedMessages.length} galleryCount={unlockedAudioEvents.length} collectionCount={game.collectedEasterEggs.length} onClose={() => setUtilityOpen(false)} onAction={(id) => {
+        setUtilityOpen(false);
+        if (id === "inventory" || id === "equipment" || id === "cards" || id === "skills") setSystemPanel(id);
+        else if (id === "events") setPanel("events");
+        else if (id === "messages") setMessageInboxOpen(true);
+        else if (id === "gallery") setGalleryOpen(true);
+        else if (id === "collection") setCollectionOpen(true);
+        else if (id === "history") feedback.openHistory();
+        else if (id === "wait") advanceTime("wait");
+        else if (id === "rest") advanceTime("rest");
+        else if (id === "sleep") advanceTime("sleep");
+      }} />
 
       {mapOpen && <WorldMapModal sceneId={game.sceneId} sceneEventHints={sceneEventHints} mapEvents={visibleMapEvents} period={game.period} day={game.day} inspectionHints={inspectionHints} inspectionDays={game.sceneInspectionDays} onClose={() => setMapOpen(false)} onEnterScene={enterScene} onTriggerMapEvent={triggerMapEvent} onInspectScene={inspectScene} onOpenBattlePreparation={(panel) => setSystemPanel(panel)} onEnterDungeon={(dungeon) => { setActiveModule({ kind: "battle", dungeon }); setMapOpen(false); }} onEnterAlchemy={() => { setActiveModule({ kind: "alchemy" }); setMapOpen(false); }} onEnterFishing={(locationId, randomSpotId) => { setFishingTarget({ locationId, randomSpotId }); setMapOpen(false); }} onEnterMining={(locationId, randomSpotId) => { setMiningTarget({ locationId, randomSpotId }); setMapOpen(false); }} />}
       {questOpen&&<QuestPanel onClose={()=>setQuestOpen(false)} onNavigate={navigateToQuest}/>}
