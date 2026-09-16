@@ -7,6 +7,7 @@ import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import type { UnifiedGameState } from "../core/types";
 import { useFeedback } from "./FeedbackProvider";
 import { feedbackText } from "./texts";
+import { MEDICINE_SHORTAGE_ROUTES } from "../projects/medicine-shortage-service";
 
 const RELATIONSHIP_STAGES = [
   { min: 70, textKey: "relationship.stageDevoted" },
@@ -142,7 +143,7 @@ export function UnifiedFeedbackBridge({ children }: { children: React.ReactNode 
         dedupeKey: `project:medicine-shortage:${project.status}`,
       });
     } else if (project.route && project.route !== previousProject.route) {
-      const routeNames = { production: feedbackText("projects.routeProduction"), relationship: feedbackText("projects.routeRelationship"), battle: feedbackText("projects.routeBattle") } as const;
+      const routeNames = Object.fromEntries(MEDICINE_SHORTAGE_ROUTES.map((route) => [route.id, route.name])) as Record<"production" | "relationship" | "battle", string>;
       feedback.publish({
         variant: "project-milestone",
         priority: 1,

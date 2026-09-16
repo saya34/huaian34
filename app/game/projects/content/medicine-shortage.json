@@ -1,0 +1,64 @@
+{
+  "id": "medicine-shortage",
+  "taskId": "main-medicine-shortage",
+  "name": "坊市药材断供",
+  "eyebrow": "MAIN QUEST · 路线选择",
+  "quote": "不必样样精通。你只要选一条真正走得通的路，把药送回来。",
+  "deadlineNote": "危机窗口为三个游戏日。到期不会永久失败，而会进入奖励较低的补救阶段。",
+  "routes": [
+    {
+      "id": "production",
+      "glyph": "圃",
+      "name": "亲植炼药",
+      "role": "稳定生产 · 规划路线",
+      "description": "亲手收获灵田药材，再以玄火丹炉炼成替代药。耗时较长，但过程稳定。",
+      "result": "以亲植灵药恢复医馆供给，柳知意会记住你亲手完成的每一步。",
+      "requirements": [
+        { "kind": "farm-harvest", "required": 1, "label": "接取后亲手完成一次收获" },
+        { "kind": "item", "templateId": "mat-03", "itemType": "material", "required": 3, "consume": true, "label": "备齐三份碧落灵芝" },
+        { "kind": "item", "templateId": "prd-39", "itemType": "pill", "required": 1, "consume": true, "label": "炼成一枚碧落回春丹" }
+      ],
+      "actions": [
+        { "target": "farm", "label": "前往灵田" },
+        { "target": "alchemy", "label": "开炉炼丹" }
+      ]
+    },
+    {
+      "id": "relationship",
+      "glyph": "契",
+      "name": "信任相助",
+      "role": "人物关系 · 低风险路线",
+      "description": "先取得柳知意的信任，再补齐她熟悉的霜心草。战斗压力最低，但需要经营关系。",
+      "result": "柳知意以医师经验重排药方，关系进展会成为后续治疗与折扣的助力。",
+      "requirements": [
+        { "kind": "relationship", "characterId": "liu", "required": 12, "label": "柳知意缘分达到 12" },
+        { "kind": "item", "templateId": "mat-11", "itemType": "material", "required": 2, "consume": true, "label": "备齐两份霜心草" }
+      ],
+      "actions": [
+        { "target": "character", "sceneId": "tavern", "characterId": "liu", "label": "去找柳知意" },
+        { "target": "market", "label": "前往集市补材" }
+      ]
+    },
+    {
+      "id": "battle",
+      "glyph": "境",
+      "name": "秘境夺材",
+      "role": "快速冒险 · 高风险路线",
+      "description": "进入秘境取得高品质灵材。用更高操作风险换取更短准备时间和额外战利品。",
+      "result": "以秘境灵材接续药路，苏晚棠会把这次镇压记录为你的首功。",
+      "requirements": [
+        { "kind": "battle-victory", "required": 1, "label": "接受任务后镇压一次秘境" },
+        { "kind": "battle-material", "required": 1, "consume": true, "label": "保留一份秘境带出的灵材" }
+      ],
+      "actions": [
+        { "target": "battle", "waveId": 1, "label": "整备后进入秘境" }
+      ]
+    }
+  ],
+  "completion": {
+    "onTime": { "currency": 240, "relationship": 3, "notice": "药路及时重开 · 医馆恢复接诊" },
+    "recovery": { "currency": 100, "relationship": 1, "notice": "补救完成 · 医馆供给渐稳" },
+    "rewardItem": { "itemId": "clinic-supply-covenant", "itemType": "quest", "rarity": 4, "amount": 1, "sourceTags": ["主线任务", "坊市药材断供"], "locked": true },
+    "globalKey": "medicine_supply_restored"
+  }
+}

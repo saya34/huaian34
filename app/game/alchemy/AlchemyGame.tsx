@@ -115,7 +115,7 @@ function playTone(kind: "drop" | "ignite" | "reveal") {
   window.setTimeout(() => void ctx.close(), 1500);
 }
 
-export default function Home({ embedded = false, onExit }: { embedded?: boolean; onExit?: () => void }) {
+export default function Home({ embedded = false, onExit, initialSurface = "furnace" }: { embedded?: boolean; onExit?: () => void; initialSurface?: "furnace" | "market" }) {
   const { state: unifiedState, setAlchemy, applyEffects } = useUnifiedGame();
   const feedback = useFeedback();
   const alchemy = unifiedState.alchemy;
@@ -138,7 +138,7 @@ export default function Home({ embedded = false, onExit }: { embedded?: boolean;
   const [resultItem, setResultItem] = useState(PRODUCTS[0]);
   const [resultMutation, setResultMutation] = useState<MutationId>("normal");
   const [showCodex, setShowCodex] = useState(false);
-  const [showMarket, setShowMarket] = useState(false);
+  const [showMarket, setShowMarket] = useState(initialSurface === "market");
   const [codexFilter, setCodexFilter] = useState("全部");
   const [codexSearch, setCodexSearch] = useState("");
   const [characterCard, setCharacterCard] = useState<NonNullable<ReturnType<typeof selectCharacterOutcome>> | null>(null);

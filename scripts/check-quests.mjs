@@ -6,6 +6,7 @@ const main = JSON.parse(readFileSync(resolve(root, "app/game/quests/content/main
 const side = JSON.parse(readFileSync(resolve(root, "app/game/quests/content/side.json"), "utf8"));
 const ui = JSON.parse(readFileSync(resolve(root, "app/game/quests/content/ui.json"), "utf8"));
 const chapterOne = JSON.parse(readFileSync(resolve(root, "app/game/chapter-one/content.json"), "utf8"));
+const medicineShortage = JSON.parse(readFileSync(resolve(root, "app/game/projects/content/medicine-shortage.json"), "utf8"));
 const quests = [...main, ...side];
 const ids = new Set();
 const statuses = new Set(["unaccepted", "in_progress", "completed", "claimable", "claimed"]);
@@ -57,4 +58,22 @@ for (const routeId of ["production", "relationship", "battle", "none"]) {
   if (!chapterOne.routeNames?.[routeId] || !chapterOne.routeReflections?.[routeId]) throw new Error(`chapter route copy missing: ${routeId}`);
 }
 
-console.log(`quest content check passed: ${quests.length} quests, ${quests.filter((quest) => quest.giver).length} dialogue offers, ${quests.reduce((sum, quest) => sum + quest.objectives.length, 0)} objectives, ${quests.reduce((sum, quest) => sum + quest.rewards.length, 0)} rewards, ${chapterOne.outcomes.length} chapter outcomes`);
+if (medicineShortage.taskId !== "main-medicine-shortage") throw new Error("medicine shortage route content is not linked to its task");
+const routeIds = new Set(medicineShortage.routes?.map((route) => route.id));
+for (const routeId of ["production", "relationship", "battle"]) if (!routeIds.has(routeId)) throw new Error(`medicine shortage route missing: ${routeId}`);
+const destinationTypes = new Set(["farm", "alchemy", "character", "market", "battle"]);
+for (const route of medicineShortage.routes ?? []) {
+  if (!route.name || !route.description || !route.result || !Array.isArray(route.requirements) || route.requirements.length < 2) throw new Error(`invalid medicine shortage route: ${route.id}`);
+  if (!Array.isArray(route.actions) || route.actions.length === 0) throw new Error(`medicine shortage route has no direct action: ${route.id}`);
+  for (const requirement of route.requirements) {
+    if (!requirement.kind || !requirement.label || !(requirement.required > 0)) throw new Error(`invalid route requirement: ${route.id}`);
+    if (requirement.kind === "item" && (!requirement.templateId || !requirement.itemType)) throw new Error(`route item requirement lacks inventory query: ${route.id}`);
+  }
+  for (const action of route.actions) if (!destinationTypes.has(action.target) || !action.label) throw new Error(`invalid route action: ${route.id}`);
+}
+const actionTargets = Object.fromEntries(medicineShortage.routes.map((route) => [route.id, new Set(route.actions.map((action) => action.target))]));
+if (!actionTargets.production.has("farm") || !actionTargets.production.has("alchemy")) throw new Error("production route must lead to farm and alchemy");
+if (!actionTargets.relationship.has("character") || !actionTargets.relationship.has("market")) throw new Error("relationship route must lead to character and market");
+if (!actionTargets.battle.has("battle")) throw new Error("battle route must lead to battle preparation");
+
+console.log(`quest content check passed: ${quests.length} quests, ${quests.filter((quest) => quest.giver).length} dialogue offers, ${quests.reduce((sum, quest) => sum + quest.objectives.length, 0)} objectives, ${quests.reduce((sum, quest) => sum + quest.rewards.length, 0)} rewards, ${chapterOne.outcomes.length} chapter outcomes, ${medicineShortage.routes.length} executable routes`);

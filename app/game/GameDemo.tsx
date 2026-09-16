@@ -48,6 +48,7 @@ import { ensureRandomMiningSpots, type MiningLocationId } from "./mining/mining"
 import IntelligenceBureauScene from "./forum/IntelligenceBureauScene";
 import ForumModal from "./forum/ForumModal";
 import PathProjectPanel from "./projects/PathProjectPanel";
+import type { PathProjectDestination } from "./projects/medicine-shortage-service";
 import QuestPanel, { CurrentQuestCard, QuestOfferDialogue, QuestStateSynchronizer } from "./quests/QuestSystem";
 import { QUESTS, questText } from "./quests/content";
 import { findQuestOffer, questView } from "./quests/engine";
@@ -128,7 +129,7 @@ export default function GameDemo() {
   const [questConversationMenuOpen,setQuestConversationMenuOpen]=useState(false);
   const [timeMenuOpen,setTimeMenuOpen]=useState(false);
   const [utilityOpen,setUtilityOpen]=useState(false);
-  const [activeModule, setActiveModule] = useState<{ kind: "battle"; dungeon: DungeonDefinition } | { kind: "alchemy" } | null>(null);
+  const [activeModule, setActiveModule] = useState<{ kind: "battle"; dungeon: DungeonDefinition } | { kind: "alchemy"; surface?: "furnace" | "market" } | null>(null);
   const [battleReturnReceipt, setBattleReturnReceipt] = useState<BattleReturnReceipt | null>(null);
   const [systemPanel, setSystemPanel] = useState<FusionPanelId | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -705,7 +706,7 @@ export default function GameDemo() {
   function drawFortuneToday(){const existing=fortuneHistory[realDateKey];if(existing)return existing;const record=drawDailyFortune(realDateKey);setFortuneHistory((history)=>({...history,[realDateKey]:record}));setNotice(`今日签文 · ${getFortuneSign(record)?.rank}「${getFortuneSign(record)?.title}」`);return record}
 
   function navigateToQuest(definition:QuestDefinition,purpose:"objective"|"giver"="objective"){
-    setQuestOpen(false);setMapOpen(false);setSystemPanel(null);
+    setQuestOpen(false);setMapOpen(false);setSystemPanel(null);setActiveModule(null);
     if(purpose==="giver"&&definition.giver){
       const giver=definition.giver;
       setGame((state)=>{
@@ -725,7 +726,30 @@ export default function GameDemo() {
     if(target.kind==="story"&&target.sceneId)enterScene(target.sceneId);
   }
 
+  function navigateFromProject(target: PathProjectDestination, options?: { sceneId?: string; characterId?: string; waveId?: number }) {
+    setProjectOpen(false);
+    if (target === "farm") { enterScene("spirit-farm"); return; }
+    if (target === "alchemy") { setActiveModule({ kind: "alchemy", surface: "furnace" }); return; }
+    if (target === "market") { setActiveModule({ kind: "alchemy", surface: "market" }); return; }
+    if (target === "battle") {
+      const dungeon = DUNGEONS.find((item) => item.waveId === (options?.waveId ?? 1)) ?? DUNGEONS[0];
+      setActiveModule({ kind: "battle", dungeon });
+      return;
+    }
+    if (target === "character") {
+      const sceneId = options?.sceneId ?? "tavern";
+      const characterId = options?.characterId ?? "liu";
+      setGame((state) => {
+        const present = state.presentCharacters[sceneId] ?? [];
+        return { ...state, sceneId, selectedCharacterId: characterId, presentCharacters: { ...state.presentCharacters, [sceneId]: [characterId, ...present.filter((id) => id !== characterId)] } };
+      });
+      setInteractionMenuOpen(false);
+      setNotice("已抵达悬壶谷 · 柳知意正在等你");
+    }
+  }
+
   function navigateFromOutcome(target: ActivityDestination) {
+    setActiveModule(null);
     if (target === "inventory") setSystemPanel("inventory");
     else if (target === "tasks") setQuestOpen(true);
     else if (target === "alchemy") setActiveModule({ kind: "alchemy" });
@@ -785,7 +809,7 @@ export default function GameDemo() {
         <div className="stage-wash" aria-hidden="true" />
         <div className="scene-title"><p>{scene.atmosphere}</p><h2>{scene.name}</h2><span>{scene.description}</span></div>
         {!game.activeEvent && !unifiedState.activity.last && <CurrentQuestCard onOpen={()=>setQuestOpen(true)} onNavigate={navigateToQuest}/>}
-        {!game.activeEvent && unifiedState.activity.last && <RecentOutcomeCard receipt={unifiedState.activity.last} onNext={() => navigateFromOutcome(unifiedState.activity.last!.nextStep.target)} onDismiss={() => applyUnifiedEffects([{ type: "clear_activity" }])} />}
+        {!game.activeEvent && !questOpen && !activeModule && !projectOpen && unifiedState.activity.last && <RecentOutcomeCard receipt={unifiedState.activity.last} onNext={() => navigateFromOutcome(unifiedState.activity.last!.nextStep.target)} onDismiss={() => applyUnifiedEffects([{ type: "clear_activity" }])} />}
         {restoredClinic&&!game.activeEvent&&<div className="clinic-restored-chip"><i>医</i><span><small>道途结果已生效</small><strong>医馆药路重开</strong></span></div>}
         {activeFortuneSign&&activeFortuneSign.effect!=="none"&&<div className="fortune-buff-chip"><i>✦</i><span><small>今日金运 · {activeFortuneSign.rank}</small><strong>{activeFortuneSign.title}</strong><em>{fortuneEffectLabel(activeFortuneSign.effect).replace("金运 · ","")}</em></span></div>}
         {!game.activeEvent&&!activeExploration&&explorePoints.map((point)=>{const event=eventDefinitions.find((item)=>item.id===point.eventId);if(!event)return null;const egg=event.cardStyle==="easter_egg";return <button type="button" key={event.id} className={`explore-light ${egg?"easter-light":"trigger-light"}`} style={{left:`${point.x}%`,top:`${point.y}%`}} onClick={()=>setActiveExploration(event)} aria-label={egg?"发现彩蛋光点":"发现剧情光点"}><i/><span>{egg?"拾":"寻"}</span></button>})}
@@ -880,7 +904,7 @@ export default function GameDemo() {
       {mapOpen && <WorldMapModal sceneId={game.sceneId} sceneEventHints={sceneEventHints} mapEvents={visibleMapEvents} period={game.period} day={game.day} inspectionHints={inspectionHints} inspectionDays={game.sceneInspectionDays} onClose={() => setMapOpen(false)} onEnterScene={enterScene} onTriggerMapEvent={triggerMapEvent} onInspectScene={inspectScene} onOpenBattlePreparation={(panel) => setSystemPanel(panel)} onEnterDungeon={(dungeon) => { setActiveModule({ kind: "battle", dungeon }); setMapOpen(false); }} onEnterAlchemy={() => { setActiveModule({ kind: "alchemy" }); setMapOpen(false); }} onEnterFishing={(locationId, randomSpotId) => { setFishingTarget({ locationId, randomSpotId }); setMapOpen(false); }} onEnterMining={(locationId, randomSpotId) => { setMiningTarget({ locationId, randomSpotId }); setMapOpen(false); }} />}
       {questOpen&&<QuestPanel onClose={()=>setQuestOpen(false)} onNavigate={navigateToQuest}/>}
       {questOffer&&<QuestOfferDialogue definition={questOffer} onClose={()=>setQuestOffer(null)}/>}
-      {projectOpen&&<PathProjectPanel onClose={()=>setProjectOpen(false)} onNotice={setNotice}/>}
+      {projectOpen&&<PathProjectPanel onClose={()=>setProjectOpen(false)} onNotice={setNotice} onNavigate={navigateFromProject}/>}
       {forumOpen&&<ForumModal day={game.day} period={game.period} onClose={()=>setForumOpen(false)} player={{name:"槐安行者",title:"云州新秀",level:unifiedState.shared.playerLevel,cultivation:game.experience,dungeons:unifiedState.dungeons.completed.length,bondName:characters.reduce((best,item)=>(game.relationships[item.id]??0)>(game.relationships[best.id]??0)?item:best,characters[0]).name,bond:Math.max(...characters.map(item=>game.relationships[item.id]??0))}}/>}
       {fishingTarget && <FishingModal locationId={fishingTarget.locationId} randomSpotId={fishingTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setFishingTarget(null)} onNotice={setNotice} />}
       {miningTarget && <MiningModal locationId={miningTarget.locationId} randomSpotId={miningTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setMiningTarget(null)} onNotice={setNotice} />}
@@ -888,7 +912,7 @@ export default function GameDemo() {
       {activeModule && <div className={`fusion-module-backdrop module-${activeModule.kind}`} role="presentation"><section className="fusion-module-window" role="dialog" aria-modal="true" aria-label={activeModule.kind === "battle" ? `${activeModule.dungeon.name}秘境战斗` : "玄火丹炉"}>
         <button type="button" className="fusion-module-close" onClick={() => setActiveModule(null)} aria-label={feedbackText("system.close")}>‹</button>
         <div className="fusion-module-native">
-          {activeModule.kind === "alchemy" ? <AlchemyGame embedded onExit={() => { setActiveModule(null); setNotice("已返回当前场景。"); }} /> : <MowingGame initialWaveId={activeModule.dungeon.waveId} embedded autoStart onExit={(receipt) => { setActiveModule(null); if (receipt) setBattleReturnReceipt(receipt); setNotice(receipt ? "秘境结算已归入乾坤行囊，时辰随之推移。" : "已返回当前场景。"); }} />}
+          {activeModule.kind === "alchemy" ? <AlchemyGame embedded initialSurface={activeModule.surface} onExit={() => { setActiveModule(null); setNotice("已返回当前场景。"); }} /> : <MowingGame initialWaveId={activeModule.dungeon.waveId} embedded autoStart onExit={(receipt) => { setActiveModule(null); if (receipt) setBattleReturnReceipt(receipt); setNotice(receipt ? "秘境结算已归入乾坤行囊，时辰随之推移。" : "已返回当前场景。"); }} />}
         </div>
       </section></div>}
       {battleReturnReceipt && <BattleReturnPanel receipt={battleReturnReceipt} onOpenTasks={() => { setBattleReturnReceipt(null); setQuestOpen(true); }} onOpenPanel={(panel) => { setBattleReturnReceipt(null); setSystemPanel(panel); }} onClose={() => setBattleReturnReceipt(null)} />}
