@@ -1,32 +1,41 @@
 [
   {
-    "id": "side-medicine-shortage",
+    "id": "side-last-lantern",
     "type": "side",
+    "chapter": 1,
+    "phase": "人物支线 · 灯下余温",
     "order": 10,
-    "name": "坊市药材断供",
-    "summary": "医馆常用药材突然断供。接下委托后，可从生产、关系或战斗中任选一条主解法完成交付。",
+    "name": "最后一盏灯",
+    "summary": "危机平息后，花照影仍为你留着醉月楼最后一盏灯。与她多说几句话、送一件合心意的礼物，让这份等待不只停在客套。",
     "initialStatus": "unaccepted",
+    "prerequisiteQuestId": "main-chapter-one-return",
     "giver": {
-      "characterId": "liu",
+      "characterId": "hua",
       "sceneId": "tavern",
-      "name": "柳知意",
-      "role": "悬壶谷医师",
-      "portrait": "/assets/characters/liu-zhiyi.webp",
-      "offerText": "坊市送往医馆的药材断了，伤患却一日都等不得。我需要有人补出这批药——种植、寻药或深入秘境都可以，你愿意帮我吗？",
-      "acceptedText": "多谢。你选最稳妥的路便好，缺什么就来与我商量。",
-      "declinedText": "我明白。此事不该勉强你，若改变主意，再来找我。",
-      "acceptLabel": "这批药交给我",
-      "declineLabel": "我暂时帮不上忙"
+      "name": "花照影",
+      "role": "醉月楼主",
+      "portrait": "/assets/characters/hua-zhaoying.webp",
+      "offerText": "救完医馆、闯完秘境，才想起有人替你留灯？罚你陪我饮一杯。若你肯把今夜当成约定，我便告诉你青岚令曾在谁手里出现过。",
+      "acceptedText": "这才像话。灯不会催你，但我会记得你有没有回来。",
+      "declinedText": "去忙吧。只是下次推门时，别怪我把最后一盏灯留给别人。",
+      "acceptLabel": "留下陪她说话",
+      "declineLabel": "今夜先告辞"
     },
     "objectives": [
-      { "id": "restore-medicine-route", "type": "reach", "target": "path:medicine-shortage-completed", "required": 1, "description": "解决坊市药材断供" }
+      { "id": "raise-hua-bond", "type": "reach", "target": "relationship:hua", "required": 8, "description": "让花照影的缘分达到 8" }
     ],
-    "destination": { "kind": "path-project" },
+    "destination": { "kind": "characters", "sceneId": "tavern" },
     "rewards": [
-      { "type": "currency", "amount": 120, "label": "灵石" },
+      { "type": "currency", "amount": 80, "label": "灵石" },
       { "type": "experience", "amount": 40, "label": "修为" },
-      { "type": "relationship", "characterId": "liu", "amount": 4, "label": "柳知意好感" },
-      { "type": "item", "itemId": "quest-clinic-record", "itemType": "quest", "rarity": 4, "amount": 1, "label": "医馆纪事" }
-    ]
+      { "type": "relationship", "characterId": "hua", "amount": 6, "label": "花照影缘分" },
+      { "type": "item", "itemId": "quest-lantern-wick", "itemType": "quest", "rarity": 4, "amount": 1, "label": "长明灯芯" }
+    ],
+    "completion": {
+      "eyebrow": "人物回响",
+      "title": "醉月楼最后一盏灯属于你",
+      "body": "花照影没有直接说出旧令主人的姓名，只在酒盏下压了一张通往问剑峰后山的旧地图。",
+      "nextHook": "长明灯芯将在后续槐安旧梦中照亮被遮蔽的道路。"
+    }
   }
 ]

@@ -19,6 +19,8 @@ for (const quest of quests) {
   if (!destinations.has(quest.destination?.kind)) throw new Error(`invalid destination: ${quest.id}`);
   if (!Array.isArray(quest.objectives) || quest.objectives.length === 0) throw new Error(`missing objectives: ${quest.id}`);
   if (!Array.isArray(quest.rewards) || quest.rewards.length === 0) throw new Error(`missing rewards: ${quest.id}`);
+  if (quest.type === "main" && (!quest.chapter || !quest.phase || !quest.completion?.nextHook)) throw new Error(`main quest missing chapter presentation: ${quest.id}`);
+  if (quest.startsProject && quest.startsProject !== "medicine-shortage") throw new Error(`unknown project hook: ${quest.id}`);
   for (const objective of quest.objectives) if (!objective.id || !objective.description || !objectiveTypes.has(objective.type) || !(objective.required > 0)) throw new Error(`invalid objective: ${quest.id}`);
   for (const reward of quest.rewards) {
     if (!reward.label || !(reward.amount > 0) || !["currency", "experience", "item", "relationship"].includes(reward.type)) throw new Error(`invalid reward: ${quest.id}`);

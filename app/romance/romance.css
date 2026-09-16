@@ -1118,6 +1118,8 @@ button:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px
 @media(max-width:760px){.livestock-detail:has(.livestock-tip){display:none!important}}
 @media(max-width:760px){body:has(.spirit-farm-panel) .current-quest-card{display:none!important}.livestock-yard-empty{position:absolute;left:50%;top:55%;width:min(360px,86%);padding:26px 20px;transform:translate(-50%,-50%);border:1px solid rgba(168,145,84,.32);border-radius:18px;background:radial-gradient(circle at 50% 22%,rgba(111,158,93,.2),rgba(7,25,13,.82) 66%);box-shadow:0 18px 42px #0008;backdrop-filter:blur(5px)}.livestock-yard-empty>span{width:86px;height:86px;background:radial-gradient(circle,#314b30,#13251a);box-shadow:0 0 24px rgba(158,203,114,.18)}.livestock-yard-empty h3{margin:12px 0 5px}.livestock-yard-empty p{margin:0}}
 
+.quest-reward-modal .quest-completion-story{max-width:360px;margin:0 0 12px;color:#d8d5c8;font-size:13px;line-height:1.7}.quest-reward-modal>blockquote{position:relative;margin:0 0 18px;padding:10px 13px;color:#f0d38b;border:1px solid rgba(210,173,83,.32);border-left:3px solid #d1a951;background:rgba(5,24,19,.62);font-size:12px;line-height:1.6;text-align:left}.quest-reward-modal.chapter-finale{border-color:#e7c569;box-shadow:0 24px 72px #000,0 0 70px rgba(212,169,62,.22)}.quest-reward-modal.chapter-finale>span{color:#ffe7a3;box-shadow:0 0 46px rgba(226,186,79,.48);animation:questSealPulse 1.35s ease-in-out infinite}
+
 /* Phone farm: preserve the field as the scene and open management as drawers. */
 .farm-mobile-nav{display:none}
 @media(max-width:760px){

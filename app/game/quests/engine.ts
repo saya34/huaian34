@@ -35,6 +35,10 @@ export function normalizeQuestProgress(value?: Partial<QuestProgress> | null): Q
 export function readObjectiveCurrent(objective: QuestObjectiveDefinition, state: UnifiedGameState) {
   if (objective.target === "alchemy:any-product") return inventoryCount(state.shared.items, { itemType: "pill" });
   if (objective.target === "dungeon:any-completed") return state.dungeons.completed.length;
+  if (objective.target.startsWith("dungeon:wave-") && objective.target.endsWith("-completed")) {
+    const waveId = Number(objective.target.slice("dungeon:wave-".length, -"-completed".length));
+    return Number.isFinite(waveId) && state.dungeons.completed.includes(waveId) ? 1 : 0;
+  }
   if (objective.target === "path:medicine-shortage-completed") return state.romance.medicineShortage.status === "completed" ? 1 : 0;
   if (objective.target.startsWith("item:")) return inventoryCount(state.shared.items, { templateId: objective.target.slice(5) });
   if (objective.target === "currency:spirit-stones") return state.shared.spiritStones;
@@ -75,6 +79,19 @@ export function questRewardEffects(definition: QuestDefinition): GameEffect[] {
     else if (reward.type === "relationship" && reward.characterId) effects.push({ type: "add_relationship", characterId: reward.characterId, amount: reward.amount });
     else if (reward.type === "item" && reward.itemId && reward.itemType && reward.rarity) effects.push({ type: "add_item", item: { itemId: reward.itemId, itemType: reward.itemType, rarity: reward.rarity, amount: reward.amount, sourceTags: ["任务奖励", definition.id], locked: reward.itemType === "quest" } });
   }
+  effects.push({
+    type: "record_activity",
+    receipt: {
+      id: `quest:${definition.id}:${Date.now()}`,
+      kind: "quest",
+      title: definition.completion?.title ?? `任务完成 · ${definition.name}`,
+      summary: definition.completion?.body ?? "任务奖励已经写入统一状态。",
+      rewards: definition.rewards.map((reward) => `${reward.label} +${reward.amount}`),
+      impacts: [definition.completion?.nextHook ?? "新的目标已经出现在任务簿中。"],
+      nextStep: { target: "tasks", label: definition.id === "main-chapter-one-return" ? "查看章节余韵" : "查看下一项任务" },
+      createdAt: Date.now(),
+    },
+  });
   return effects;
 }
 

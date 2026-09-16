@@ -39,15 +39,24 @@ export type QuestGiverDefinition = {
 export type QuestDefinition = {
   id: string;
   type: QuestType;
+  chapter?: number;
+  phase?: string;
   order: number;
   name: string;
   summary: string;
   initialStatus: QuestStatus;
   prerequisiteQuestId?: string;
+  startsProject?: "medicine-shortage";
   giver?: QuestGiverDefinition;
   objectives: QuestObjectiveDefinition[];
   destination: { kind: QuestDestinationKind; sceneId?: string; waveId?: number };
   rewards: QuestRewardDefinition[];
+  completion?: {
+    eyebrow: string;
+    title: string;
+    body: string;
+    nextHook: string;
+  };
 };
 
 export type QuestProgress = {

@@ -2,9 +2,11 @@
   {
     "id": "main-first-alchemy",
     "type": "main",
+    "chapter": 1,
+    "phase": "开端 · 炉火传心",
     "order": 10,
     "name": "丹火初明",
-    "summary": "玄火丹炉已经重新点燃。先亲手炼成一枚丹药，熟悉灵材、炉温与收丹的基本章法。",
+    "summary": "沈清霜收到一封沾着雨水的急信：云州医馆的温养药即将断供。她没有替你决定道路，只把玄火丹炉交到你手中。先炼成第一枚丹药，证明你能把躁动的火焰化为救人的力量。",
     "initialStatus": "unaccepted",
     "giver": {
       "characterId": "shen",
@@ -12,52 +14,145 @@
       "name": "沈清霜",
       "role": "问剑峰主 · 师尊",
       "portrait": "/assets/characters/shen-qingshuang.webp",
-      "offerText": "丹炉虽已重燃，火候却要由你亲手掌握。去炼成第一枚丹药，让我看看你能否把躁动的玄火收进方寸之间。",
-      "acceptedText": "去吧。莫急着求上品，先记住每一次炉火的呼吸。",
-      "declinedText": "无妨。等你心神安定，再来问我这件事。",
-      "acceptLabel": "弟子愿意一试",
-      "declineLabel": "容我准备片刻"
+      "offerText": "山下医馆的药路断了。剑能斩妖，却未必救得了病榻上的人。玄火丹炉交给你——先炼成一枚丹药，再替我去看看柳知意。",
+      "acceptedText": "去吧。莫急着求上品，先记住每一次炉火的呼吸。有人正等着这簇火。",
+      "declinedText": "无妨。等你愿意担起这件事，再来找我。炉火与人心，都不能强求。",
+      "acceptLabel": "接过丹炉令",
+      "declineLabel": "容我再想想"
     },
     "objectives": [
-      { "id": "brew-once", "type": "play", "target": "alchemy:any-product", "required": 1, "description": "完成一次炼丹" }
+      { "id": "brew-once", "type": "play", "target": "alchemy:any-product", "required": 1, "description": "亲手炼成任意一枚丹药" }
     ],
     "destination": { "kind": "alchemy" },
     "rewards": [
       { "type": "currency", "amount": 100, "label": "灵石" },
       { "type": "experience", "amount": 50, "label": "修为" },
-      { "type": "relationship", "characterId": "shen", "amount": 3, "label": "沈清霜好感" },
+      { "type": "relationship", "characterId": "shen", "amount": 3, "label": "沈清霜缘分" },
       { "type": "item", "itemId": "quest-danfire-seal", "itemType": "quest", "rarity": 3, "amount": 1, "label": "丹火印记" }
-    ]
+    ],
+    "completion": {
+      "eyebrow": "炉火有信",
+      "title": "第一枚丹药已经成形",
+      "body": "丹香穿过凌霄殿的雨幕。沈清霜没有称赞品阶，只将医馆急信推到你面前。",
+      "nextHook": "前往悬壶谷，与柳知意查明药材断供。"
+    }
+  },
+  {
+    "id": "main-medicine-shortage",
+    "type": "main",
+    "chapter": 1,
+    "phase": "发展 · 三途备药",
+    "order": 20,
+    "name": "雨锁药途",
+    "summary": "连日阴雨封住商路，医馆只剩三日常用药。你不必精通所有营生：亲植炼药、取得柳知意的信任，或深入秘境夺回灵材，任选一条真正走得通的路。",
+    "initialStatus": "unaccepted",
+    "prerequisiteQuestId": "main-first-alchemy",
+    "startsProject": "medicine-shortage",
+    "giver": {
+      "characterId": "liu",
+      "sceneId": "tavern",
+      "name": "柳知意",
+      "role": "悬壶谷医师",
+      "portrait": "/assets/characters/liu-zhiyi.webp",
+      "offerText": "你带来的丹火印记，我认得。医馆只剩三日药量——种植炼药、托人寻材，或去秘境取回高品质灵材都可以。你愿意选一条路，与我一起把药路接上吗？",
+      "acceptedText": "多谢。不必样样精通，选你最有把握的一条路。缺什么就来找我，我们一起补。",
+      "declinedText": "我明白。救人不是一句豪言，等你准备好，再来与我商量。",
+      "acceptLabel": "我来接续药路",
+      "declineLabel": "让我先作准备"
+    },
+    "objectives": [
+      { "id": "restore-medicine-route", "type": "reach", "target": "path:medicine-shortage-completed", "required": 1, "description": "任选一条主路线解决药材断供" }
+    ],
+    "destination": { "kind": "path-project" },
+    "rewards": [
+      { "type": "currency", "amount": 160, "label": "灵石" },
+      { "type": "experience", "amount": 70, "label": "修为" },
+      { "type": "relationship", "characterId": "liu", "amount": 5, "label": "柳知意缘分" },
+      { "type": "item", "itemId": "quest-clinic-record", "itemType": "quest", "rarity": 4, "amount": 1, "label": "医馆纪事" }
+    ],
+    "completion": {
+      "eyebrow": "药路重开",
+      "title": "你的选择改变了坊市",
+      "body": "医馆重新接诊，补给回到货架，柳知意也结束了四处寻药的日程。你选择的路线被记录进《医馆纪事》。",
+      "nextHook": "断供并非天灾。苏晚棠在青岚秘径发现了劫药者的踪迹。"
+    }
   },
   {
     "id": "main-first-dungeon",
     "type": "main",
-    "order": 20,
+    "chapter": 1,
+    "phase": "高潮 · 青岚试锋",
+    "order": 30,
     "name": "青岚试锋",
-    "summary": "丹药已备，是时候前往青岚秘径验证修行成果。完成一次秘境镇压，并把战果安全带回。",
+    "summary": "药路虽已接上，劫走原药的妖物仍盘踞青岚秘径。把刚才准备的丹药、法器与人物卡带进战场，完成镇压并将幕后遗留的青岚令安全带回。",
     "initialStatus": "unaccepted",
-    "prerequisiteQuestId": "main-first-alchemy",
+    "prerequisiteQuestId": "main-medicine-shortage",
     "giver": {
       "characterId": "su",
       "sceneId": "lingxiao",
       "name": "苏晚棠",
       "role": "执事长老 · 师叔",
       "portrait": "/assets/characters/su-wantang.webp",
-      "offerText": "丹药既成，只在宗门里闻香可不算本事。青岚秘径近来妖气浮动，你可愿替师叔走一趟，把真正的战果带回来？",
-      "acceptedText": "好胆量。记住，活着带回战果，比逞强深入更重要。",
-      "declinedText": "先把剑擦亮也好。青岚秘径不会跑，师叔也不催你。",
-      "acceptLabel": "我去青岚秘径",
-      "declineLabel": "我还需准备"
+      "offerText": "你救回的是三日药量，青岚秘径里藏着的却是往后数月的祸根。配好法器、丹药与人物卡，替师叔走这一趟。记住，活着带回证据，比逞强更重要。",
+      "acceptedText": "好胆量。战前先看清敌人和损失；局势不对便撤，山门要的是你平安归来。",
+      "declinedText": "先把剑擦亮也好。青岚秘径不会跑，师叔也不会拿你的性命催你。",
+      "acceptLabel": "整备后进入青岚",
+      "declineLabel": "我还需要准备"
     },
     "objectives": [
-      { "id": "win-dungeon", "type": "play", "target": "dungeon:any-completed", "required": 1, "description": "完成一次秘境战斗" }
+      { "id": "win-dungeon", "type": "play", "target": "dungeon:wave-1-completed", "required": 1, "description": "完成青岚秘径镇压" }
     ],
     "destination": { "kind": "battle", "waveId": 1 },
     "rewards": [
-      { "type": "currency", "amount": 180, "label": "灵石" },
+      { "type": "currency", "amount": 220, "label": "灵石" },
+      { "type": "experience", "amount": 100, "label": "修为" },
+      { "type": "relationship", "characterId": "su", "amount": 4, "label": "苏晚棠缘分" },
+      { "type": "item", "itemId": "quest-qinglan-token", "itemType": "quest", "rarity": 4, "amount": 1, "label": "染雨青岚令" }
+    ],
+    "completion": {
+      "eyebrow": "秘径已定",
+      "title": "你带着青岚令归来",
+      "body": "妖雾散去，失踪药箱重见天日。令牌背面刻着一株倒生槐树，沈清霜看见它时，第一次露出迟疑。",
+      "nextHook": "返回凌霄殿，把染雨青岚令交给沈清霜。"
+    }
+  },
+  {
+    "id": "main-chapter-one-return",
+    "type": "main",
+    "chapter": 1,
+    "phase": "收束 · 槐影入梦",
+    "order": 40,
+    "name": "槐影入梦",
+    "summary": "青岚令上的倒生槐纹与沈清霜尘封的旧事有关。回到凌霄殿完成交付，听她说出药材断供背后真正需要提防的名字。",
+    "initialStatus": "unaccepted",
+    "prerequisiteQuestId": "main-first-dungeon",
+    "giver": {
+      "characterId": "shen",
+      "sceneId": "lingxiao",
+      "name": "沈清霜",
+      "role": "问剑峰主 · 师尊",
+      "portrait": "/assets/characters/shen-qingshuang.webp",
+      "offerText": "这枚令牌，我曾在槐安旧梦里见过。你若愿意把它交给我，今夜我便不再把那段往事藏在一句‘无妨’之后。",
+      "acceptedText": "你救下的不只是几箱药。等月上中天，来问剑峰后山找我——关于倒生槐树，我欠你一个答案。",
+      "declinedText": "令牌先由你保管。等你愿意听，我会把那段旧梦从头说起。",
+      "acceptLabel": "把青岚令交给她",
+      "declineLabel": "暂且保留令牌"
+    },
+    "objectives": [
+      { "id": "bring-qinglan-token", "type": "acquire", "target": "item:quest-qinglan-token", "required": 1, "description": "将染雨青岚令带回凌霄殿" }
+    ],
+    "destination": { "kind": "story", "sceneId": "lingxiao" },
+    "rewards": [
+      { "type": "currency", "amount": 120, "label": "灵石" },
       { "type": "experience", "amount": 80, "label": "修为" },
-      { "type": "relationship", "characterId": "su", "amount": 4, "label": "苏晚棠好感" },
-      { "type": "item", "itemId": "quest-qinglan-token", "itemType": "quest", "rarity": 4, "amount": 1, "label": "青岚令" }
-    ]
+      { "type": "relationship", "characterId": "shen", "amount": 8, "label": "沈清霜缘分" },
+      { "type": "item", "itemId": "chapter-one-dream-seed", "itemType": "quest", "rarity": 5, "amount": 1, "label": "槐梦种" }
+    ],
+    "completion": {
+      "eyebrow": "第一章 · 完",
+      "title": "雨歇，槐梦初生",
+      "body": "药路恢复，青岚妖患平息。沈清霜把一枚温热的槐梦种放入你掌心，约你深夜前往后山。你与她之间，也第一次有了与师徒无关的秘密。",
+      "nextHook": "第二章预告：月上中天后，问剑峰后山将出现通往“槐安旧梦”的入口。"
+    }
   }
 ]
