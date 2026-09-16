@@ -2,6 +2,7 @@ import type { GameEffect, UnifiedGameState } from "../core/types";
 import { QUESTS } from "./content";
 import type { QuestDefinition, QuestObjectiveDefinition, QuestProgress, QuestStatus, QuestView } from "./types";
 import { inventoryCount } from "../core/item-query";
+import { chapterOneOutcomeEffects, chapterOneOutcomeRewardLabels, resolveChapterOneOutcome } from "../chapter-one/service";
 
 export function createInitialQuestProgress(): QuestProgress {
   const firstMain = QUESTS.filter((quest) => quest.type === "main").sort((a, b) => a.order - b.order)[0];
@@ -71,7 +72,7 @@ export function synchronizeQuestProgress(progress: QuestProgress, state: Unified
   return changed ? { ...progress, statuses } : progress;
 }
 
-export function questRewardEffects(definition: QuestDefinition): GameEffect[] {
+export function questRewardEffects(definition: QuestDefinition, state?: UnifiedGameState): GameEffect[] {
   const effects: GameEffect[] = [];
   for (const reward of definition.rewards) {
     if (reward.type === "currency") effects.push({ type: "add_currency", amount: reward.amount });
@@ -79,15 +80,17 @@ export function questRewardEffects(definition: QuestDefinition): GameEffect[] {
     else if (reward.type === "relationship" && reward.characterId) effects.push({ type: "add_relationship", characterId: reward.characterId, amount: reward.amount });
     else if (reward.type === "item" && reward.itemId && reward.itemType && reward.rarity) effects.push({ type: "add_item", item: { itemId: reward.itemId, itemType: reward.itemType, rarity: reward.rarity, amount: reward.amount, sourceTags: ["任务奖励", definition.id], locked: reward.itemType === "quest" } });
   }
+  const chapterOutcome = definition.id === "main-chapter-one-return" && state ? resolveChapterOneOutcome(state) : null;
+  if (chapterOutcome) effects.push(...chapterOneOutcomeEffects(chapterOutcome));
   effects.push({
     type: "record_activity",
     receipt: {
       id: `quest:${definition.id}:${Date.now()}`,
       kind: "quest",
-      title: definition.completion?.title ?? `任务完成 · ${definition.name}`,
-      summary: definition.completion?.body ?? "任务奖励已经写入统一状态。",
-      rewards: definition.rewards.map((reward) => `${reward.label} +${reward.amount}`),
-      impacts: [definition.completion?.nextHook ?? "新的目标已经出现在任务簿中。"],
+      title: chapterOutcome?.title ?? definition.completion?.title ?? `任务完成 · ${definition.name}`,
+      summary: chapterOutcome ? `${chapterOutcome.body}${chapterOutcome.routeReflection}` : definition.completion?.body ?? "任务奖励已经写入统一状态。",
+      rewards: [...definition.rewards.map((reward) => `${reward.label} +${reward.amount}`), ...(chapterOutcome ? chapterOneOutcomeRewardLabels(chapterOutcome) : [])],
+      impacts: [chapterOutcome ? `${chapterOutcome.routeName}路线已写入章节结果` : definition.completion?.nextHook ?? "新的目标已经出现在任务簿中。", chapterOutcome?.nextHook ?? definition.completion?.nextHook ?? ""].filter(Boolean),
       nextStep: { target: "tasks", label: definition.id === "main-chapter-one-return" ? "查看章节余韵" : "查看下一项任务" },
       createdAt: Date.now(),
     },

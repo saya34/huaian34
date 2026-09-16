@@ -5,6 +5,7 @@ const root = process.cwd();
 const main = JSON.parse(readFileSync(resolve(root, "app/game/quests/content/main.json"), "utf8"));
 const side = JSON.parse(readFileSync(resolve(root, "app/game/quests/content/side.json"), "utf8"));
 const ui = JSON.parse(readFileSync(resolve(root, "app/game/quests/content/ui.json"), "utf8"));
+const chapterOne = JSON.parse(readFileSync(resolve(root, "app/game/chapter-one/content.json"), "utf8"));
 const quests = [...main, ...side];
 const ids = new Set();
 const statuses = new Set(["unaccepted", "in_progress", "completed", "claimable", "claimed"]);
@@ -36,4 +37,24 @@ if (quests.filter((quest) => quest.giver).length < Math.ceil(quests.length / 2))
 if (main.some((quest) => quest.initialStatus !== "unaccepted")) throw new Error("main quests must wait for character dialogue acceptance");
 for (const key of ["panelTitle", "mainTab", "sideTab", "currentObjective", "viewAll", "accept", "meetGiver", "offerEyebrow", "offerPrompt", "go", "claim", "claimed", "rewardTitle", "continue"]) if (!ui[key]) throw new Error(`missing ui text: ${key}`);
 
-console.log(`quest content check passed: ${quests.length} quests, ${quests.filter((quest) => quest.giver).length} dialogue offers, ${quests.reduce((sum, quest) => sum + quest.objectives.length, 0)} objectives, ${quests.reduce((sum, quest) => sum + quest.rewards.length, 0)} rewards`);
+if (!ids.has(chapterOne.completionQuestId)) throw new Error("chapter one completion quest does not exist");
+if (!Array.isArray(chapterOne.outcomes) || chapterOne.outcomes.length < 3) throw new Error("chapter one needs at least three outcome tiers");
+const outcomeIds = new Set();
+const allowedBonusTypes = new Set(["currency", "experience", "relationship", "item"]);
+for (const outcome of chapterOne.outcomes) {
+  if (!outcome.id || outcomeIds.has(outcome.id)) throw new Error(`invalid or duplicate outcome id: ${outcome.id}`);
+  outcomeIds.add(outcome.id);
+  if (!(outcome.minimumScore >= 0) || !outcome.eyebrow || !outcome.title || !outcome.body || !outcome.nextHook) throw new Error(`invalid chapter outcome: ${outcome.id}`);
+  if (!Array.isArray(outcome.bonus) || outcome.bonus.length === 0) throw new Error(`chapter outcome needs a bonus: ${outcome.id}`);
+  for (const reward of outcome.bonus) {
+    if (!allowedBonusTypes.has(reward.type) || !(reward.amount > 0) || !reward.label) throw new Error(`invalid chapter outcome reward: ${outcome.id}`);
+    if (reward.type === "relationship" && !reward.characterId) throw new Error(`chapter outcome relationship needs characterId: ${outcome.id}`);
+    if (reward.type === "item" && (!reward.itemId || !reward.itemType || !reward.rarity)) throw new Error(`chapter outcome item metadata missing: ${outcome.id}`);
+  }
+}
+if (!chapterOne.outcomes.some((outcome) => outcome.minimumScore === 0)) throw new Error("chapter outcomes need a zero-score fallback");
+for (const routeId of ["production", "relationship", "battle", "none"]) {
+  if (!chapterOne.routeNames?.[routeId] || !chapterOne.routeReflections?.[routeId]) throw new Error(`chapter route copy missing: ${routeId}`);
+}
+
+console.log(`quest content check passed: ${quests.length} quests, ${quests.filter((quest) => quest.giver).length} dialogue offers, ${quests.reduce((sum, quest) => sum + quest.objectives.length, 0)} objectives, ${quests.reduce((sum, quest) => sum + quest.rewards.length, 0)} rewards, ${chapterOne.outcomes.length} chapter outcomes`);

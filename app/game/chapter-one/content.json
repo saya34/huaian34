@@ -1,0 +1,59 @@
+{
+  "chapterId": "chapter-one-rain-and-dream",
+  "completionQuestId": "main-chapter-one-return",
+  "signals": {
+    "relationshipCharacterId": "shen",
+    "relationshipTarget": 12,
+    "levelTarget": 2,
+    "pillTarget": 1,
+    "completedProjectTarget": 1
+  },
+  "routeNames": {
+    "production": "亲植炼药",
+    "relationship": "信任相助",
+    "battle": "秘境夺材",
+    "none": "临机应变"
+  },
+  "outcomes": [
+    {
+      "id": "heartbound",
+      "minimumScore": 4,
+      "eyebrow": "第一章 · 同心结局",
+      "title": "雨歇，同心照夜",
+      "body": "你不仅平息了药路危机，也让沈清霜看见你会为旁人的安危作出选择。她将槐梦种放进你掌心时，没有再以师徒礼数掩饰担忧。",
+      "nextHook": "第二章预告：深夜前往问剑峰后山，与沈清霜一同进入“槐安旧梦”。",
+      "bonus": [
+        { "type": "relationship", "characterId": "shen", "amount": 3, "label": "同心回应 · 沈清霜缘分" },
+        { "type": "item", "itemId": "snowTea", "itemType": "gift", "rarity": 2, "amount": 1, "label": "雪芽灵茶" }
+      ]
+    },
+    {
+      "id": "prepared",
+      "minimumScore": 2,
+      "eyebrow": "第一章 · 有备结局",
+      "title": "雨歇，有备归山",
+      "body": "你的准备让青岚一役有惊无险。沈清霜接过令牌，第一次承认你已经能够独自承担一段因果。",
+      "nextHook": "第二章预告：槐梦种将在夜晚苏醒，后山旧路随之显现。",
+      "bonus": [
+        { "type": "experience", "amount": 30, "label": "有备而归 · 修为" }
+      ]
+    },
+    {
+      "id": "resilient",
+      "minimumScore": 0,
+      "eyebrow": "第一章 · 坚守结局",
+      "title": "雨歇，归人未迟",
+      "body": "这一程并不从容，但你仍把药箱和青岚令带回了山门。沈清霜没有责备，只留下更多准备时间与一份可用的补给。",
+      "nextHook": "第二章预告：先整备自身，再在夜晚前往问剑峰后山查看槐梦种。",
+      "bonus": [
+        { "type": "currency", "amount": 60, "label": "整备补给 · 灵石" }
+      ]
+    }
+  ],
+  "routeReflections": {
+    "production": "柳知意会记得，是你亲手种下并炼成了救人的药。",
+    "relationship": "柳知意把这次复诊写成了你们共同守住的约定。",
+    "battle": "苏晚棠将你从秘境带回的灵材封为青岚一役的首功。",
+    "none": "山门把这次临机应变记入了云州纪事。"
+  }
+}
