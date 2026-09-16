@@ -13,9 +13,24 @@
       "role": "稳定生产 · 规划路线",
       "description": "亲手收获灵田药材，再以玄火丹炉炼成替代药。耗时较长，但过程稳定。",
       "result": "以亲植灵药恢复医馆供给，柳知意会记住你亲手完成的每一步。",
+      "alchemyRecipe": {
+        "kicker": "当前任务丹方",
+        "name": "医馆回春方",
+        "rank": "任务丹方",
+        "description": "以碧落灵芝为君、霜心草为引，定向炼成碧落回春丹。",
+        "resultTemplateId": "prd-39",
+        "ingredients": [
+          { "templateId": "mat-03", "quantity": 1 },
+          { "templateId": "mat-11", "quantity": 1 }
+        ],
+        "shortcutLabel": "任务方",
+        "buttonLabel": "按任务丹方配伍",
+        "readyNotice": "已按《医馆回春方》配齐灵材",
+        "missingNotice": "医馆回春方所需灵材库存不足"
+      },
       "requirements": [
         { "kind": "farm-harvest", "required": 1, "label": "接取后亲手完成一次收获" },
-        { "kind": "item", "templateId": "mat-03", "itemType": "material", "required": 3, "consume": true, "label": "备齐三份碧落灵芝" },
+        { "kind": "item", "templateId": "mat-03", "itemType": "material", "required": 2, "consume": true, "label": "炼药后保留两份碧落灵芝" },
         { "kind": "item", "templateId": "prd-39", "itemType": "pill", "required": 1, "consume": true, "label": "炼成一枚碧落回春丹" }
       ],
       "actions": [

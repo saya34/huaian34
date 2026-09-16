@@ -7,6 +7,18 @@ const side = JSON.parse(readFileSync(resolve(root, "app/game/quests/content/side
 const ui = JSON.parse(readFileSync(resolve(root, "app/game/quests/content/ui.json"), "utf8"));
 const chapterOne = JSON.parse(readFileSync(resolve(root, "app/game/chapter-one/content.json"), "utf8"));
 const medicineShortage = JSON.parse(readFileSync(resolve(root, "app/game/projects/content/medicine-shortage.json"), "utf8"));
+const battlePreparation = JSON.parse(readFileSync(resolve(root, "app/game/battle/content/preparation.json"), "utf8"));
+const expeditionSource = readFileSync(resolve(root, "app/game/battle/expedition.ts"), "utf8");
+const decodeRef = (raw) => (raw.v ?? []).map((row) => Object.fromEntries(row.map((source, index) => {
+  const key = raw.k[index];
+  let entry = source;
+  if (typeof entry === "string" && entry.startsWith(">}")) entry = (raw.sv ?? [])[Number(entry.slice(2))];
+  if (raw.vk?.[key]?.length && Array.isArray(entry)) entry = Object.fromEntries(raw.vk[key].map((nestedKey, nestedIndex) => [nestedKey, entry[nestedIndex]]));
+  return [key, entry];
+})));
+const waveDefinitions = decodeRef(JSON.parse(readFileSync(resolve(root, "public/blcx-assets/ref/battleWaveRef.json"), "utf8")));
+const waveRows = decodeRef(JSON.parse(readFileSync(resolve(root, "public/blcx-assets/ref/battleWaveNumRef.json"), "utf8")));
+const monsterDefinitions = decodeRef(JSON.parse(readFileSync(resolve(root, "public/blcx-assets/ref/battleMonsterRef.json"), "utf8")));
 const quests = [...main, ...side];
 const ids = new Set();
 const statuses = new Set(["unaccepted", "in_progress", "completed", "claimable", "claimed"]);
@@ -75,5 +87,23 @@ const actionTargets = Object.fromEntries(medicineShortage.routes.map((route) => 
 if (!actionTargets.production.has("farm") || !actionTargets.production.has("alchemy")) throw new Error("production route must lead to farm and alchemy");
 if (!actionTargets.relationship.has("character") || !actionTargets.relationship.has("market")) throw new Error("relationship route must lead to character and market");
 if (!actionTargets.battle.has("battle")) throw new Error("battle route must lead to battle preparation");
+if (!battlePreparation.timelineValue.includes("4 分钟")) throw new Error("chapter-one battle preparation must promise the four-minute runtime");
+if (!/waveId\s*===\s*1\)\s*return\s+240/.test(expeditionSource)) throw new Error("chapter-one battle runtime must reach its 240-second boss row");
+const chapterWave = waveDefinitions.find((wave) => Number(wave.id) === 1);
+const chapterBossRows = waveRows.filter((row) => Number(row.groupId) === Number(chapterWave?.wavePlanId) && [99, 999].includes(Number(row.typeId)));
+const finalBossRow = chapterBossRows.sort((left, right) => Number(right.point) - Number(left.point))[0];
+const finalBossId = chapterWave?.monster?.[Number(finalBossRow?.monster)];
+const finalBoss = monsterDefinitions.find((monster) => Number(monster.resId) === Number(finalBossId));
+if (!chapterWave || !finalBossRow || Number(finalBossRow.point) !== 240 || Number(finalBoss?.type) !== 3) throw new Error("chapter-one wave must spawn a valid final boss at 240 seconds");
+const productionRoute = medicineShortage.routes.find((route) => route.id === "production");
+if (!productionRoute?.alchemyRecipe) throw new Error("production route must provide a data-driven alchemy recipe");
+if (productionRoute.alchemyRecipe.resultTemplateId !== "prd-39") throw new Error("production recipe must create the required remedy");
+if (!Array.isArray(productionRoute.alchemyRecipe.ingredients) || productionRoute.alchemyRecipe.ingredients.length < 2) throw new Error("production recipe must define at least two ingredients");
+for (const ingredient of productionRoute.alchemyRecipe.ingredients) {
+  if (!ingredient.templateId || !Number.isInteger(ingredient.quantity) || ingredient.quantity <= 0) throw new Error("invalid production recipe ingredient");
+}
+const productionHerbRequirement = productionRoute.requirements.find((requirement) => requirement.kind === "item" && requirement.templateId === "mat-03");
+const consumedProductionHerbs = productionRoute.alchemyRecipe.ingredients.find((ingredient) => ingredient.templateId === "mat-03")?.quantity ?? 0;
+if (!productionHerbRequirement || productionHerbRequirement.required + consumedProductionHerbs > 3) throw new Error("production route cannot be completed from its three-herb onboarding budget");
 
-console.log(`quest content check passed: ${quests.length} quests, ${quests.filter((quest) => quest.giver).length} dialogue offers, ${quests.reduce((sum, quest) => sum + quest.objectives.length, 0)} objectives, ${quests.reduce((sum, quest) => sum + quest.rewards.length, 0)} rewards, ${chapterOne.outcomes.length} chapter outcomes, ${medicineShortage.routes.length} executable routes`);
+console.log(`quest content check passed: ${quests.length} quests, ${quests.filter((quest) => quest.giver).length} dialogue offers, ${quests.reduce((sum, quest) => sum + quest.objectives.length, 0)} objectives, ${quests.reduce((sum, quest) => sum + quest.rewards.length, 0)} rewards, ${chapterOne.outcomes.length} chapter outcomes, ${medicineShortage.routes.length} executable routes, boss ${finalBoss.name}@${finalBossRow.point}s`);

@@ -10,6 +10,8 @@
   "projects.ready": "「{name}」的交付准备已经完成。",
   "projects.completedTitle": "主线有成",
   "projects.completedBody": "「{name}」已经完成，你的选择正使世界产生可见变化。",
+  "projects.worldResultKicker": "主线结果已生效",
+  "projects.worldResultClinic": "医馆药路重开",
   "projects.statusLabel": "任务状态",
   "projects.deadlineLabel": "危机窗口",
   "projects.milestoneLabel": "可见里程碑",

@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { MATERIALS } from "../alchemy/item-data";
-import { DEFAULT_META, normalizeMetaProgress } from "../battle/meta";
+import { DEFAULT_META, learnMetaSkill, normalizeMetaProgress } from "../battle/meta";
 import { EVENTS } from "../content";
 import { INITIAL_STATE } from "../event-engine";
 import { createInitialFarm, normalizeFarmProgress, type FarmProgress } from "../farm/farm";
@@ -361,10 +361,11 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     let growth: PlayerGrowth = { playerLevel: shared.playerLevel, playerExperience: shared.playerExperience };
     let alchemy = current.alchemy;
     let dungeons = current.dungeons;
+    let battle = current.battle;
     for (const effect of pending) {
       if (effect.type === "add_currency") shared = { ...shared, spiritStones: Math.max(0, shared.spiritStones + effect.amount) };
       else if (effect.type === "add_player_exp") growth = grantPlayerExperience(growth, effect.amount);
-      else if (effect.type === "learn_skill") shared = { ...shared, learnedSkills: [...new Set([...shared.learnedSkills, effect.skillId])] };
+      else if (effect.type === "learn_skill") { battle = learnMetaSkill(battle, effect.skillId, true); shared = { ...shared, learnedSkills: [...new Set([...shared.learnedSkills, effect.skillId])] }; }
       else if (effect.type === "trigger_map_event") dungeons = { ...dungeons, randomVisible: [...new Set([...dungeons.randomVisible, effect.eventId])] };
       else if (effect.type === "add_item") {
         const previous = shared.items[effect.itemId];
@@ -379,7 +380,7 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     const giftItems = Object.fromEntries(Object.entries(next.inventory).map(([itemId, amount]) => [itemId, { ...(current.shared.items[itemId] ?? { itemId, itemType: "gift" as const, rarity: 2 as const, sourceTags: ["romance"] }), amount }]));
     shared = { ...shared, spiritStones: next.spiritStones, stamina: next.stamina, items: { ...shared.items, ...giftItems }, globalKeys: { ...shared.globalKeys, ...next.flags } };
     const projected = { ...next, playerLevel: growth.playerLevel, teacherSkillRanks: current.battle.passiveRanks, learnedSkillIds: shared.learnedSkills, ownedCardIds: shared.cards.map((card) => card.id), completedDungeons: dungeons.completed, alchemyResults: Object.values(alchemy.productStacks).filter((stack) => stack.count > 0).map((stack) => stack.productId), inventoryRarities: Object.fromEntries(Object.entries(shared.items).map(([id, item]) => [id, item.rarity])), inventoryItems: inventoryProjection(shared.items) };
-    return { ...current, romance: projected, shared, alchemy, dungeons, battle: { ...current.battle, spiritStones: shared.spiritStones, playerLevel: growth.playerLevel, playerExp: growth.playerExperience } };
+    return { ...current, romance: projected, shared, alchemy, dungeons, battle: { ...battle, spiritStones: shared.spiritStones, playerLevel: growth.playerLevel, playerExp: growth.playerExperience } };
   }), []);
 
   const setBattle = useCallback<StateSetter<UnifiedGameState["battle"]>>((action) => setState((current) => {
@@ -465,7 +466,11 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
       return { ...next, romance: { ...romance, inventoryItems: inventoryProjection(items), inventoryRarities: Object.fromEntries(Object.entries(items).map(([id, entry]) => [id, entry.rarity])) }, shared: { ...next.shared, items }, alchemy };
     }
     if (effect.type === "add_card") { const cards = upsertCard(next.shared.cards, effect.card); return { ...next, shared: { ...next.shared, cards }, romance: { ...next.romance, ownedCardIds: cards.map((card) => card.id) } }; }
-    if (effect.type === "learn_skill") return { ...next, shared: { ...next.shared, learnedSkills: [...new Set([...next.shared.learnedSkills, effect.skillId])] } };
+    if (effect.type === "learn_skill") {
+      const battle = learnMetaSkill(next.battle, effect.skillId, true);
+      const learnedSkills = Object.entries(battle.skillMastery).filter(([, value]) => value.learned).map(([id]) => Number(id));
+      return { ...next, battle, shared: { ...next.shared, learnedSkills }, romance: { ...next.romance, learnedSkillIds: learnedSkills } };
+    }
     if (effect.type === "add_relationship") return { ...next, romance: { ...next.romance, relationships: { ...next.romance.relationships, [effect.characterId]: Math.max(0, Math.min(100, (next.romance.relationships[effect.characterId] ?? 0) + effect.amount)) } } };
     if (effect.type === "add_player_exp") return projectGrowth(next, grantPlayerExperience(next.shared, effect.amount));
     if (effect.type === "set_global_key") return { ...next, shared: { ...next.shared, globalKeys: { ...next.shared.globalKeys, [effect.key]: effect.value } }, romance: { ...next.romance, flags: { ...next.romance.flags, [effect.key]: effect.value } } };

@@ -74,6 +74,7 @@ import { feedbackText } from "../feedback/texts";
 import alchemyUi from "./data/ui.json";
 import { createActivityReceipt } from "../core/activity-receipt";
 import RotarySelector from "../ui/RotarySelector";
+import { activeMedicineShortageRecipe } from "../projects/medicine-shortage-service";
 
 const FILTERS = ["全部", "灵草", "妖丹", "矿骨", "辅材", "法器"];
 const CODEX_FILTERS = ["全部", "材料", "成品", "神品", "神话"];
@@ -155,6 +156,30 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
   const setMaterialCounts = (value: SetStateAction<Record<string, number>>) => setField("materialCounts", value);
   const [recipeRules, setRecipeRules] = useState<RecipeRule[]>(DEFAULT_RECIPE_RULES);
   const [recipeVersion, setRecipeVersion] = useState(1);
+  const projectRecipeContent = activeMedicineShortageRecipe(unifiedState);
+  const projectRecipe = useMemo(() => {
+    if (!projectRecipeContent) return null;
+    const ingredients = projectRecipeContent.ingredients.flatMap((requirement) => {
+      const item = MATERIALS.find((candidate) => candidate.id === requirement.templateId);
+      return item ? Array.from({ length: requirement.quantity }, () => item) : [];
+    });
+    const result = PRODUCTS.find((item) => item.id === projectRecipeContent.resultTemplateId);
+    const expectedIngredientCount = projectRecipeContent.ingredients.reduce((sum, requirement) => sum + requirement.quantity, 0);
+    if (!result || ingredients.length !== expectedIngredientCount) return null;
+    const rule: RecipeRule = {
+      id: `project-medicine-shortage-${projectRecipeContent.resultTemplateId}`,
+      name: projectRecipeContent.name,
+      resultItemId: result.id,
+      enabled: true,
+      priority: 1000,
+      weight: 100,
+      minMaterialCount: expectedIngredientCount,
+      requiredItems: projectRecipeContent.ingredients.map((requirement) => ({ itemId: requirement.templateId, quantity: requirement.quantity })),
+      elementRequirements: [],
+    };
+    return { content: projectRecipeContent, ingredients, result, rule };
+  }, [projectRecipeContent]);
+  const effectiveRecipeRules = useMemo(() => projectRecipe ? [projectRecipe.rule, ...recipeRules] : recipeRules, [projectRecipe, recipeRules]);
   const gold = unifiedState.shared.spiritStones;
   const setGold = (value: SetStateAction<number>) => { const next = typeof value === "function" ? value(gold) : value; applyEffects([{ type: "add_currency", amount: next - gold }]); };
   const marketOffers = alchemy.marketOffers;
@@ -274,13 +299,13 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
       return { title: "缘物有应", result: "需星命神花引契", chance: "尚未启契", quality: "待引" };
     }
     if (filled >= 2) {
-      const managedMatch = resolveManagedRecipe(slots, recipeRules);
-      const predicted = selectAlchemyResult(slots, recipeRules);
+      const managedMatch = resolveManagedRecipe(slots, effectiveRecipeRules);
+      const predicted = selectAlchemyResult(slots, effectiveRecipeRules);
       const rate = Math.min(96, 72 + slots.filter(Boolean).reduce((sum, item) => sum + (item?.rarity ?? 0), 0) * 2);
       return { title: managedMatch ? `配方·${managedMatch.rule.name}` : "五行丹象", result: `${predicted.quality}·${predicted.name}`, chance: `${rate}%`, quality: predicted.quality };
     }
     return { title: "炉火已燃", result: "尚缺两味灵材", chance: "--", quality: "待鉴定" };
-  }, [slots, filled, hasFatedFlower, hasMythicScroll, mythicBrewConfigured, dominantCharacter, recipeRules]);
+  }, [slots, filled, hasFatedFlower, hasMythicScroll, mythicBrewConfigured, dominantCharacter, effectiveRecipeRules]);
 
   const codexRows = useMemo(() => {
     const keyword = codexSearch.trim().toLowerCase();
@@ -530,15 +555,15 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
 
   function quickRecipe() {
     if (phase === "brewing" || phase === "done") return;
-    const recipe = [MATERIALS[0], MATERIALS[1], MATERIALS[24]];
+    const recipe = projectRecipe?.ingredients ?? [MATERIALS[0], MATERIALS[1], MATERIALS[24]];
     if (recipe.some((item) => (materialCounts[item.id] ?? 0) < 1)) {
-      setToast("赤霄丹方所需灵材库存不足");
+      setToast(projectRecipe?.content.missingNotice ?? "赤霄丹方所需灵材库存不足");
       return;
     }
     setSlots(recipe);
-    setResultItem(selectAlchemyResult(recipe, recipeRules));
+    setResultItem(selectAlchemyResult(recipe, effectiveRecipeRules));
     setPhase("ready");
-    setToast("已按《赤霄丹方》配齐灵材");
+    setToast(projectRecipe?.content.readyNotice ?? "已按《赤霄丹方》配齐灵材");
     if (soundOn) playTone("drop");
   }
 
@@ -588,7 +613,7 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
       return;
     }
     applyEffects([{ type: "spend_stamina", amount: ACTION_COSTS.alchemy.stamina }]);
-    setResultItem(selectAlchemyResult(slots, recipeRules));
+    setResultItem(selectAlchemyResult(slots, effectiveRecipeRules));
     setResultMutation(rollMutation().id);
     setMaterialCounts((current) => {
       const next = { ...current };
@@ -913,7 +938,7 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
       : hasMythicScroll
         ? mythicBrewConfigured ? "太初炼制 · 十息" : "请先封存人物命格"
         : filled >= 2 ? !hasEnoughStock ? "灵材库存不足" : hasFatedFlower ? "命星炼制 · 十息" : "开始炼制" : filled === 1 ? "还需一味主材" : "请选择灵材";
-  const quickItems = [MATERIALS[0], MATERIALS[1], MATERIALS[24]];
+  const quickItems = projectRecipe?.ingredients ?? [MATERIALS[0], MATERIALS[1], MATERIALS[24]];
 
   return (
     <main className={`game-shell mobile-alchemy-${mobileView} phase-${phase} ${hasFatedFlower ? "has-fated-flower" : ""} ${hasMythicScroll ? "has-mythic-scroll" : ""} ${starArrivalPulse ? "star-arrival" : ""}`}>
@@ -967,9 +992,9 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
             nextLabel={alchemyUi.nextMaterial}
             activateLabel={alchemyUi.addMaterial}
           />}
-          <div className="alchemy-scene-shortcuts">
+          <div className={`alchemy-scene-shortcuts ${projectRecipe ? "has-project-recipe" : ""}`}>
             <button type="button" onClick={() => setMobileView("inventory")}><i>囊</i><span>{alchemyUi.openBag}</span></button>
-            <button type="button" onClick={quickRecipe}><i>方</i><span>{alchemyUi.quickRecipe}</span></button>
+            <button type="button" className={projectRecipe ? "project-recipe-shortcut" : ""} onClick={quickRecipe} aria-label={projectRecipe?.content.buttonLabel ?? alchemyUi.quickRecipe}><i>{projectRecipe ? "药" : "方"}</i><span>{projectRecipe?.content.shortcutLabel ?? alchemyUi.quickRecipe}</span></button>
           </div>
           <div className={`alchemy-scene-utility ${mobileUtilityOpen ? "open" : ""}`}>
             <button type="button" className="alchemy-utility-toggle" onClick={() => setMobileUtilityOpen((current) => !current)} aria-expanded={mobileUtilityOpen}><i>卷</i><span>{alchemyUi.more}</span></button>
@@ -1027,14 +1052,14 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
 
         <aside className="recipe-panel glass-panel">
           <div className="recipe-heading">
-            <div><span className="panel-kicker">已悟丹方</span><h2>赤霄丹方</h2></div>
-            <span className="recipe-rank">地阶</span>
+            <div><span className="panel-kicker">{projectRecipe?.content.kicker ?? "已悟丹方"}</span><h2>{projectRecipe?.content.name ?? "赤霄丹方"}</h2></div>
+            <span className="recipe-rank">{projectRecipe?.content.rank ?? "地阶"}</span>
           </div>
           <div className="mini-recipe">
             {quickItems.map((item) => <div key={item.id}><img src={item.image} alt="" /><span style={{ color: item.color }}>{item.element}</span></div>)}
           </div>
-          <p>赤炎为骨，月华为引，可聚天地灵息于一丸。</p>
-          <button className="recipe-button" onClick={quickRecipe}>一键配伍</button>
+          <p>{projectRecipe?.content.description ?? "赤炎为骨，月华为引，可聚天地灵息于一丸。"}</p>
+          <button className="recipe-button" onClick={quickRecipe}>{projectRecipe?.content.buttonLabel ?? "一键配伍"}</button>
           <div className="daily-luck"><span>今日炉运</span><strong>灵变 +12%</strong></div>
           <small className="recipe-version">配方司已同步 · v{recipeVersion}</small>
         </aside>

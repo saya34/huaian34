@@ -1226,15 +1226,15 @@ button:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px
 /* Mobile quest flow: full-screen list and detail pages, never two cramped panes. */
 @media(max-width:760px){
   .quest-panel.quest-journal-v2{grid-template-rows:62px 52px minmax(0,1fr)!important}
-  .quest-journal-v2 .quest-workspace{position:relative!important;display:block!important;min-height:0;overflow:hidden}
+  .quest-journal-v2 .quest-workspace{position:relative!important;display:block!important;min-width:0!important;min-height:0!important;width:100%!important;height:100%!important;overflow:clip!important;contain:layout paint}
   .quest-journal-v2 .quest-list,.quest-journal-v2 .quest-detail{position:absolute!important;inset:0;min-height:0;transition:transform .28s cubic-bezier(.2,.82,.25,1),opacity .2s}
   .quest-journal-v2 .quest-list{display:grid!important;align-content:start;gap:8px;padding:12px 10px calc(18px + env(safe-area-inset-bottom))!important;overflow-y:auto!important;border:0!important;scroll-snap-type:none!important}
   .quest-journal-v2 .quest-list>button{width:100%!important;min-height:82px!important;height:auto!important;margin:0!important;flex:none!important}
   .quest-journal-v2 .quest-detail{padding:0 14px!important;overflow-y:auto!important}
-  .quest-workspace.mobile-page-list .quest-list{transform:none;opacity:1;pointer-events:auto}
-  .quest-workspace.mobile-page-list .quest-detail{transform:translateX(100%);opacity:0;pointer-events:none}
-  .quest-workspace.mobile-page-detail .quest-list{transform:translateX(-22%);opacity:0;pointer-events:none}
-  .quest-workspace.mobile-page-detail .quest-detail{transform:none;opacity:1;pointer-events:auto}
+  .quest-workspace.mobile-page-list .quest-list{z-index:2;transform:none;opacity:1;visibility:visible;pointer-events:auto}
+  .quest-workspace.mobile-page-list .quest-detail{z-index:1;transform:translateX(100%);opacity:0;visibility:hidden;pointer-events:none}
+  .quest-workspace.mobile-page-detail .quest-list{z-index:1;transform:translateX(-22%);opacity:0;visibility:hidden;pointer-events:none}
+  .quest-workspace.mobile-page-detail .quest-detail{z-index:2;transform:none;opacity:1;visibility:visible;pointer-events:auto}
   .quest-mobile-back{position:sticky;z-index:6;top:0;display:block;width:100%;min-height:44px;padding:9px 3px;color:#d9c27f;border:0;border-bottom:1px solid rgba(203,167,78,.25);background:rgba(5,23,18,.97);font:11px "STSong","SimSun",serif;text-align:left}
   .quest-journal-v2 .quest-detail-hero{grid-template-columns:44px minmax(0,1fr)!important;margin:0 -14px!important;padding:12px 14px!important}
   .quest-journal-v2 .quest-giver-row{grid-column:1/-1}

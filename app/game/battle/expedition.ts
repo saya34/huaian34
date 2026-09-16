@@ -140,6 +140,10 @@ export function phaseCountForWave(waveId: number) {
 }
 
 export function targetDurationForWave(waveId: number) {
+  // The first chapter quest promises a short four-minute expedition and the
+  // source wave spawns its final boss at 240s. Keep that contract intact so
+  // the boss row is reachable and the quest can resolve as a true victory.
+  if (waveId === 1) return 240;
   if (waveId <= 3) return 480;
   if (waveId <= 8) return 600;
   if (waveId <= 15) return 720;

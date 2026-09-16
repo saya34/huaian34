@@ -394,6 +394,7 @@ export class BattleEngine {
     this.settings = settings;
     this.baseAttributes = { ...BASE_HERO_ATTRIBUTES, ...(settings.baseAttributes ?? {}) };
     this.combatTraits = { ...DEFAULT_COMBAT_TRAITS, ...(settings.combatTraits ?? {}) };
+    this.rerolls = 1 + Math.max(0, Math.floor(this.combatTraits.rerollBonus));
     this.wmConfig = settings.wmConfig ?? DEFAULT_WM_CONFIG;
     this.cloneActive = Math.random() < this.combatTraits.cloneChance;
     this.reviveReady = this.combatTraits.reviveCount > 0;
@@ -725,6 +726,14 @@ export class BattleEngine {
     this.emitSnapshot(true);
   }
 
+  forceExtract() {
+    if (this.ended || this.combatTraits.forceExtractCount <= 0) return false;
+    this.combatTraits.forceExtractCount -= 1;
+    this.shake = .42;
+    this.finish("extracted");
+    return true;
+  }
+
   getSnapshot(): GameSnapshot {
     const levelRow = byId(this.data.battleLevels, this.level + 1, "level");
     const boss = this.monsters.find((monster) => monster.alive && monster.isBoss);
@@ -841,7 +850,7 @@ export class BattleEngine {
     this.partnerStrikes = this.partnerStrikes.filter((strike) => strike.life > 0).slice(-90);
     if (!this.extraction || this.ended) return;
     const distance = Math.hypot(this.extraction.x - this.player.x, this.extraction.y - this.player.y);
-    if (distance <= this.extraction.radius) this.extraction.progress = Math.min(5, this.extraction.progress + delta);
+    if (distance <= this.extraction.radius) this.extraction.progress = Math.min(5, this.extraction.progress + delta * (1 + this.combatTraits.extractionSpeed));
     else this.extraction.progress = Math.max(0, this.extraction.progress - delta * .7);
     if (this.extraction.progress >= 5) this.finish("extracted");
   }

@@ -102,7 +102,10 @@ export function UnifiedFeedbackBridge({ children }: { children: React.ReactNode 
     announceSpotChanges("mining", state.mining.randomSpots, previous.mining.randomSpots);
 
     if (state.romance.receivedMessages.length > previous.romance.receivedMessages.length) feedback.toast({ priority: 1, tone: "cinnabar", titleKey: "relationship.messageTitle", bodyKey: "relationship.messageBody", icon: "笺", dedupeKey: `message:${state.romance.receivedMessages.at(-1)}` });
-    if (state.romance.activeEvent?.eventId !== previous.romance.activeEvent?.eventId && state.romance.activeEvent) feedback.toast({ priority: 1, titleKey: "relationship.storyTitle", bodyKey: "relationship.storyBody", params: { name: state.romance.activeEvent.eventId }, icon: "缘", dedupeKey: `story:${state.romance.activeEvent.eventId}` });
+    if (state.romance.activeEvent?.eventId !== previous.romance.activeEvent?.eventId && state.romance.activeEvent) {
+      const event = EVENTS.find((entry) => entry.id === state.romance.activeEvent?.eventId);
+      feedback.toast({ priority: 1, titleKey: "relationship.storyTitle", bodyKey: "relationship.storyBody", params: { name: event?.title ?? "未名因缘" }, icon: "缘", dedupeKey: `story:${state.romance.activeEvent.eventId}` });
+    }
 
     for (const skillId of state.shared.learnedSkills.filter((id) => !previous.shared.learnedSkills.includes(id))) feedback.publish({ variant: "progression-milestone", priority: 1, tone: "gold", titleKey: "player.skillLearned", bodyKey: "player.skillLearnedBody", params: { id: skillId }, icon: "悟", dedupeKey: `skill:${skillId}` });
 
@@ -117,12 +120,16 @@ export function UnifiedFeedbackBridge({ children }: { children: React.ReactNode 
     for (const [key, active] of Object.entries(state.shared.globalKeys)) {
       if (!active || previous.shared.globalKeys[key]) continue;
       const definition = GLOBAL_KEYS.find((entry) => entry.id === key);
+      // Story-memory flags are implementation details, not world announcements.
+      // Only explicitly authored global keys may interrupt the player with a
+      // full-screen state change; this also prevents raw flag ids leaking into UI.
+      if (!definition?.announcement?.enabled) continue;
       feedback.publish({
         variant: "world-announcement",
         priority: 0,
         titleKey: "world.changeTitle",
-        bodyKey: definition?.announcement?.message ? "world.changeBody" : "world.keyChanged",
-        params: { name: definition?.name ?? key, message: definition?.announcement?.message ?? definition?.description ?? key },
+        bodyKey: "world.changeBody",
+        params: { name: definition.name, message: definition.announcement.message },
         icon: feedbackText("world.icon"),
         dedupeKey: `world:${key}`,
       });

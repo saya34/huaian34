@@ -15,6 +15,19 @@ type ProjectRequirement = {
   characterId?: string;
 };
 
+export type ProjectAlchemyRecipe = {
+  kicker: string;
+  name: string;
+  rank: string;
+  description: string;
+  resultTemplateId: string;
+  ingredients: Array<{ templateId: string; quantity: number }>;
+  shortcutLabel: string;
+  buttonLabel: string;
+  readyNotice: string;
+  missingNotice: string;
+};
+
 export type MedicineRouteContent = {
   id: PathProjectRoute;
   glyph: string;
@@ -24,6 +37,7 @@ export type MedicineRouteContent = {
   result: string;
   requirements: ProjectRequirement[];
   actions: Array<{ target: PathProjectDestination; label: string; sceneId?: string; characterId?: string; waveId?: number }>;
+  alchemyRecipe?: ProjectAlchemyRecipe;
 };
 
 export type MedicineRouteReadiness = {
@@ -34,6 +48,11 @@ export type MedicineRouteReadiness = {
 
 export const MEDICINE_SHORTAGE_CONTENT = content;
 export const MEDICINE_SHORTAGE_ROUTES = content.routes as MedicineRouteContent[];
+
+export function activeMedicineShortageRecipe(state: UnifiedGameState) {
+  if (state.romance.medicineShortage.status !== "active" || state.romance.medicineShortage.route !== "production") return null;
+  return MEDICINE_SHORTAGE_ROUTES.find((route) => route.id === "production")?.alchemyRecipe ?? null;
+}
 
 function battleMaterialCount(state: UnifiedGameState) {
   return Object.values(state.shared.items).filter((item) => item.itemType === "material" && item.amount > 0 && item.sourceTags.includes("battle")).reduce((sum, item) => sum + item.amount, 0);

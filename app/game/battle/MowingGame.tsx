@@ -26,7 +26,6 @@ import {
   identifyEquipment,
   experienceToNextLevel,
   feedSkillExperience,
-  learnMetaSkill,
   safeSize,
   sellTreasure,
   sortEquipment,
@@ -49,7 +48,6 @@ import {
   skillDamageBonuses,
   skillMasteryDamageMultiplier,
   skillMasteryExpToNext,
-  skillUnlockReady,
 } from "./skillMastery";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import { CULTIVATOR_PACK_SIZE, organizeEquipment } from "./inventorySystem";
@@ -262,6 +260,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
   const selectedMap = useMemo(() => data?.maps.find((map) => Number(map.id) === mapId) ?? data?.maps[0], [data, mapId]);
   const menuBackground = "/game-assets/ui/main-menu-xianxia-bg.webp";
   const permanentAttributes = useMemo(() => computeFinalAttributes({ ...unifiedState, battle: meta }), [meta, unifiedState]);
+  const permanentTraits = useMemo(() => computeCombatTraits(meta.passiveRanks), [meta.passiveRanks]);
 
   useEffect(() => {
     if (screen === "battle") engineRef.current?.updateBaseAttributes(runSupplyBonusRef.current ? addAttributes(permanentAttributes, runSupplyBonusRef.current) : permanentAttributes);
@@ -317,7 +316,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
       backpackSize: backpackSize(meta.backpackLevel),
       safeSize: safeSize(meta.safeLevel),
       baseAttributes: preparedAttributes,
-      combatTraits: computeCombatTraits(meta.passiveRanks),
+      combatTraits: permanentTraits,
       wmConfig: meta.wmPublished,
       availableSkillIds: learnedSkillIds(meta.skillMastery),
       skillDamageBonuses: skillDamageBonuses(meta.skillMastery),
@@ -410,7 +409,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
       setError(reason instanceof Error ? reason.message : "战场初始化失败");
       setScreen("menu");
     }
-  }, [applyEffects, data, feedback, heroId, mapId, meta, permanentAttributes, requestCardSummon, setMeta, showToast, unifiedState.shared.items, waveId]);
+  }, [applyEffects, data, feedback, heroId, mapId, meta, permanentAttributes, permanentTraits, requestCardSummon, setMeta, showToast, unifiedState.shared.items, waveId]);
 
   useEffect(() => {
     if (screen === "preparing") {
@@ -702,6 +701,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
               </div>
             </div>
           )}
+          {permanentTraits.forceExtractCount > 0 && <button className="force-extract-button" onClick={() => engineRef.current?.forceExtract()}><i>遁</i><span>强行撤离</span><small>问宝道 · 本境一次</small></button>}
         </section>
       )}
 
@@ -1075,7 +1075,6 @@ function SkillStudySystem({ data, meta, onChange, notify }: { data: GameData; me
   const baseLevel = data.skillLevels.find((level) => Number(level.skillId) === selected.baseId && Number(level.level) === 1);
   const evolutionLevel = data.skillLevels.find((level) => Number(level.skillId) === selected.evolutionId && Number(level.level) === 6);
   const evolution = data.evolutions.find((entry) => Number(entry.skillId) === selected.evolutionId);
-  const ready = skillUnlockReady(meta.playerLevel, meta.highestUnlockedWave, selected);
   const maxed = selectedState.level >= MAX_SKILL_MASTERY_LEVEL;
   const nextExp = skillMasteryExpToNext(selectedState.level);
   const currentDamage = Math.round((skillMasteryDamageMultiplier(selectedState.level) - 1) * 100);
@@ -1088,12 +1087,6 @@ function SkillStudySystem({ data, meta, onChange, notify }: { data: GameData; me
   const requirementName = (id: number) => data.skills.find((skill) => Number(skill.resId) === id)?.name
     ?? data.supplies.find((supply) => Number(supply.resId) === id)?.name
     ?? `秘术 ${id}`;
-
-  const unlockSelected = () => {
-    if (!ready) return notify(`尚需人物等级 ${selected.unlockLevel}，并通关至第 ${Math.max(1, (selected.unlockWave ?? 1) - 1)} 关`);
-    onChange(learnMetaSkill(meta, selected.baseId));
-    notify(`参悟成功 · ${baseSkill?.name ?? "无名秘术"} 已习得`);
-  };
 
   const feedBooks = (count: number) => {
     if (!meta.skillBooks) return notify("悟道残卷不足，可通过镇压秘境获得");
@@ -1124,18 +1117,17 @@ function SkillStudySystem({ data, meta, onChange, notify }: { data: GameData; me
             const skill = data.skills.find((entry) => Number(entry.resId) === manual.baseId);
             const evolved = data.skills.find((entry) => Number(entry.resId) === manual.evolutionId);
             const art = skillArtById(data, manual.baseId);
-            const unlockable = !state.learned && skillUnlockReady(meta.playerLevel, meta.highestUnlockedWave, manual);
             return (
               <button
                 key={manual.baseId}
-                className={`skill-manual ${selected.baseId === manual.baseId ? "selected" : ""} ${state.learned ? "learned" : "locked"} ${unlockable ? "unlockable" : ""}`}
+                className={`skill-manual ${selected.baseId === manual.baseId ? "selected" : ""} ${state.learned ? "learned" : "locked"}`}
                 onClick={() => setSelectedId(manual.baseId)}
                 style={{ "--manual-order": index } as CSSProperties}
               >
                 <span className="manual-index">{String(SKILL_MANUALS.indexOf(manual) + 1).padStart(2, "0")}</span>
                 <i className="manual-art" style={{ backgroundImage: art ? `url("${art}")` : "none" }}><b>{manual.element}</b></i>
                 <span className="manual-copy"><small>{manual.school}</small><strong>{skill?.name}</strong><em>化境 · {evolved?.name}</em></span>
-                <span className="manual-state">{state.learned ? `外修 ${state.level} 重` : unlockable ? "可参悟" : "未习得"}</span>
+                <span className="manual-state">{state.learned ? `外修 ${state.level} 重` : "尚未获得"}</span>
               </button>
             );
           })}
@@ -1173,10 +1165,10 @@ function SkillStudySystem({ data, meta, onChange, notify }: { data: GameData; me
               <p>场外修习只增强该流派的伤害，不改变局内升级、弹道与进化条件；进化技能继承同一加成。</p>
             </div>
           ) : (
-            <div className={`skill-unlock-inscription ${ready ? "ready" : ""}`}>
-              <small>参悟门槛</small>
-              <p><span className={meta.playerLevel >= (selected.unlockLevel ?? 1) ? "met" : ""}>修士等级 {selected.unlockLevel ?? 1}</span><i>·</i><span className={meta.highestUnlockedWave >= (selected.unlockWave ?? 1) ? "met" : ""}>通关第 {Math.max(1, (selected.unlockWave ?? 1) - 1)} 关</span></p>
-              <button disabled={!ready} onClick={unlockSelected}>{ready ? "焚香参悟此术" : "机缘未至"}</button>
+            <div className="skill-unlock-inscription">
+              <small>玉简线索</small>
+              <p><span>{selected.source}</span></p>
+              <button disabled>取得功法玉简后自动收录</button>
             </div>
           )}
         </aside>
@@ -1218,7 +1210,7 @@ const ALLOCATION_META: Array<{ key: keyof AttributeAllocation; name: string; des
 
 function CharacterProgression({ meta, relationships, onChange }: { meta: MetaProgress; relationships: Record<string, number>; onChange: (meta: MetaProgress) => void }) {
   const [section, setSection] = useState<"attributes" | "skills">("attributes");
-  const [page, setPage] = useState<BlessingPage>("sister");
+  const [page, setPage] = useState<BlessingPage>("damage");
   const [selectedSkill, setSelectedSkill] = useState(PASSIVE_SKILLS[0].id);
   const attrPoints = availableAttributePoints(meta);
   const skillPoints = availableSkillPoints(meta);

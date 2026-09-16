@@ -1,6 +1,15 @@
-import type { CharacterDefinition, CharacterMessageDefinition, EventDefinition, GiftDefinition, GlobalKeyDefinition, SceneDefinition } from "./types";
+import type { CharacterDefinition, CharacterMessageDefinition, DialogueProfileDefinition, EventDefinition, GiftDefinition, GlobalKeyDefinition, SceneDefinition } from "./types";
 import { SHOP_CHARACTERS, SHOP_EVENTS, SHOP_GIFTS, SHOP_MESSAGES, SHOP_SCENES } from "./shop-content";
 import transparentNpcContent from "./content/transparent-npcs.json";
+import shenQingshuangContent from "./content/shen-qingshuang-story.json";
+
+const SHEN_QINGSHUANG_CONTENT = shenQingshuangContent as {
+  character: { bio: string; ambientLines: string[] };
+  dialogueProfile: DialogueProfileDefinition;
+  events: EventDefinition[];
+};
+
+export const DIALOGUE_PROFILES: DialogueProfileDefinition[] = [SHEN_QINGSHUANG_CONTENT.dialogueProfile];
 
 export const GLOBAL_KEYS: GlobalKeyDefinition[] = [
   { id: "memory.shen.hid_injury", name: "曾向沈清霜隐瞒伤势", category: "人物记忆", description: "示范由事件选项写入、并在后续对话中被人物提起的长期记忆。", initialValue: false, triggerMode: "manual", autoRules: [] },
@@ -121,7 +130,7 @@ export const CHARACTERS: CharacterDefinition[] = [
     name: "沈清霜",
     role: "问剑峰主 · 师尊",
     courtesy: "清衡真人",
-    bio: "持剑如雪，寡言守礼。她似乎总能比你更早察觉伤势。",
+    bio: SHEN_QINGSHUANG_CONTENT.character.bio,
     sceneId: "lingxiao",
     image: "/assets/characters/shen-qingshuang.webp",
     accent: "#9bb7c9",
@@ -129,11 +138,7 @@ export const CHARACTERS: CharacterDefinition[] = [
     relationshipStages: relationshipStages(["弟子", "你", "名字", "心上人"]),
     giftPreferences: [{ giftId:"snowTea",tier:"loved",reaction:"她用指腹轻轻摩挲茶罐，眼神比往常柔和。" },{ giftId:"osmanthusCake",tier:"liked",reaction:"她说甜了些，却仍将糕点收在手边。" },{ giftId:"peachWine",tier:"disliked",reaction:"她不喜酒气，只礼貌地收下了。" }],
     seekingRules: [{ id:"shen-seeks-player",label:"月下前来寻你",periods:["夜晚"],probability:45,cooldownDays:3,priority:90,conditions:[{type:"event_completed",eventId:"shen.gift.snow-tea"},{type:"relationship",characterId:"shen",min:16}],triggerEventId:"shen.heart.moon-sword",intro:"夜色将沉，沈清霜却踏着剑光来到你面前。" }],
-    ambientLines: [
-      "今日气息比昨日沉稳。看来你没有荒废早课。",
-      "修行不必事事争先。知道何时停剑，也是一种境界。",
-      "若夜里又做噩梦，便来问剑峰。山风虽冷，却很安静。",
-    ],
+    ambientLines: SHEN_QINGSHUANG_CONTENT.character.ambientLines,
   },
   {
     id: "su",
@@ -220,6 +225,7 @@ export const CHARACTER_MESSAGES: CharacterMessageDefinition[] = [
 ];
 
 export const EVENTS: EventDefinition[] = [
+  ...SHEN_QINGSHUANG_CONTENT.events,
   {
     id: "shen.first.snow-in-hall",
     title: "殿上初雪",

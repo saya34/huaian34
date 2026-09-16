@@ -1,3 +1,7 @@
+import { PASSIVE_SKILLS, type PassiveSkillDefinition } from "../skills/tree-service";
+
+export { BLESSING_META, PASSIVE_SKILLS, type BlessingPage, type PassiveSkillDefinition } from "../skills/tree-service";
+
 export interface HeroAttributes {
   health: number;
   mana: number;
@@ -46,20 +50,20 @@ export const ATTRIBUTE_POINT_BONUS: Record<keyof AttributeAllocation, number> = 
   health: 30, defense: 4, damage: .015, dodge: .0025, moveSpeed: 1.5, attackSpeed: .01,
 };
 
-export type BlessingPage = "sister" | "master" | "junior";
-export interface PassiveSkillDefinition {
-  id: string; page: BlessingPage; branch: number; tier: number; requires?: string; name: string; description: string; maxRank: number; icon: string;
+type LegacyBlessingPage = "sister" | "master" | "junior";
+interface LegacyPassiveSkillDefinition {
+  id: string; page: LegacyBlessingPage; branch: number; tier: number; requires?: string; name: string; description: string; maxRank: number; icon: string;
   attribute?: { key: keyof HeroAttributes; value: number };
   trait?: { key: keyof CombatTraits; value: number };
 }
 
-export const BLESSING_META: Record<BlessingPage, { name: string; subtitle: string; mark: string }> = {
+const LEGACY_BLESSING_META: Record<LegacyBlessingPage, { name: string; subtitle: string; mark: string }> = {
   sister: { name: "苏晚棠授业", subtitle: "身法、攻速与灵巧", mark: "巧" },
   master: { name: "沈清霜授业", subtitle: "剑道、暴击与杀伐", mark: "剑" },
   junior: { name: "柳知意授业", subtitle: "丹医、恢复与护命", mark: "生" },
 };
 
-export const PASSIVE_SKILLS: PassiveSkillDefinition[] = [
+const LEGACY_PASSIVE_SKILLS: LegacyPassiveSkillDefinition[] = [
   { id: "fleet-foot", page: "sister", branch: 0, tier: 0, name: "踏风诀", description: "每级移动速度提高5%。", maxRank: 3, icon: "风", attribute: { key: "moveSpeed", value: 12.5 } },
   { id: "cloud-tread", page: "sister", branch: 0, tier: 1, requires: "fleet-foot", name: "踏云无痕", description: "每级提高3%闪避率。", maxRank: 3, icon: "云", attribute: { key: "dodge", value: .03 } },
   { id: "phantom-step", page: "sister", branch: 0, tier: 2, requires: "cloud-tread", name: "幻影步", description: "每级提高7%移动速度。", maxRank: 3, icon: "影", attribute: { key: "moveSpeed", value: 17.5 } },
@@ -109,41 +113,56 @@ export const PASSIVE_SKILLS: PassiveSkillDefinition[] = [
   { id: "undying-lotus", page: "junior", branch: 2, tier: 4, requires: "reverse-flow", name: "不灭心莲", description: "提高220点生命与20%治疗效果。", maxRank: 1, icon: "莲", attribute: { key: "health", value: 220 } },
 ];
 
+void LEGACY_BLESSING_META;
+void LEGACY_PASSIVE_SKILLS;
+
 export interface CombatTraits {
   lootLuck: number; critChance: number; critMultiplier: number; chainChance: number; chainRatio: number;
   globalChance: number; globalRatio: number; eliteDamage: number; regenPercent: number; lifeSteal: number;
-  healingBonus: number; reviveCount: number; cloneChance: number;
+  healingBonus: number; reviveCount: number; cloneChance: number; rerollBonus: number;
+  extractionSpeed: number; forceExtractCount: number;
 }
 
 export const DEFAULT_COMBAT_TRAITS: CombatTraits = {
   lootLuck: 0, critChance: 0, critMultiplier: 2, chainChance: 0, chainRatio: .55, globalChance: 0,
   globalRatio: .3, eliteDamage: 0, regenPercent: 0, lifeSteal: 0, healingBonus: 0, reviveCount: 0, cloneChance: 0,
+  rerollBonus: 0, extractionSpeed: 0, forceExtractCount: 0,
 };
 
 export function passiveRank(ranks: Record<string, number>, id: string) { return ranks[id] ?? 0; }
 
 export function passiveAttributeBonuses(ranks: Record<string, number>): AttributeBonus[] {
-  return PASSIVE_SKILLS.flatMap((skill) => skill.attribute
-    ? [{ [skill.attribute.key]: skill.attribute.value * passiveRank(ranks, skill.id) }]
-    : []);
+  return PASSIVE_SKILLS.flatMap((skill) => {
+    const rank = passiveRank(ranks, skill.id);
+    const effects = [...(skill.attribute ? [skill.attribute] : []), ...(skill.attributes ?? [])];
+    return effects.map((effect) => ({ [effect.key]: effect.value * rank }));
+  });
 }
 
 export function computeCombatTraits(ranks: Record<string, number>): CombatTraits {
   const result = { ...DEFAULT_COMBAT_TRAITS };
-  for (const skill of PASSIVE_SKILLS) if (skill.trait) {
-    const key = skill.trait.key;
-    result[key] += skill.trait.value * passiveRank(ranks, skill.id);
+  for (const skill of PASSIVE_SKILLS) {
+    const rank = passiveRank(ranks, skill.id);
+    for (const effect of [...(skill.trait ? [skill.trait] : []), ...(skill.traits ?? [])]) {
+      result[effect.key] += effect.value * rank;
+    }
   }
   return result;
 }
 
 export function passiveSkillUnlocked(ranks: Record<string, number>, skill: PassiveSkillDefinition, relationships: Record<string, number> = {}) {
-  const characterId: Record<BlessingPage, string> = { sister: "su", master: "shen", junior: "liu" };
-  const requiredBond = skill.tier >= 4 ? 45 : skill.tier >= 3 ? 25 : 0;
-  if ((relationships[characterId[skill.page]] ?? 0) < requiredBond) return false;
+  void relationships;
   if (!skill.requires) return true;
   const prerequisite = PASSIVE_SKILLS.find((entry) => entry.id === skill.requires);
   return Boolean(prerequisite && passiveRank(ranks, prerequisite.id) >= prerequisite.maxRank);
+}
+
+export function normalizePassiveRanks(value: unknown) {
+  const source = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  return Object.fromEntries(PASSIVE_SKILLS.flatMap((skill) => {
+    const rank = Math.max(0, Math.min(skill.maxRank, Math.floor(Number(source[skill.id]) || 0)));
+    return rank > 0 ? [[skill.id, rank]] : [];
+  }));
 }
 
 export function attributeAllocationBonus(allocation: AttributeAllocation): AttributeBonus {

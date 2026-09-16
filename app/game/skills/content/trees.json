@@ -1,0 +1,108 @@
+{
+  "title": "天衍道脉",
+  "subtitle": "每次人物升级获得一点悟道点；同一道脉可以专精，也可以跨脉取舍",
+  "trees": [
+    {
+      "id": "damage", "name": "杀伐道", "subtitle": "伤害 · 暴击 · 连锁", "mark": "锋", "tone": "cinnabar",
+      "root": { "id": "damage-root", "name": "砺锋入道", "description": "所有伤害提高2%。", "icon": "锋", "kind": "passive", "attribute": { "key": "damage", "value": 0.02 } },
+      "branches": [
+        { "id": "sword", "name": "剑心", "nodes": [
+          { "id": "d-sword-01", "name": "剑气初生", "description": "所有伤害提高2%。", "icon": "气", "attribute": { "key": "damage", "value": 0.02 } },
+          { "id": "d-sword-02", "name": "照影寻隙", "description": "暴击率提高2%。", "icon": "隙", "trait": { "key": "critChance", "value": 0.02 } },
+          { "id": "d-sword-03", "name": "三才剑阵", "description": "伤害提高6%，剑意第一次成阵。", "icon": "阵", "milestone": true, "attribute": { "key": "damage", "value": 0.06 } },
+          { "id": "d-sword-04", "name": "御剑无滞", "description": "攻击速度提高3%。", "icon": "御", "attribute": { "key": "attackSpeed", "value": 0.03 } },
+          { "id": "d-sword-05", "name": "破妖剑胆", "description": "对精英与首领伤害提高5%。", "icon": "胆", "trait": { "key": "eliteDamage", "value": 0.05 } },
+          { "id": "d-sword-06", "name": "剑心燃命", "description": "暴击倍率额外提高20%。", "icon": "心", "milestone": true, "trait": { "key": "critMultiplier", "value": 0.2 } },
+          { "id": "d-sword-07", "name": "七星贯日", "description": "所有伤害提高4%。", "icon": "星", "attribute": { "key": "damage", "value": 0.04 } },
+          { "id": "d-sword-08", "name": "意动剑随", "description": "攻击速度提高4%。", "icon": "意", "attribute": { "key": "attackSpeed", "value": 0.04 } },
+          { "id": "d-sword-09", "name": "一念斩妖", "description": "获得1.2%全图剑意触发率。", "icon": "斩", "milestone": true, "trait": { "key": "globalChance", "value": 0.012 } },
+          { "id": "d-sword-10", "name": "天光入刃", "description": "暴击率提高3%。", "icon": "光", "trait": { "key": "critChance", "value": 0.03 } },
+          { "id": "d-sword-11", "name": "王煞皆摧", "description": "对精英与首领伤害提高8%。", "icon": "摧", "trait": { "key": "eliteDamage", "value": 0.08 } },
+          { "id": "d-sword-12", "name": "万剑归墟", "description": "全图剑意触发率再提高3%，为杀伐道终极奥义。", "icon": "墟", "milestone": true, "trait": { "key": "globalChance", "value": 0.03 } }
+        ]},
+        { "id": "artifact", "name": "御器", "nodes": [
+          { "id": "d-artifact-01", "name": "驭器入微", "description": "弹道速度提高5%。", "icon": "驭", "attribute": { "key": "projectileSpeed", "value": 0.05 } },
+          { "id": "d-artifact-02", "name": "分念齐发", "description": "攻击速度提高2%。", "icon": "念", "attribute": { "key": "attackSpeed", "value": 0.02 } },
+          { "id": "d-artifact-03", "name": "百炼归一", "description": "伤害与弹速各提高4%。", "icon": "炼", "milestone": true, "attributes": [{ "key": "damage", "value": 0.04 }, { "key": "projectileSpeed", "value": 0.04 }] },
+          { "id": "d-artifact-04", "name": "灵机相感", "description": "连锁触发率提高3%。", "icon": "机", "trait": { "key": "chainChance", "value": 0.03 } },
+          { "id": "d-artifact-05", "name": "飞星渡厄", "description": "弹道速度提高8%。", "icon": "飞", "attribute": { "key": "projectileSpeed", "value": 0.08 } },
+          { "id": "d-artifact-06", "name": "万器朝宗", "description": "连锁伤害比例提高20%。", "icon": "宗", "milestone": true, "trait": { "key": "chainRatio", "value": 0.2 } },
+          { "id": "d-artifact-07", "name": "御物无声", "description": "攻击速度提高4%。", "icon": "无", "attribute": { "key": "attackSpeed", "value": 0.04 } },
+          { "id": "d-artifact-08", "name": "千机叠浪", "description": "连锁触发率提高4%。", "icon": "浪", "trait": { "key": "chainChance", "value": 0.04 } },
+          { "id": "d-artifact-09", "name": "九曜齐鸣", "description": "伤害提高8%。", "icon": "曜", "milestone": true, "attribute": { "key": "damage", "value": 0.08 } },
+          { "id": "d-artifact-10", "name": "灵枢不竭", "description": "攻击速度提高5%。", "icon": "枢", "attribute": { "key": "attackSpeed", "value": 0.05 } },
+          { "id": "d-artifact-11", "name": "神机万变", "description": "连锁触发率提高5%。", "icon": "变", "trait": { "key": "chainChance", "value": 0.05 } },
+          { "id": "d-artifact-12", "name": "法天象地", "description": "所有伤害提高12%，御器一脉臻于化境。", "icon": "天", "milestone": true, "attribute": { "key": "damage", "value": 0.12 } }
+        ]}
+      ]
+    },
+    {
+      "id": "defense", "name": "护生道", "subtitle": "生命 · 防御 · 复苏", "mark": "守", "tone": "moon",
+      "root": { "id": "defense-root", "name": "固本培元", "description": "最大生命提高60点。", "icon": "元", "kind": "passive", "attribute": { "key": "health", "value": 60 } },
+      "branches": [
+        { "id": "ward", "name": "金身", "nodes": [
+          { "id": "f-ward-01", "name": "玉骨初成", "description": "防御提高18点。", "icon": "骨", "attribute": { "key": "defense", "value": 18 } },
+          { "id": "f-ward-02", "name": "沉肩守势", "description": "最大生命提高70点。", "icon": "守", "attribute": { "key": "health", "value": 70 } },
+          { "id": "f-ward-03", "name": "金身不坏", "description": "防御提高55点。", "icon": "金", "milestone": true, "attribute": { "key": "defense", "value": 55 } },
+          { "id": "f-ward-04", "name": "玄甲藏气", "description": "防御提高24点。", "icon": "甲", "attribute": { "key": "defense", "value": 24 } },
+          { "id": "f-ward-05", "name": "岳镇灵台", "description": "最大生命提高90点。", "icon": "岳", "attribute": { "key": "health", "value": 90 } },
+          { "id": "f-ward-06", "name": "玄甲护命", "description": "生命提高130点，防御提高35点。", "icon": "玄", "milestone": true, "attributes": [{ "key": "health", "value": 130 }, { "key": "defense", "value": 35 }] },
+          { "id": "f-ward-07", "name": "百劫锻身", "description": "防御提高32点。", "icon": "劫", "attribute": { "key": "defense", "value": 32 } },
+          { "id": "f-ward-08", "name": "不动如山", "description": "最大生命提高120点。", "icon": "山", "attribute": { "key": "health", "value": 120 } },
+          { "id": "f-ward-09", "name": "借命化劫", "description": "每秒恢复最大生命的0.25%。", "icon": "劫", "milestone": true, "trait": { "key": "regenPercent", "value": 0.0025 } },
+          { "id": "f-ward-10", "name": "天罡护体", "description": "防御提高45点。", "icon": "罡", "attribute": { "key": "defense", "value": 45 } },
+          { "id": "f-ward-11", "name": "万法难侵", "description": "最大生命提高160点。", "icon": "法", "attribute": { "key": "health", "value": 160 } },
+          { "id": "f-ward-12", "name": "涅槃命火", "description": "每次秘境受到致命伤时复活一次，并恢复半数生命。", "icon": "生", "milestone": true, "trait": { "key": "reviveCount", "value": 1 } }
+        ]},
+        { "id": "renewal", "name": "回春", "nodes": [
+          { "id": "f-renewal-01", "name": "春雨润脉", "description": "每秒恢复最大生命的0.08%。", "icon": "雨", "trait": { "key": "regenPercent", "value": 0.0008 } },
+          { "id": "f-renewal-02", "name": "药气归元", "description": "所有治疗效果提高6%。", "icon": "药", "trait": { "key": "healingBonus", "value": 0.06 } },
+          { "id": "f-renewal-03", "name": "青木回春", "description": "每秒恢复提高0.18%，治疗效果提高8%。", "icon": "春", "milestone": true, "traits": [{ "key": "regenPercent", "value": 0.0018 }, { "key": "healingBonus", "value": 0.08 }] },
+          { "id": "f-renewal-04", "name": "纳息养神", "description": "最大生命提高80点。", "icon": "息", "attribute": { "key": "health", "value": 80 } },
+          { "id": "f-renewal-05", "name": "灵泉不涸", "description": "治疗效果提高10%。", "icon": "泉", "trait": { "key": "healingBonus", "value": 0.1 } },
+          { "id": "f-renewal-06", "name": "生息不绝", "description": "每秒恢复提高0.25%。", "icon": "息", "milestone": true, "trait": { "key": "regenPercent", "value": 0.0025 } },
+          { "id": "f-renewal-07", "name": "血气相生", "description": "伤害的0.15%转化为生命。", "icon": "血", "trait": { "key": "lifeSteal", "value": 0.0015 } },
+          { "id": "f-renewal-08", "name": "丹心护脉", "description": "治疗效果提高12%。", "icon": "丹", "trait": { "key": "healingBonus", "value": 0.12 } },
+          { "id": "f-renewal-09", "name": "太乙续命", "description": "生命提高180点，并强化所有恢复。", "icon": "续", "milestone": true, "attribute": { "key": "health", "value": 180 } },
+          { "id": "f-renewal-10", "name": "枯木逢春", "description": "每秒恢复提高0.2%。", "icon": "木", "trait": { "key": "regenPercent", "value": 0.002 } },
+          { "id": "f-renewal-11", "name": "造化入体", "description": "治疗效果提高15%。", "icon": "化", "trait": { "key": "healingBonus", "value": 0.15 } },
+          { "id": "f-renewal-12", "name": "九转道躯", "description": "生命提高260点，受到的所有治疗再提高25%。", "icon": "转", "milestone": true, "attribute": { "key": "health", "value": 260 }, "trait": { "key": "healingBonus", "value": 0.25 } }
+        ]}
+      ]
+    },
+    {
+      "id": "treasure", "name": "问宝道", "subtitle": "机缘 · 撤离 · 见闻", "mark": "寻", "tone": "jade",
+      "root": { "id": "treasure-root", "name": "听风识宝", "description": "秘境修为获取提高3%。", "icon": "寻", "kind": "passive", "attribute": { "key": "expGain", "value": 0.03 } },
+      "branches": [
+        { "id": "fortune", "name": "望气", "nodes": [
+          { "id": "t-fortune-01", "name": "辨尘识珠", "description": "宝物品质权重小幅提高。", "icon": "珠", "trait": { "key": "lootLuck", "value": 0.35 } },
+          { "id": "t-fortune-02", "name": "紫气东来", "description": "秘境修为获取提高4%。", "icon": "紫", "attribute": { "key": "expGain", "value": 0.04 } },
+          { "id": "t-fortune-03", "name": "灵犀觅宝", "description": "宝物品质权重显著提高。", "icon": "犀", "milestone": true, "trait": { "key": "lootLuck", "value": 0.8 } },
+          { "id": "t-fortune-04", "name": "观气寻脉", "description": "宝物品质权重提高。", "icon": "观", "trait": { "key": "lootLuck", "value": 0.45 } },
+          { "id": "t-fortune-05", "name": "慧眼无遗", "description": "秘境修为获取提高5%。", "icon": "慧", "attribute": { "key": "expGain", "value": 0.05 } },
+          { "id": "t-fortune-06", "name": "天机窥藏", "description": "升级三选一额外获得一次重选机会。", "icon": "机", "milestone": true, "trait": { "key": "rerollBonus", "value": 1 } },
+          { "id": "t-fortune-07", "name": "福星照命", "description": "宝物品质权重提高。", "icon": "福", "trait": { "key": "lootLuck", "value": 0.55 } },
+          { "id": "t-fortune-08", "name": "万象入鉴", "description": "秘境修为获取提高7%。", "icon": "鉴", "attribute": { "key": "expGain", "value": 0.07 } },
+          { "id": "t-fortune-09", "name": "锦鲤命格", "description": "宝物品质权重大幅提高。", "icon": "锦", "milestone": true, "trait": { "key": "lootLuck", "value": 1.2 } },
+          { "id": "t-fortune-10", "name": "宝光自现", "description": "宝物品质权重提高。", "icon": "光", "trait": { "key": "lootLuck", "value": 0.7 } },
+          { "id": "t-fortune-11", "name": "造化垂青", "description": "秘境修为获取提高10%。", "icon": "造", "attribute": { "key": "expGain", "value": 0.1 } },
+          { "id": "t-fortune-12", "name": "天眷宝库", "description": "宝物品质权重提高2，并额外获得一次三选一重选。", "icon": "库", "milestone": true, "traits": [{ "key": "lootLuck", "value": 2 }, { "key": "rerollBonus", "value": 1 }] }
+        ]},
+        { "id": "escape", "name": "游迹", "nodes": [
+          { "id": "t-escape-01", "name": "轻身探路", "description": "移动速度提高5点。", "icon": "轻", "attribute": { "key": "moveSpeed", "value": 5 } },
+          { "id": "t-escape-02", "name": "趋吉避凶", "description": "闪避率提高1.5%。", "icon": "吉", "attribute": { "key": "dodge", "value": 0.015 } },
+          { "id": "t-escape-03", "name": "轻装远行", "description": "移动速度提高12点。", "icon": "行", "milestone": true, "attribute": { "key": "moveSpeed", "value": 12 } },
+          { "id": "t-escape-04", "name": "踏影寻踪", "description": "闪避率提高2%。", "icon": "踪", "attribute": { "key": "dodge", "value": 0.02 } },
+          { "id": "t-escape-05", "name": "归途有记", "description": "撤离法阵引导速度提高20%。", "icon": "归", "trait": { "key": "extractionSpeed", "value": 0.2 } },
+          { "id": "t-escape-06", "name": "险地脱身", "description": "撤离法阵引导速度再提高35%。", "icon": "脱", "milestone": true, "trait": { "key": "extractionSpeed", "value": 0.35 } },
+          { "id": "t-escape-07", "name": "云踪无定", "description": "移动速度提高14点。", "icon": "云", "attribute": { "key": "moveSpeed", "value": 14 } },
+          { "id": "t-escape-08", "name": "灵台预警", "description": "闪避率提高3%。", "icon": "警", "attribute": { "key": "dodge", "value": 0.03 } },
+          { "id": "t-escape-09", "name": "遁空符", "description": "每次秘境可无视法阵位置强行撤离一次。", "icon": "遁", "milestone": true, "trait": { "key": "forceExtractCount", "value": 1 } },
+          { "id": "t-escape-10", "name": "千里一瞬", "description": "移动速度提高18点。", "icon": "瞬", "attribute": { "key": "moveSpeed", "value": 18 } },
+          { "id": "t-escape-11", "name": "百险不侵", "description": "闪避率提高4%。", "icon": "险", "attribute": { "key": "dodge", "value": 0.04 } },
+          { "id": "t-escape-12", "name": "归墟探秘", "description": "撤离引导速度提高60%，并再获得一次升级重选。", "icon": "墟", "milestone": true, "traits": [{ "key": "extractionSpeed", "value": 0.6 }, { "key": "rerollBonus", "value": 1 }] }
+        ]}
+      ]
+    }
+  ]
+}

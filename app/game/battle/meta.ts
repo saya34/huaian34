@@ -14,6 +14,7 @@ import {
   canUseEquipment,
   equipmentAttributeBonus,
   equipmentValue,
+  normalizePassiveRanks,
   passiveAttributeBonuses,
 } from "./progression";
 import { CULTIVATOR_PACK_SIZE, PERSONAL_STASH_SIZE, findEquipmentPosition, moveOrSwapEquipment, organizeEquipment } from "./inventorySystem";
@@ -175,7 +176,7 @@ export function normalizeMetaProgress(parsed: Partial<MetaProgress> | null | und
     playerExp: Math.max(0, Number(value.playerExp) || 0),
     highestUnlockedWave: Math.max(1, Math.min(21, Number(value.highestUnlockedWave) || 1)),
     attributeAllocation: { ...DEFAULT_META.attributeAllocation, ...(value.attributeAllocation ?? {}) },
-    passiveRanks: value.passiveRanks && typeof value.passiveRanks === "object" ? value.passiveRanks : {},
+    passiveRanks: normalizePassiveRanks(value.passiveRanks),
     skillBooks: value.skillBooks === undefined ? DEFAULT_META.skillBooks : Math.max(0, Number(value.skillBooks) || 0),
     skillMastery: normalizeSkillMastery(value.skillMastery), wmDraft: mergeWMConfig(value.wmDraft), wmPublished: mergeWMConfig(value.wmPublished), wmPublishedAt: Math.max(0, Number(value.wmPublishedAt) || 0), weaponShop: normalizeWeaponShop(value.weaponShop),
   };
@@ -242,13 +243,13 @@ export function availableAttributePoints(meta: MetaProgress) {
 }
 
 export function availableSkillPoints(meta: MetaProgress) {
-  return meta.playerLevel - Object.values(meta.passiveRanks).reduce((sum, value) => sum + value, 0);
+  return Math.max(0, meta.playerLevel - Object.values(normalizePassiveRanks(meta.passiveRanks)).reduce((sum, value) => sum + value, 0));
 }
 
-export function learnMetaSkill(meta: MetaProgress, skillId: number): MetaProgress {
+export function learnMetaSkill(meta: MetaProgress, skillId: number, acquired = false): MetaProgress {
   const manual = SKILL_MANUALS.find((entry) => entry.baseId === skillId);
   const current = meta.skillMastery[String(skillId)];
-  if (!manual || current?.learned || !skillUnlockReady(meta.playerLevel, meta.highestUnlockedWave, manual)) return meta;
+  if (!manual || current?.learned || (!acquired && !skillUnlockReady(meta.playerLevel, meta.highestUnlockedWave, manual))) return meta;
   return {
     ...meta,
     skillMastery: {

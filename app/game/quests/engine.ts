@@ -82,6 +82,10 @@ export function questRewardEffects(definition: QuestDefinition, state?: UnifiedG
   }
   const chapterOutcome = definition.id === "main-chapter-one-return" && state ? resolveChapterOneOutcome(state) : null;
   if (chapterOutcome) effects.push(...chapterOneOutcomeEffects(chapterOutcome));
+  const impacts = [...new Set([
+    chapterOutcome ? `${chapterOutcome.routeName}路线已写入章节结果` : definition.completion?.nextHook ?? "新的目标已经出现在任务簿中。",
+    chapterOutcome?.nextHook ?? "",
+  ].filter(Boolean))];
   effects.push({
     type: "record_activity",
     receipt: {
@@ -90,7 +94,7 @@ export function questRewardEffects(definition: QuestDefinition, state?: UnifiedG
       title: chapterOutcome?.title ?? definition.completion?.title ?? `任务完成 · ${definition.name}`,
       summary: chapterOutcome ? `${chapterOutcome.body}${chapterOutcome.routeReflection}` : definition.completion?.body ?? "任务奖励已经写入统一状态。",
       rewards: [...definition.rewards.map((reward) => `${reward.label} +${reward.amount}`), ...(chapterOutcome ? chapterOneOutcomeRewardLabels(chapterOutcome) : [])],
-      impacts: [chapterOutcome ? `${chapterOutcome.routeName}路线已写入章节结果` : definition.completion?.nextHook ?? "新的目标已经出现在任务簿中。", chapterOutcome?.nextHook ?? definition.completion?.nextHook ?? ""].filter(Boolean),
+      impacts,
       nextStep: { target: "tasks", label: definition.id === "main-chapter-one-return" ? "查看章节余韵" : "查看下一项任务" },
       createdAt: Date.now(),
     },

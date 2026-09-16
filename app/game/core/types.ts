@@ -10,7 +10,7 @@ import type { MiningProgress } from "../mining/mining";
 import type { QuestProgress } from "../quests/types";
 import type { GatheringProgress } from "../gathering/types";
 
-export const SAVE_VERSION = 4 as const;
+export const SAVE_VERSION = 6 as const;
 
 export type UnifiedRarity = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type UnifiedItemType = "gift" | "material" | "pill" | "equipment" | "card" | "treasure" | "quest" | "fish";

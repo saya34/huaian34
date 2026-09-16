@@ -12,12 +12,6 @@ const ART = "/assets/quests/quest-dossier-v1.png";
 const QUEST_CARD_STORAGE_KEY = "huaian:quest-card-collapsed:v1";
 type QuestReceipt = { definition: QuestDefinition; outcome: ChapterOneOutcome | null };
 
-function firstObjectiveLine(definition: QuestDefinition, state: ReturnType<typeof useUnifiedGame>["state"], statuses: ReturnType<typeof useUnifiedGame>["state"]["quests"]) {
-  const view = questView(definition, statuses, state);
-  const objective = view.objectives[0];
-  return objective ? `${objective.description} ${questText("progress", { current: objective.current, required: objective.required })}` : questText("doneProgress");
-}
-
 function primaryLabel(status: QuestStatus, definition?: QuestDefinition) {
   if (status === "unaccepted") return definition?.giver ? questText("meetGiver") : questText("accept");
   if (status === "claimable" || status === "completed") return questText("claim");
@@ -49,16 +43,25 @@ export function QuestStateSynchronizer() {
 
 export function CurrentQuestCard({ onOpen, onNavigate }: { onOpen: () => void; onNavigate: QuestNavigate }) {
   const { state } = useUnifiedGame();
+  // Keep the server and the first client render identical, then restore the
+  // local preference after hydration. This avoids the development error layer
+  // when a returning player previously collapsed the HUD card.
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
-    const stored = window.localStorage.getItem(QUEST_CARD_STORAGE_KEY);
-    setCollapsed(stored === null ? window.matchMedia("(max-width: 760px)").matches : stored === "1");
+    const restorePreference = window.setTimeout(() => {
+      try {
+        setCollapsed(window.localStorage.getItem(QUEST_CARD_STORAGE_KEY) === "1");
+      } catch {
+        // Storage may be unavailable in privacy modes; expanded is the safe UI.
+      }
+    }, 0);
+    return () => window.clearTimeout(restorePreference);
   }, []);
 
   function toggleCollapsed() {
     setCollapsed((current) => {
       const next = !current;
-      window.localStorage.setItem(QUEST_CARD_STORAGE_KEY, next ? "1" : "0");
+      try { window.localStorage.setItem(QUEST_CARD_STORAGE_KEY, next ? "1" : "0"); } catch { /* UI state still works for this session. */ }
       return next;
     });
   }
