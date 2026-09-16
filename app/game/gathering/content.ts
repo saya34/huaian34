@@ -6,7 +6,7 @@ import presentationJson from "./content/presentation.json";
 import type { GatheringProfessionId, GatheringToolTrait } from "./types";
 import type { UnifiedItemType } from "../core/types";
 
-export type GatheringToolDefinition = { id:string; name:string; trait:GatheringToolTrait; traitName:string; description:string; minTier:number };
+export type GatheringToolDefinition = { id:string; name:string; glyph:string; trait:GatheringToolTrait; traitName:string; description:string; minTier:number };
 export type GatheringProfessionDefinition = { id:GatheringProfessionId; name:string; icon:string; toolName:string; collectionName:string; description:string; tools:GatheringToolDefinition[] };
 export type GatheringCompanionDefinition = {
   id:string; name:string; description:string; itemType:UnifiedItemType; rarity:number; weight:number;

@@ -12,6 +12,26 @@
   --paper: #f4ead0;
 }
 
+/* The material wheel keeps ingredient choice inside the furnace scene. */
+.alchemy-material-wheel{position:absolute;z-index:34;right:clamp(8px,3vw,42px);top:50%;transform:translateY(-50%)}
+.alchemy-material-wheel .rotary-current:not(:disabled):active .rotary-art{animation:alchemyWheelDrop .32s cubic-bezier(.2,.85,.3,1.25)}
+@keyframes alchemyWheelDrop{50%{transform:translate(-14px,18px) scale(.72);filter:brightness(1.5)}}
+
+@media(max-width:760px){
+  body .game-shell.mobile-alchemy-furnace .furnace-zone{overflow:hidden}
+  body .game-shell.mobile-alchemy-furnace .alchemy-material-wheel{right:4px;top:48%;width:98px;height:174px;grid-template-rows:20px 34px 66px 34px 20px;transform:translateY(-50%)}
+  body .game-shell.mobile-alchemy-furnace .alchemy-material-wheel:before{inset:-5px -8px;opacity:.72}
+  body .game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-current{width:86px;height:66px}
+  body .game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-item{grid-template-columns:37px minmax(0,1fr)}
+  body .game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-art{width:37px;height:37px}
+  body .game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-preview{height:34px}
+  body .game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-preview .rotary-art{width:28px;height:28px}
+  body .game-shell.mobile-alchemy-furnace .furnace-wrap{transform:translateX(-10px) scale(.9)}
+  body .game-shell.mobile-alchemy-furnace .slot-row{right:92px}
+}
+@media(max-width:380px),(max-height:720px){body .game-shell.mobile-alchemy-furnace .alchemy-material-wheel{height:150px;grid-template-rows:17px 28px 60px 28px 17px}body .game-shell.mobile-alchemy-furnace .furnace-wrap{transform:translateX(-14px) scale(.82)}}
+@media(prefers-reduced-motion:reduce){.alchemy-material-wheel .rotary-current:active .rotary-art{animation:none}}
+
 * { box-sizing: border-box; }
 
 html, body { margin: 0; min-height: 100%; background: #020807; }
@@ -1112,3 +1132,61 @@ body {
 
   body .mobile-alchemy-nav { display: grid !important; }
 }
+
+/* Scene-first mobile alchemy: ingredients orbit the furnace; utility pages stay secondary. */
+.alchemy-scene-shortcuts,.alchemy-scene-utility{display:none}
+@media(max-width:760px){
+  body .game-shell.mobile-alchemy-furnace{padding-bottom:0!important;background:radial-gradient(circle at 50% 43%,rgba(117,83,38,.2),transparent 38%),linear-gradient(180deg,#0a241d,#04120f)!important}
+  body .game-shell.mobile-alchemy-furnace>.topbar{height:58px!important;padding:max(6px,env(safe-area-inset-top)) 9px 5px!important;background:linear-gradient(90deg,rgba(6,28,22,.96),rgba(4,18,15,.94))!important;box-shadow:0 8px 28px #0008}
+  body .game-shell.mobile-alchemy-furnace>.alchemy-stage{inset:58px 0 0!important;background:radial-gradient(circle at 50% 46%,rgba(185,100,39,.13),transparent 34%),linear-gradient(180deg,rgba(7,28,23,.22),rgba(3,13,11,.88))!important}
+  body .game-shell.mobile-alchemy-furnace>.mobile-alchemy-nav{display:none!important}
+  body .game-shell.mobile-alchemy-furnace .furnace-zone{overflow:hidden}
+  body .game-shell.mobile-alchemy-furnace .furnace-wrap{width:min(360px,92vw)!important;margin-top:-34px!important;transform-origin:50% 58%;filter:drop-shadow(0 24px 23px #000b)!important}
+  body .game-shell.mobile-alchemy-furnace .energy-ring{top:43%!important}.game-shell.mobile-alchemy-furnace .ring-outer{width:390px!important;height:390px!important}.game-shell.mobile-alchemy-furnace .ring-inner{width:302px!important;height:302px!important}.game-shell.mobile-alchemy-furnace .furnace-glow{top:43%!important;width:310px!important;height:250px!important}.game-shell.mobile-alchemy-furnace .fire-core{bottom:185px!important}
+  body .game-shell.mobile-alchemy-furnace .slot-row{top:7px!important;gap:9px!important}.game-shell.mobile-alchemy-furnace .material-slot{width:72px!important;height:78px!important;padding-bottom:15px!important}.game-shell.mobile-alchemy-furnace .material-slot img{width:51px!important;height:51px!important}.game-shell.mobile-alchemy-furnace .material-slot small{font-size:7px!important}.game-shell.mobile-alchemy-furnace .material-slot.auxiliary{margin-left:0!important}
+  body .game-shell.mobile-alchemy-furnace .alchemy-material-wheel{left:50%!important;right:auto!important;top:auto!important;bottom:103px!important;width:250px!important;height:88px!important;display:grid!important;grid-template-columns:24px 38px minmax(0,1fr) 38px 24px!important;grid-template-rows:1fr!important;padding:4px 5px!important;transform:translateX(-50%)!important;border-radius:44px!important;background:linear-gradient(180deg,rgba(15,50,38,.91),rgba(4,20,16,.97))!important;box-shadow:0 13px 30px #000a!important}.game-shell.mobile-alchemy-furnace .alchemy-material-wheel:before{inset:3px!important;opacity:.5!important;border-radius:40px!important}.game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-caption{left:50%!important;top:3px!important}.game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-step{width:24px!important;height:78px!important}.game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-step span{transform:rotate(-90deg)!important}.game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-preview{width:38px!important;height:60px!important}.game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-preview .rotary-art{width:32px!important;height:32px!important}.game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-current{width:120px!important;height:68px!important;border-radius:34px!important}.game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-item{grid-template-columns:47px minmax(0,1fr)!important;gap:6px!important}.game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-art{width:47px!important;height:47px!important}.game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-item strong{font-size:9px!important}.game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-item small{font-size:7px!important}
+  body .game-shell.mobile-alchemy-furnace .brew-controls{bottom:13px!important;width:220px!important}.game-shell.mobile-alchemy-furnace .brew-controls .progress-track{width:150px!important;margin-bottom:6px!important}.game-shell.mobile-alchemy-furnace .brew-button{width:190px!important;height:55px!important;border-radius:28px;clip-path:none!important;background:radial-gradient(circle at 50% 30%,#6f663a,#223d31 62%,#0b1e19)!important;box-shadow:0 0 0 4px rgba(5,20,16,.9),0 0 0 5px #9a7a41,0 0 24px rgba(224,175,72,.18)!important}.game-shell.mobile-alchemy-furnace .brew-controls p{display:none!important}
+  .alchemy-scene-shortcuts{position:absolute;z-index:40;left:9px;bottom:max(14px,env(safe-area-inset-bottom));display:flex;gap:6px}.alchemy-scene-shortcuts button,.alchemy-scene-utility button{min-width:48px;min-height:52px;display:grid;place-items:center;gap:1px;padding:4px;color:#b9c9b9;border:1px solid rgba(172,143,80,.33);border-radius:22px;background:rgba(7,27,21,.92);box-shadow:0 8px 18px #0008}.alchemy-scene-shortcuts i,.alchemy-scene-utility i{width:28px;height:28px;display:grid;place-items:center;border:1px solid currentColor;border-radius:50%;font-style:normal}.alchemy-scene-shortcuts span,.alchemy-scene-utility span{font-size:6px;white-space:nowrap}
+  .alchemy-scene-utility{position:absolute;z-index:44;right:9px;bottom:max(14px,env(safe-area-inset-bottom));display:block}.alchemy-utility-toggle{position:relative;z-index:3}.alchemy-utility-fan{position:absolute;right:0;bottom:59px;display:grid;gap:6px;visibility:hidden;transform:translateY(12px) scale(.88);transform-origin:100% 100%;opacity:0;pointer-events:none;transition:transform .22s cubic-bezier(.2,.85,.3,1.2),opacity .16s}.alchemy-scene-utility.open .alchemy-utility-fan{visibility:visible;transform:none;opacity:1;pointer-events:auto}.alchemy-scene-utility.open .alchemy-utility-toggle{color:#f0d58c;border-color:#bc9650;background:#3d4a2e}
+}
+
+@media(max-width:380px),(max-height:720px){body .game-shell.mobile-alchemy-furnace .furnace-wrap{width:310px!important;margin-top:-52px!important}body .game-shell.mobile-alchemy-furnace .alchemy-material-wheel{bottom:92px!important;width:224px!important}.game-shell.mobile-alchemy-furnace .alchemy-material-wheel .rotary-current{width:98px!important}.game-shell.mobile-alchemy-furnace .alchemy-scene-shortcuts button:nth-child(2){display:none}.game-shell.mobile-alchemy-furnace .brew-controls{bottom:9px!important}.game-shell.mobile-alchemy-furnace .fire-core{bottom:164px!important}}
+@media(prefers-reduced-motion:reduce){.alchemy-utility-fan{transition-duration:.001ms!important}}
+
+/* Hand-painted alchemy room and state-driven spiritual effects. */
+.game-shell>.backdrop{
+  background-image:linear-gradient(180deg,rgba(4,19,15,.05),rgba(2,10,8,.5) 72%,rgba(1,6,5,.84)),url('/assets/gameplay-scenes/alchemy-chamber-v2.webp')!important;
+  background-position:center 55%;filter:saturate(.93) contrast(1.04) brightness(.88);
+}
+.furnace-zone:before{
+  content:"";position:absolute;z-index:2;left:50%;top:50%;width:min(520px,98vw);aspect-ratio:1;transform:translate(-50%,-50%);opacity:.22;
+  background-image:url('/assets/gameplay-scenes/xianxia-vfx-atlas.webp');background-size:400% 300%;background-position:100% 100%;mix-blend-mode:screen;pointer-events:none;
+  animation:alchemyMistSigil 7.5s ease-in-out infinite alternate;
+}
+.phase-brewing .furnace-zone:before{opacity:.46;animation-duration:2.4s;filter:drop-shadow(0 0 18px rgba(223,139,67,.28))}
+.phase-done .furnace-zone:before{background-position:33.333% 50%;opacity:.62;animation:alchemyResultSpiral 1.5s cubic-bezier(.16,.8,.24,1) both}
+.furnace-wrap:before{
+  content:"";position:absolute;z-index:-1;left:50%;bottom:-6%;width:92%;aspect-ratio:1;transform:translateX(-50%);opacity:0;
+  background-image:url('/assets/gameplay-scenes/xianxia-vfx-atlas.webp');background-size:400% 300%;background-position:33.333% 50%;mix-blend-mode:screen;pointer-events:none;
+}
+.phase-brewing .furnace-wrap:before{opacity:.54;animation:alchemyEmberCoil 1.35s linear infinite}
+.phase-done .furnace-wrap:before{opacity:.74;animation:alchemyEmberRelease .9s cubic-bezier(.14,.78,.2,1) both}
+.material-slot.filled{background:radial-gradient(circle at 50% 44%,rgba(108,166,127,.28),rgba(8,31,24,.92) 68%)!important;box-shadow:inset 0 0 16px rgba(164,216,159,.08),0 7px 18px #0008}
+.material-slot.filled:after{content:"";position:absolute;inset:-5px;border:1px solid rgba(202,180,106,.25);border-radius:50%;animation:alchemyIngredientOrbit 5s linear infinite;pointer-events:none}
+.brew-button:not(:disabled){transition:transform .16s cubic-bezier(.2,.8,.3,1.3),filter .16s,box-shadow .16s}.brew-button:not(:disabled):active{transform:scale(.94);filter:brightness(1.28)}
+
+@keyframes alchemyMistSigil{from{transform:translate(-52%,-48%) scale(.9) rotate(-5deg);opacity:.14}to{transform:translate(-48%,-53%) scale(1.08) rotate(7deg);opacity:.34}}
+@keyframes alchemyResultSpiral{0%{transform:translate(-50%,-45%) scale(.26);opacity:0}42%{opacity:.78}100%{transform:translate(-50%,-52%) scale(1.14);opacity:.24}}
+@keyframes alchemyEmberCoil{to{transform:translateX(-50%) rotate(360deg)}}
+@keyframes alchemyEmberRelease{0%{transform:translateX(-50%) scale(.3);opacity:0}45%{opacity:.92}100%{transform:translateX(-50%) scale(1.18);opacity:.12}}
+@keyframes alchemyIngredientOrbit{to{transform:rotate(360deg)}}
+
+@media(max-width:760px){
+  .game-shell>.backdrop{background-position:center 56%!important;transform:scale(1.015)}
+  body .game-shell.mobile-alchemy-furnace>.alchemy-stage{
+    background-image:linear-gradient(180deg,rgba(4,22,16,.03),rgba(2,12,9,.42)),url('/assets/gameplay-scenes/alchemy-chamber-v2.webp')!important;
+    background-size:cover!important;background-position:center 55%!important;
+  }
+  body .game-shell.mobile-alchemy-furnace .furnace-zone:before{top:45%;width:420px}
+}
+@media(prefers-reduced-motion:reduce){.furnace-zone:before,.furnace-wrap:before,.material-slot.filled:after{animation:none!important}}

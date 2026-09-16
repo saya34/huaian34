@@ -35,6 +35,8 @@ import { resolveGatheringOutcome } from "../gathering/engine";
 import { ACTION_COSTS, actionCostLabel, checkActionAdmission } from "../core/action-service";
 import GatheringFocusHud from "../gathering/GatheringFocusHud";
 import { GATHERING_PRESENTATION, gatheringCopy } from "../gathering/content";
+import { createActivityReceipt } from "../core/activity-receipt";
+import RotarySelector from "../ui/RotarySelector";
 
 type Props = { day: number; period: Period; onNotice: (message: string) => void; initialView?: "field" | "livestock"; onClose?: () => void };
 
@@ -42,7 +44,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
   const { state, setFarm, setGathering, applyEffects } = useUnifiedGame();
   const feedback = useFeedback();
   const [selectedCropId, setSelectedCropId] = useState<HerbCropId>("frost-heart");
-  const [message, setMessage] = useState("选中灵种后直接点击空田播种；成熟后再次点击即可收获。仙草只随游戏内时辰成长。");
+  const [message, setMessage] = useState(GATHERING_PRESENTATION.farm.initialMessage);
   const [plotFx, setPlotFx] = useState<{ id: string; kind: "plant" | "harvest" | "fertilize" } | null>(null);
   const [floatingInfo, setFloatingInfo] = useState<{ id: string; text: string; tone: "green" | "gold" | "blue" } | null>(null);
   const [toolMode, setToolMode] = useState<"inspect" | "water" | "fertilize">("inspect");
@@ -127,6 +129,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
     if (result.mutated) feedback.publish({variant:"rare-reward",priority:0,tone:"gold",titleKey:"farm.mutationTitle",bodyKey:"farm.mutationBody",params:{name:cropById(farm.plots.find((entry)=>entry.id===plotId)?.cropId ?? selectedCropId).materialName},icon:"变",dedupeKey:`farm:mutation:${plotId}:${tick}`});
     const effects:Parameters<typeof applyEffects>[0]=[{ type: "add_item", item: {...result.reward,sourceTags:[...result.reward.sourceTags,"农产",harvestedCrop.element]} }, { type: "add_player_exp", amount: Math.max(1, Math.floor(result.experience / 2)) }];
     if(careerResult.companion)effects.push({type:"add_item",item:{itemId:careerResult.companion.id,itemType:careerResult.companion.itemType,rarity:careerResult.companion.rarity as 1|2|3|4|5,amount:1,sourceTags:["灵圃伴生",...careerResult.companion.tags],locked:careerResult.companion.locked}});
+    effects.push({type:"record_activity",receipt:createActivityReceipt({kind:"farming",title:`收获 · ${harvestedCrop.materialName}`,summary:"灵植已收入乾坤行囊，并同步检查炼丹与任务需求。",rewards:[`${harvestedCrop.materialName} ×${result.reward.amount}`,careerResult.companion?`${careerResult.companion.name} ×1`:"灵种返还 ×1"],impacts:[`灵植师经验 +${careerResult.experience}`,`修为 +${Math.max(1,Math.floor(result.experience/2))}`],nextStep:{target:"alchemy",label:"带着新灵材前往炼丹"}})});
     applyEffects(effects);
     announce(`${result.message} · 返种 1 · 灵植师经验 +${careerResult.experience}${careerResult.companion?` · 伴生${careerResult.companion.name}`:""}`);
   }
@@ -203,10 +206,10 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
       rewards.set(result.reward.itemId, previous ? { ...result, reward: { ...result.reward, amount: previous.reward.amount + result.reward.amount } } : result);
     }
     if (!count) { setMessage("目前没有已经成熟的仙草。"); return; }
-    let gathering=state.gathering;const extraEffects:Parameters<typeof applyEffects>[0]=[];let seedReturns={...next.seeds};
+    let gathering=state.gathering;const extraEffects:Parameters<typeof applyEffects>[0]=[];const seedReturns={...next.seeds};
     for(const result of rewards.values()){const crop=HERB_CROPS.find(entry=>cropMaterial(entry).id===result.reward.itemId)!;const material=cropMaterial(crop);const rolled=resolveGatheringOutcome(gathering,{professionId:"farming",itemId:result.reward.itemId,name:crop.materialName,rarity:result.reward.rarity,art:material.image,location:"云岫灵圃",tick,seed:`bulk-farm:${day}:${result.reward.itemId}:${farm.harvestSerial}`,tags:["农产",crop.element,"炼丹"]});gathering=rolled.progress;seedReturns[crop.id]=(seedReturns[crop.id]??0)+1;if(rolled.companion)extraEffects.push({type:"add_item",item:{itemId:rolled.companion.id,itemType:rolled.companion.itemType,rarity:rolled.companion.rarity as 1|2|3|4|5,amount:1,sourceTags:["灵圃伴生",...rolled.companion.tags],locked:rolled.companion.locked}});}
     setGathering(gathering);setFarm({...next,seeds:seedReturns});
-    applyEffects([...rewards.values().map((result) => ({ type: "add_item" as const, item: {...result.reward,sourceTags:[...result.reward.sourceTags,"农产"]} })),...extraEffects, { type: "add_player_exp", amount: Math.max(1, Math.floor(experience / 2)) }]);
+    applyEffects([...rewards.values().map((result) => ({ type: "add_item" as const, item: {...result.reward,sourceTags:[...result.reward.sourceTags,"农产"]} })),...extraEffects, { type: "add_player_exp", amount: Math.max(1, Math.floor(experience / 2)) },{type:"record_activity",receipt:createActivityReceipt({kind:"farming",title:"灵田批量收获",summary:"成熟灵植已批量归入统一行囊，并自动返还每种灵种。",rewards:[`仙草 ×${count}`,`修为 +${Math.max(1,Math.floor(experience/2))}`],impacts:["灵植师历练已记录","炼丹与任务库存已同步"],nextStep:{target:"alchemy",label:"前往玄火丹炉加工"}})}]);
     announce(`一键收获 · 仙草 ${count} 株 · 已返还每种灵种 · 灵植师历练已记录`);
   }
 
@@ -235,7 +238,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
 
   if (livestockOpen) return <LivestockPanel day={day} period={period} onBack={() => setLivestockOpen(false)} onClose={onClose} onNotice={onNotice} />;
 
-  return <section className={`spirit-farm-panel field-mode-${toolMode} ${readyCount ? "has-ready-harvest" : ""}`} aria-label="云岫灵圃">
+  return <section className={`spirit-farm-panel field-mode-${toolMode} ${readyCount ? "has-ready-harvest" : ""}`} role="dialog" aria-modal="true" aria-label="云岫灵圃">
     <header className="farm-status-bar">
       <div><small>HERBAL CULTIVATION · 云岫灵圃</small><h3>灵田 · 灵兽苑</h3></div>
       <nav className="farm-scene-tabs"><button type="button" className="active">灵田十二畦</button><button type="button" onClick={() => setLivestockOpen(true)}>灵兽苑</button></nav>
@@ -258,6 +261,17 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
       <div className="farm-field-wrap">
         <div className="farm-world-decor" aria-hidden="true"><i className="farm-mountain"/><i className="farm-stream"/><i className="farm-pavilion"/><span className="farm-fireflies"><b/><b/><b/><b/></span></div>
         <GatheringFocusHud theme="farm" kicker={fieldUi.kicker} objective={fieldObjective} value={fieldValue} hint={fieldUi.hint} icon={readyCount ? "收" : "芽"} attention={readyCount > 0} meter={readyCount ? 100 : growingCount ? Math.round(farm.plots.filter((plot) => plot.cropId).reduce((sum, plot) => sum + plotGrowth(plot, tick, weather).progress, 0) / Math.max(1, growingCount)) : 0} stats={[{ label: fieldUi.stats[0], value: readyCount }, { label: fieldUi.stats[1], value: growingCount }, { label: fieldUi.stats[2], value: `${supportedPlots}/${unlockedPlots}` }]} />
+        <RotarySelector
+          className="farm-seed-wheel"
+          items={visibleCrops.map((crop) => ({ id: crop.id, name: crop.seedName, glyph: crop.seedName.slice(0, 1), image: cropMaterial(crop).image, meta: gatheringCopy(fieldUi.seedWheel.stock, { count: farm.seeds[crop.id] ?? 0 }), disabled: level < crop.unlockLevel || farmingCareer.toolTier < crop.unlockLevel }))}
+          value={selectedCropId}
+          onChange={(id) => setSelectedCropId(id as HerbCropId)}
+          ariaLabel={fieldUi.seedWheel.aria}
+          caption={fieldUi.seedWheel.caption}
+          previousLabel={fieldUi.seedWheel.previous}
+          nextLabel={fieldUi.seedWheel.next}
+          activateLabel={fieldUi.seedWheel.activate}
+        />
         <div className="farm-field-head"><span>已成熟 <b>{readyCount}</b></span><span>生长中 <b>{growingCount}</b></span><span>灵泉润养 <b>{supportedPlots}/{unlockedPlots} 畦</b></span><span>灵壤 <b>{farm.spiritSoil}</b></span></div>
         <div className="farm-tool-dock" aria-label="灵田工具">
           <button type="button" className={toolMode === "inspect" ? "active" : ""} onClick={() => setToolMode("inspect")}><i>察</i><span>察看与收获</span></button>
@@ -272,7 +286,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
           const material = crop ? cropMaterial(crop) : null;
           const growth = plotGrowth(plot, tick, weather);
           const stage = growth.ready ? "ready" : growth.progress >= 65 ? "almost" : growth.progress >= 25 ? "sprout" : "seedling";
-          return <button type="button" key={plot.id} className={`farm-plot ${locked ? "locked" : ""} ${unsupported ? "unsupported" : ""} ${plot.cropId ? stage : "empty"} ${plot.watered ? "watered" : ""} ${plot.fertilized ? "fertilized" : ""} ${plotFx?.id === plot.id ? `fx-${plotFx.kind}` : ""}`} onClick={() => locked ? feedback.toast({titleKey:"farm.lockedHint",params:{level:level+1},icon:"锁",tone:"muted",dedupeKey:`farm:locked:${plot.id}`}) : unsupported ? feedback.toast({titleKey:"farm.unsupportedHint",params:{level:farm.wellLevel+1},icon:"泉",tone:"muted",dedupeKey:`farm:unsupported:${plot.id}`}) : interactPlot(plot.id)} aria-label={locked ? `第${index + 1}畦未解锁` : unsupported ? `第${index + 1}畦等待灵泉覆盖` : crop ? `${crop.materialName}，${growth.ready ? "已成熟" : `还需${growth.remaining}时辰`}` : `第${index + 1}畦空田`}>
+          return <button type="button" key={plot.id} data-plot-index={index} className={`farm-plot ${locked ? "locked" : ""} ${unsupported ? "unsupported" : ""} ${plot.cropId ? stage : "empty"} ${plot.watered ? "watered" : ""} ${plot.fertilized ? "fertilized" : ""} ${plotFx?.id === plot.id ? `fx-${plotFx.kind}` : ""}`} onClick={() => locked ? feedback.toast({titleKey:"farm.lockedHint",params:{level:level+1},icon:"锁",tone:"muted",dedupeKey:`farm:locked:${plot.id}`}) : unsupported ? feedback.toast({titleKey:"farm.unsupportedHint",params:{level:farm.wellLevel+1},icon:"泉",tone:"muted",dedupeKey:`farm:unsupported:${plot.id}`}) : interactPlot(plot.id)} aria-label={locked ? `第${index + 1}畦未解锁` : unsupported ? `第${index + 1}畦等待灵泉覆盖` : crop ? `${crop.materialName}，${growth.ready ? "已成熟" : `还需${growth.remaining}时辰`}` : `第${index + 1}畦空田`}>
             <span className="farm-soil-lines" />
             {locked ? <span className="farm-lock"><b>封</b><small>{farmLevel(farm.experience) + 1}阶拓地</small></span> : crop && material ? <>
               <img src={material.image} alt="" style={{ "--crop-progress": Math.max(24, growth.progress), "--crop-color": crop.color } as React.CSSProperties} />
@@ -297,10 +311,9 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
     </div>
 
     <nav className="farm-mobile-nav" aria-label="灵田主要操作">
-      <button type="button" className={!mobileSheet ? "active" : ""} onClick={() => setMobileSheet(null)}><i>{fieldUi.mobileViews.field.icon}</i><span>{fieldUi.mobileViews.field.label}</span></button>
-      <button type="button" className={mobileSheet === "seeds" ? "active" : ""} onClick={() => setMobileSheet("seeds")}><i>{fieldUi.mobileViews.seeds.icon}</i><span>{fieldUi.mobileViews.seeds.label}</span></button>
-      <button type="button" className={mobileSheet === "career" ? "active" : ""} onClick={() => setMobileSheet("career")}><i>{fieldUi.mobileViews.career.icon}</i><span>{fieldUi.mobileViews.career.label}</span></button>
+      <button type="button" className={mobileSheet === "seeds" ? "active" : ""} onClick={() => setMobileSheet((current) => current === "seeds" ? null : "seeds")}><i>{fieldUi.mobileViews.seeds.icon}</i><span>{fieldUi.mobileViews.seeds.label}</span></button>
       <button type="button" className="primary" onClick={readyCount ? bulkHarvest : bulkPlant}><i>{readyCount ? "收" : "耕"}</i><span>{readyCount ? fieldUi.mobileViews.harvest : fieldUi.mobileViews.plant}</span></button>
+      <button type="button" className={mobileSheet === "career" ? "active" : ""} onClick={() => setMobileSheet((current) => current === "career" ? null : "career")}><i>{fieldUi.mobileViews.career.icon}</i><span>{fieldUi.mobileViews.career.label}</span></button>
     </nav>
 
     <footer className="farm-message" aria-live="polite"><span>圃</span><p>{message}</p><b>第 {day} 日 · {period} · 时序 {tick + 1}</b></footer>

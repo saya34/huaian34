@@ -35,7 +35,7 @@ const TEXT_INDEX: Record<string, string> = {
 
 export function feedbackText(key: string, params: FeedbackTextParams = {}) {
   const source = TEXT_INDEX[key] ?? TEXT_INDEX["system.missingText"];
-  const merged = { key, ...params };
+  const merged: Record<string, string | number> = { key, ...params };
   return source.replace(/\{([\w.]+)\}/g, (token, name: string) => {
     const value = merged[name];
     return value === undefined ? token : String(value);

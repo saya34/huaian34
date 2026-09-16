@@ -72,6 +72,8 @@ import { ACTION_COSTS, actionCostLabel, checkActionAdmission } from "../core/act
 import { useFeedback } from "../feedback/FeedbackProvider";
 import { feedbackText } from "../feedback/texts";
 import alchemyUi from "./data/ui.json";
+import { createActivityReceipt } from "../core/activity-receipt";
+import RotarySelector from "../ui/RotarySelector";
 
 const FILTERS = ["全部", "灵草", "妖丹", "矿骨", "辅材", "法器"];
 const CODEX_FILTERS = ["全部", "材料", "成品", "神品", "神话"];
@@ -113,7 +115,7 @@ function playTone(kind: "drop" | "ignite" | "reveal") {
   window.setTimeout(() => void ctx.close(), 1500);
 }
 
-export default function Home({ embedded = false }: { embedded?: boolean }) {
+export default function Home({ embedded = false, onExit }: { embedded?: boolean; onExit?: () => void }) {
   const { state: unifiedState, setAlchemy, applyEffects } = useUnifiedGame();
   const feedback = useFeedback();
   const alchemy = unifiedState.alchemy;
@@ -128,6 +130,8 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
   const [characterFilter, setCharacterFilter] = useState("全部人物");
   const [inventoryPage, setInventoryPage] = useState(0);
   const [mobileView, setMobileView] = useState<"furnace" | "inventory" | "visitors">("furnace");
+  const [mobileMaterialId, setMobileMaterialId] = useState(MATERIALS[0].id);
+  const [mobileUtilityOpen, setMobileUtilityOpen] = useState(false);
   const [phase, setPhase] = useState<"idle" | "ready" | "brewing" | "done">("idle");
   const [timeLeft, setTimeLeft] = useState(8);
   const [showResult, setShowResult] = useState(false);
@@ -145,6 +149,9 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
   const [soundOn, setSoundOn] = useState(true);
   const [dragging, setDragging] = useState<{ item: GameItem; x: number; y: number } | null>(null);
   const materialCounts = alchemy.materialCounts;
+  const wheelMaterials = INVENTORY_MATERIALS.filter((item) => item.canBeIngredient && item.itemType === "material" && (materialCounts[item.id] ?? 0) > 0);
+  const visibleWheelMaterials = wheelMaterials.length ? wheelMaterials : INVENTORY_MATERIALS.filter((item) => item.canBeIngredient && item.itemType === "material").slice(0, 3);
+  const selectedWheelMaterial = visibleWheelMaterials.find((item) => item.id === mobileMaterialId) ?? visibleWheelMaterials[0];
   const setMaterialCounts = (value: SetStateAction<Record<string, number>>) => setField("materialCounts", value);
   const [recipeRules, setRecipeRules] = useState<RecipeRule[]>(DEFAULT_RECIPE_RULES);
   const [recipeVersion, setRecipeVersion] = useState(1);
@@ -606,6 +613,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
   function collectResult() {
     const key = productStackKey(resultItem.id, resultMutation);
     setProductStacks((current) => ({ ...current, [key]: { productId: resultItem.id, mutation: resultMutation, count: (current[key]?.count ?? 0) + 1 } }));
+    applyEffects([{type:"record_activity",receipt:createActivityReceipt({kind:"alchemy",title:`炼成 · ${mutationDisplayName(resultItem,resultMutation)}`,summary:"丹药实例、品质与异变词缀已写入统一行囊。",rewards:[`${mutationDisplayName(resultItem,resultMutation)} ×1`],impacts:["万物图鉴与任务库存已同步","可作为战前补给使用"],nextStep:{target:"tasks",label:"查看可推进的任务"}})}]);
     setShowResult(false);
     setSlots([null, null, null]);
     setPhase("idle");
@@ -915,7 +923,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
       <div className="vignette" aria-hidden="true" />
 
       <header className="topbar">
-        <button className="round-button" aria-label="返回主界面" onClick={() => window.parent !== window ? window.parent.postMessage({ type: "huaian-close-module" }, window.location.origin) : window.location.assign("/")}>返</button>
+        <button className="round-button" aria-label="返回主界面" onClick={() => onExit ? onExit() : window.parent !== window ? window.parent.postMessage({ type: "huaian-close-module" }, window.location.origin) : window.location.assign("/")}>返</button>
         <div className="title-lockup">
           <span className="eyebrow">太虚仙府 · 炼丹房</span>
           <h1>玄火丹炉</h1>
@@ -946,6 +954,31 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
         </aside>
 
         <div className="furnace-zone">
+          {selectedWheelMaterial && <RotarySelector
+            className="alchemy-material-wheel"
+            direction="horizontal"
+            items={visibleWheelMaterials.map((item) => ({ id: item.id, name: item.name, glyph: item.name.slice(0, 1), image: item.image, meta: alchemyUi.heldCount.replace("{count}", String(materialCounts[item.id] ?? 0)), disabled: (materialCounts[item.id] ?? 0) <= 0 }))}
+            value={selectedWheelMaterial.id}
+            onChange={setMobileMaterialId}
+            onActivate={(id) => { const item = visibleWheelMaterials.find((entry) => entry.id === id); if (item) addIngredient(item); }}
+            ariaLabel={alchemyUi.materialWheelAria}
+            caption={alchemyUi.materialWheelCaption}
+            previousLabel={alchemyUi.previousMaterial}
+            nextLabel={alchemyUi.nextMaterial}
+            activateLabel={alchemyUi.addMaterial}
+          />}
+          <div className="alchemy-scene-shortcuts">
+            <button type="button" onClick={() => setMobileView("inventory")}><i>囊</i><span>{alchemyUi.openBag}</span></button>
+            <button type="button" onClick={quickRecipe}><i>方</i><span>{alchemyUi.quickRecipe}</span></button>
+          </div>
+          <div className={`alchemy-scene-utility ${mobileUtilityOpen ? "open" : ""}`}>
+            <button type="button" className="alchemy-utility-toggle" onClick={() => setMobileUtilityOpen((current) => !current)} aria-expanded={mobileUtilityOpen}><i>卷</i><span>{alchemyUi.more}</span></button>
+            <div className="alchemy-utility-fan">
+              <button type="button" onClick={() => { setMobileView("visitors"); setMobileUtilityOpen(false); }}><i>客</i><span>{alchemyUi.visitors}</span></button>
+              <button type="button" onClick={() => { setShowMarket(true); setMobileUtilityOpen(false); }}><i>市</i><span>{alchemyUi.market}</span></button>
+              <button type="button" onClick={() => { setShowCodex(true); setMobileUtilityOpen(false); }}><i>鉴</i><span>{alchemyUi.codex}</span></button>
+            </div>
+          </div>
           <div className="slot-row" aria-label="炼丹材料槽">
             {slots.map((slot, index) => (
               <button
@@ -988,7 +1021,7 @@ export default function Home({ embedded = false }: { embedded?: boolean }) {
             <button className={`brew-button ${phase === "done" ? "complete" : ""}`} onClick={primaryAction} disabled={phase === "brewing"}>
               <span className="button-corner corner-left" /><span>{buttonLabel}</span><span className="button-corner corner-right" />
             </button>
-            <p>{phase === "brewing" ? "文火凝丹，切勿心急" : phase === "done" ? "丹光已成，点击开炉" : `拖入灵材，或点击物品自动添加 · ${actionCostLabel("alchemy")}`}</p>
+            <p>{phase === "brewing" ? alchemyUi.furnaceBrewing.replace("{remaining}", String(timeLeft)) : phase === "done" ? alchemyUi.furnaceDone : alchemyUi.furnaceIdle.replace("{filled}", String(filled)).replace("{cost}", actionCostLabel("alchemy"))}</p>
           </div>
         </div>
 

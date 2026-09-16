@@ -1,0 +1,114 @@
+{
+  "characters": [
+    {
+      "id": "gu-tinglan",
+      "name": "顾听澜",
+      "role": "醉月楼琵琶娘",
+      "courtesy": "听澜娘子",
+      "bio": "常在醉月楼临水的窗边调弦。她记得每位客人点过的酒，也能从一支曲子里听出未出口的心事。",
+      "sceneId": "tavern",
+      "image": "/assets/characters/transparent-npcs/gu-tinglan.png",
+      "accent": "#c88c62",
+      "lovedGift": "peachWine",
+      "relationshipAddresses": ["客人", "道友", "你", "曲中人"],
+      "giftPreferences": [
+        { "giftId": "peachWine", "tier": "loved", "reaction": "她轻抚琵琶弦，笑说好酒应配一支只弹给你的曲子。" },
+        { "giftId": "goldHairpin", "tier": "liked", "reaction": "她将发簪斜插入鬓，低声问你是否与今日的曲子相称。" },
+        { "giftId": "herbSachet", "tier": "neutral", "reaction": "她把香囊系在琴囊上，草木香随着弦音轻轻散开。" }
+      ],
+      "ambientLines": [
+        "水声乱时，弦要放得更稳。人心大约也是如此。",
+        "你若坐近一些，我便弹一支楼里其他客人没听过的曲子。",
+        "昨夜有人把你的故事编成了小调，可惜唱得不大准确。"
+      ]
+    },
+    {
+      "id": "tang-feixian",
+      "name": "唐绯弦",
+      "role": "云州行商乐师",
+      "courtesy": "绯弦姑娘",
+      "bio": "抱着一面旧琵琶走遍诸州，将异地曲谱和稀奇货物一起带进云州。她的摊位从不在同一处停太久。",
+      "sceneId": "market",
+      "image": "/assets/characters/transparent-npcs/tang-feixian.png",
+      "accent": "#d58b9a",
+      "lovedGift": "goldHairpin",
+      "relationshipAddresses": ["买主", "熟客", "你", "归弦"],
+      "giftPreferences": [
+        { "giftId": "goldHairpin", "tier": "loved", "reaction": "她对着琵琶的漆面照了照发簪，罕见地忘了继续讨价还价。" },
+        { "giftId": "snowTea", "tier": "liked", "reaction": "她收起摊布，邀你坐下来听一段北地新曲。" },
+        { "giftId": "osmanthusCake", "tier": "neutral", "reaction": "她掰下一小块糕点，说赶路时甜味总能让人安心。" }
+      ],
+      "ambientLines": [
+        "今日只卖三样东西：远方的曲子、旧城的传闻，还有一点好心情。",
+        "这把琵琶走过的路比许多飞剑都远，你想听哪一州的故事？",
+        "市集散后我便启程。若你来得迟，或许要去下一座城找我。"
+      ]
+    },
+    {
+      "id": "bai-zhiwei",
+      "name": "白知微",
+      "role": "寄居听云居的义妹",
+      "courtesy": "阿微",
+      "bio": "幼时与你一同被宗门收留，如今暂住听云居养伤。她看似柔弱，却将许多无人留意的细节记得清清楚楚。",
+      "sceneId": "bedroom",
+      "image": "/assets/characters/transparent-npcs/bai-zhiwei.png",
+      "accent": "#a8cdbc",
+      "lovedGift": "herbSachet",
+      "relationshipAddresses": ["师兄", "哥哥", "你", "最亲的人"],
+      "giftPreferences": [
+        { "giftId": "herbSachet", "tier": "loved", "reaction": "她把香囊放在枕边，眼里的不安终于淡了一些。" },
+        { "giftId": "osmanthusCake", "tier": "liked", "reaction": "她把云片糕藏起一半，说要等你晚归时一起吃。" },
+        { "giftId": "peachWine", "tier": "disliked", "reaction": "她闻到酒气便轻轻蹙眉，仍小心替你收好了。" }
+      ],
+      "ambientLines": [
+        "你出去历练时，我会替你看着窗前那盏灯。",
+        "今日已经不疼了，真的。你别又去麻烦柳医师。",
+        "等伤好以后，我也想学会御剑，至少能追得上你。"
+      ]
+    },
+    {
+      "id": "lu-yaoyao",
+      "name": "陆夭夭",
+      "role": "膳堂首席师姐",
+      "courtesy": "夭夭师姐",
+      "bio": "掌管宗门膳堂火候与灵膳配伍。她笑起来毫无戒心，却能凭一口汤判断灵植来自哪一畦田。",
+      "sceneId": "lingxiao",
+      "image": "/assets/characters/transparent-npcs/lu-yaoyao.png",
+      "accent": "#d4b36f",
+      "lovedGift": "osmanthusCake",
+      "relationshipAddresses": ["小师弟", "尝味的", "你", "同席人"],
+      "giftPreferences": [
+        { "giftId": "osmanthusCake", "tier": "loved", "reaction": "她认真尝了两口，随即兴致勃勃地与你讨论改良糖霜的办法。" },
+        { "giftId": "herbSachet", "tier": "liked", "reaction": "她逐样辨过香囊里的草药，说正好能试一道安神灵羹。" },
+        { "giftId": "snowTea", "tier": "neutral", "reaction": "她把茶叶收进膳堂，答应下次熬汤时替你留一碗。" }
+      ],
+      "ambientLines": [
+        "先别走，替我尝一口。放心，这锅没有炸过第二次。",
+        "灵膳与炼丹一样讲究火候，只是失败以后至少还能蘸酱吃。",
+        "你今日气色不对。坐下，这碗汤喝完之前不许去练剑。"
+      ]
+    },
+    {
+      "id": "ning-xiaoman",
+      "name": "宁小满",
+      "role": "情报局夜巡弟子",
+      "courtesy": "小满",
+      "bio": "负责在夜色中收回散落云州的传讯纸鹤。怀里的机关灵偶能记下声音，也是她最可靠的搭档。",
+      "sceneId": "intelligence-bureau",
+      "image": "/assets/characters/transparent-npcs/ning-xiaoman.png",
+      "accent": "#6f9fc2",
+      "lovedGift": "snowTea",
+      "relationshipAddresses": ["前辈", "师兄", "你", "守夜人"],
+      "giftPreferences": [
+        { "giftId": "snowTea", "tier": "loved", "reaction": "她捧着热茶坐到灯下，怀里的机关灵偶也像是放松下来。" },
+        { "giftId": "osmanthusCake", "tier": "liked", "reaction": "她悄悄分了一小块给机关灵偶，随后才想起它并不能吃。" },
+        { "giftId": "goldHairpin", "tier": "neutral", "reaction": "她把发簪别到灵偶耳边，认真端详了许久。" }
+      ],
+      "ambientLines": [
+        "嘘，刚回来的纸鹤正在复述消息，它们很怕吵。",
+        "我不是困，只是夜巡时风太大，眼睛有一点睁不开。",
+        "若你也要走夜路，可以带上这只灵偶。它胆子比我大一点。"
+      ]
+    }
+  ]
+}

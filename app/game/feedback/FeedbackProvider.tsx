@@ -20,7 +20,7 @@ const FEEDBACK_HISTORY_KEY = "huaian-feedback-history-v1";
 function compactCenterQueue(items: FeedbackItem[]) {
   if (items.length <= 5) return items;
   const kept=items.slice(0,4),rest=items.slice(4),last=rest.at(-1)!;
-  return [...kept,{...last,id:`${last.id}-summary`,variant:"project-milestone" as const,priority:2,titleKey:"world.phaseSummaryTitle",bodyKey:"world.phaseSummaryBody",params:{count:rest.length},icon:"录",count:1,dedupeKey:`phase-summary:${last.createdAt}`}];
+  return [...kept,{...last,id:`${last.id}-summary`,variant:"project-milestone" as const,priority:2 as const,titleKey:"world.phaseSummaryTitle",bodyKey:"world.phaseSummaryBody",params:{count:rest.length},icon:"录",count:1,dedupeKey:`phase-summary:${last.createdAt}`}];
 }
 
 function defaultTone(input: FeedbackInput): FeedbackTone {

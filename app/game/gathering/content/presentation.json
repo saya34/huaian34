@@ -7,7 +7,9 @@
     "readyValue": "{count} 畦可收",
     "growingValue": "{count} 畦生长中",
     "emptyValue": "等待播种",
+    "initialMessage": "灵种已备，空畦正等待承接灵息。仙草只随游戏内时辰生长。",
     "hint": "点击田畦直接执行当前工具；成熟田畦始终优先收获",
+    "seedWheel": { "aria": "灵种转轮", "caption": "灵种", "previous": "上一枚灵种", "next": "下一枚灵种", "activate": "选用灵种", "stock": "余 {count}" },
     "stats": ["成熟", "生长", "灵泉"],
     "mobileViews": {
       "field": { "icon": "田", "label": "灵田" },
@@ -28,6 +30,8 @@
     "idleValue": "等待投喂",
     "emptyValue": "栏舍尚空",
     "hint": "先选中苑中灵兽，再从下方选择本次主要照料动作",
+    "emptyAction": "寻找宁绾秋",
+    "emptyActionHint": "返回灵圃迎养灵兽",
     "stats": ["苑中", "可收", "栏舍"]
   },
   "mining": {
@@ -40,6 +44,18 @@
     "chestValue": "秘藏已抵达",
     "blockedValue": "暂不可达",
     "hint": "只可开掘与甬道相邻的亮起区域；越深入，稀有发现概率越高",
-    "stats": ["勘探", "耐久", "深度"]
+    "stats": ["勘探", "耐久", "深度"],
+    "mobilePanel": {
+      "icon": "备",
+      "open": "地宫整备",
+      "hint": "钥环 · 修镐 · 寻脉师",
+      "close": "收起整备",
+      "loadout": "灵镐",
+      "supplies": "行装",
+      "strike": "挥镐",
+      "openChest": "开匣",
+      "selectTarget": "择岩",
+      "targetHint": "点亮岩块后开掘"
+    }
   }
 }

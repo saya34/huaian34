@@ -62,6 +62,19 @@ export type DungeonProgress = {
   lastSettlement?: "victory" | "extracted" | "defeat";
 };
 
+export type ActivityDestination = "inventory" | "tasks" | "alchemy" | "battle" | "farm" | "fishing" | "mining" | "world";
+
+export type ActivityReceipt = {
+  id: string;
+  kind: "battle" | "alchemy" | "fishing" | "mining" | "farming" | "livestock" | "story" | "quest";
+  title: string;
+  summary: string;
+  rewards: string[];
+  impacts: string[];
+  nextStep: { target: ActivityDestination; label: string };
+  createdAt: number;
+};
+
 export type SharedPlayerState = {
   spiritStones: number;
   stamina: number;
@@ -86,6 +99,7 @@ export type UnifiedGameState = {
   gathering: GatheringProgress;
   dungeons: DungeonProgress;
   quests: QuestProgress;
+  activity: { last?: ActivityReceipt };
 };
 
 export type GameEffect =
@@ -99,6 +113,8 @@ export type GameEffect =
   | { type: "spend_stamina"; amount: number }
   | { type: "set_global_key"; key: string; value: boolean }
   | { type: "reveal_dungeon"; dungeonId: string }
-  | { type: "complete_dungeon"; waveId: number; result: "victory" | "extracted" | "defeat" };
+  | { type: "complete_dungeon"; waveId: number; result: "victory" | "extracted" | "defeat" }
+  | { type: "record_activity"; receipt: ActivityReceipt }
+  | { type: "clear_activity" };
 
 export type StateSetter<T> = Dispatch<SetStateAction<T>>;

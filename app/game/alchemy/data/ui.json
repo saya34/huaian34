@@ -1,4 +1,20 @@
 {
   "commissionLoading": "仙门正在核定本轮委托，请稍候……",
-  "commissionEmpty": "本轮委托均已完成，请静候下次张榜"
+  "commissionEmpty": "本轮委托均已完成，请静候下次张榜",
+  "materialWheelAria": "炼丹灵材转轮",
+  "materialWheelCaption": "灵材",
+  "previousMaterial": "上一味灵材",
+  "nextMaterial": "下一味灵材",
+  "addMaterial": "投入灵材",
+  "heldCount": "余 {count}",
+  "furnaceFull": "三才药位已满",
+  "furnaceIdle": "三才药位 {filled}/3 · {cost}",
+  "furnaceBrewing": "玄火凝丹 · {remaining}",
+  "furnaceDone": "丹光已成",
+  "quickRecipe": "丹方配伍",
+  "openBag": "灵囊",
+  "more": "炉房",
+  "visitors": "来客",
+  "market": "集市",
+  "codex": "图鉴"
 }

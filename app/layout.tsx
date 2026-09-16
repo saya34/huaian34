@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { UnifiedGameProvider } from "./game/core/UnifiedGameProvider";
-import { FeedbackProvider } from "./game/feedback/FeedbackProvider";
-import { UnifiedFeedbackBridge } from "./game/feedback/UnifiedFeedbackBridge";
 import "./game/feedback/feedback.css";
 
 export const metadata: Metadata = {
@@ -25,5 +22,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="zh-CN"><body><UnifiedGameProvider><FeedbackProvider><UnifiedFeedbackBridge>{children}</UnifiedFeedbackBridge></FeedbackProvider></UnifiedGameProvider></body></html>;
+  return <html lang="zh-CN"><body>{children}</body></html>;
 }

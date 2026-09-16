@@ -107,7 +107,11 @@
   .feedback-scroll .feedback-copy h2 { font-size: 19px; }
   .feedback-scroll .feedback-copy p { font-size: 11px; line-height: 1.55; }
   .feedback-close { right: 11%; top: 18%; width: 28px; height: 28px; }
-  .feedback-toast-stack { top: max(8px, env(safe-area-inset-top)); }
+  .feedback-toast-stack { top: calc(max(8px, env(safe-area-inset-top)) + 58px); right: 8px; width: min(72vw, 282px); }
+  .feedback-toast { padding: 9px 10px; border-radius: 14px 4px 14px 4px; }
+  .feedback-toast .feedback-copy > small { width: 26px; height: 26px; }
+  .feedback-toast .feedback-copy h2 { font-size: 12px; }
+  .feedback-toast .feedback-copy p { font-size: 9px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

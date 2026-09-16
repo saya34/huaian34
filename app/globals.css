@@ -4,6 +4,30 @@
 * { box-sizing:border-box; }
 html,body { margin:0; min-height:100%; background:#07100d; font-family:"Noto Serif SC","Songti SC",serif; }
 button { font:inherit; }
+
+/* Shared in-scene rotary selector: the visible item is always the active choice. */
+.rotary-selector{position:relative;z-index:12;width:116px;height:204px;display:grid;grid-template-rows:24px 42px 72px 42px 24px;align-items:center;justify-items:center;padding:2px 8px;color:#eaddb9;isolation:isolate;touch-action:none;outline:none;user-select:none}
+.rotary-selector:before{content:"";position:absolute;z-index:-1;inset:-8px -13px;background:url('/assets/ui/interaction/jade-selector-bezel-v1.png') center/100% 100% no-repeat;filter:drop-shadow(0 10px 16px #000a);opacity:.82;pointer-events:none}
+.rotary-selector button{min-width:44px;min-height:24px;margin:0;padding:0;border:0;background:transparent;color:inherit;cursor:pointer;touch-action:manipulation}
+.rotary-caption{position:absolute;z-index:5;left:50%;top:-4px;transform:translateX(-50%);color:#e2cb8a;font-size:7px;letter-spacing:2px;white-space:nowrap;pointer-events:none}
+.rotary-step{position:relative;z-index:4;width:54px;height:24px;opacity:.7}.rotary-step span{display:block;font:20px/18px Georgia,serif;text-shadow:0 0 8px #d4b868;transition:transform .16s}.rotary-step:active span{transform:scale(.72)}
+.rotary-preview{width:76px;height:42px;opacity:.4;filter:saturate(.55);transform:scale(.78);overflow:hidden}.rotary-preview .rotary-item>span{display:none}
+.rotary-current{position:relative;width:94px;height:72px;border-radius:50%!important}.rotary-current:active{transform:scale(.94)}
+.rotary-current:disabled{opacity:.52;filter:grayscale(.9)}
+.rotary-item{position:relative;width:100%;height:100%;display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:5px}.rotary-preview .rotary-item{display:grid;place-items:center}
+.rotary-art{width:42px;height:42px;display:grid;place-items:center;border:1px solid rgba(215,184,104,.48);border-radius:50%;background:rgba(6,25,19,.88) center/contain no-repeat;color:#f2d98e;font:500 16px/1 "STSong","SimSun",serif;box-shadow:inset 0 0 12px #0008,0 0 12px rgba(109,187,145,.12)}
+.rotary-preview .rotary-art{width:35px;height:35px;font-size:12px}.rotary-item>span{min-width:0;text-align:left}.rotary-item strong,.rotary-item small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rotary-item strong{font-size:9px;font-weight:500}.rotary-item small{margin-top:3px;color:#ad9c70;font-size:7px}.rotary-focus-ring{position:absolute;inset:2px;border:1px solid rgba(236,204,116,.5);border-radius:50%;box-shadow:0 0 0 3px rgba(220,184,92,.06),inset 0 0 14px rgba(74,166,123,.13);animation:rotaryFocus 1.9s ease-in-out infinite alternate;pointer-events:none}.rotary-selector:focus-visible .rotary-focus-ring{box-shadow:0 0 0 3px rgba(234,197,101,.22),0 0 18px rgba(225,194,109,.4)}
+.rotary-horizontal{width:218px;height:102px;grid-template-columns:24px 42px 82px 42px 24px;grid-template-rows:1fr}.rotary-horizontal .rotary-step span{transform:rotate(-90deg)}
+@keyframes rotaryFocus{to{opacity:.55;transform:scale(1.04)}}
+@media(prefers-reduced-motion:reduce){.rotary-focus-ring{animation:none}.rotary-selector *{transition-duration:.001ms!important}}
+
+/* Compact diegetic selector. It reads as an in-world dial instead of a framed web widget. */
+.rotary-selector{background:linear-gradient(180deg,rgba(10,32,25,.68),rgba(4,17,14,.88));border:1px solid rgba(213,177,94,.25);border-radius:28px;box-shadow:inset 0 0 24px rgba(91,160,119,.09),0 12px 26px #0008}
+.rotary-selector:before{inset:3px;background:repeating-conic-gradient(from 12deg,transparent 0 28deg,rgba(219,184,98,.18) 29deg 30deg);border:1px solid rgba(222,190,108,.12);border-radius:26px;filter:none;opacity:.65}
+.rotary-caption{top:5px;padding:1px 7px;border-radius:9px;background:#10271f;color:#cdb671;font-size:6px}
+.rotary-current{background:radial-gradient(circle,rgba(58,108,78,.5),rgba(5,22,17,.88) 70%);box-shadow:0 0 0 1px rgba(229,198,112,.22),inset 0 0 18px #0007}
+.rotary-preview{opacity:.34;filter:saturate(.42) brightness(.8)}
+.rotary-focus-ring{inset:-2px;border-color:rgba(242,207,112,.55);box-shadow:0 0 16px rgba(229,191,86,.18),inset 0 0 12px rgba(88,194,135,.13)}
 .module-home-link { position:fixed; z-index:10000; left:max(10px,env(safe-area-inset-left)); top:max(10px,env(safe-area-inset-top)); padding:8px 13px; border:1px solid rgba(220,195,132,.48); background:rgba(6,16,12,.88); color:#ead7a6; text-decoration:none; font-size:12px; letter-spacing:.08em; box-shadow:0 8px 24px #0006; backdrop-filter:blur(9px); }
 .dream-shell { min-height:100svh; position:relative; overflow:hidden; color:#f5efda; background:url('/assets/scenes/lingxiao-hall.webp') center/cover no-repeat; }
 .scene-wash { position:absolute; inset:0; background:linear-gradient(180deg,rgba(4,13,11,.34),rgba(3,9,7,.05) 42%,rgba(4,11,8,.92)),linear-gradient(90deg,rgba(5,13,10,.56),transparent 55%); }

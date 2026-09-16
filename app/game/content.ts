@@ -1,5 +1,6 @@
 import type { CharacterDefinition, CharacterMessageDefinition, EventDefinition, GiftDefinition, GlobalKeyDefinition, SceneDefinition } from "./types";
 import { SHOP_CHARACTERS, SHOP_EVENTS, SHOP_GIFTS, SHOP_MESSAGES, SHOP_SCENES } from "./shop-content";
+import transparentNpcContent from "./content/transparent-npcs.json";
 
 export const GLOBAL_KEYS: GlobalKeyDefinition[] = [
   { id: "memory.shen.hid_injury", name: "曾向沈清霜隐瞒伤势", category: "人物记忆", description: "示范由事件选项写入、并在后续对话中被人物提起的长期记忆。", initialValue: false, triggerMode: "manual", autoRules: [] },
@@ -15,7 +16,7 @@ export const SCENES: SceneDefinition[] = [
     description: "云海之上的宗主府，今日殿中有淡淡松香。",
     atmosphere: "云静 · 香寒",
     image: "/assets/scenes/lingxiao-hall.webp",
-    characters: ["shen", "su"],
+    characters: ["shen", "su", "lu-yaoyao"],
   },
   {
     id: "tavern",
@@ -24,7 +25,7 @@ export const SCENES: SceneDefinition[] = [
     description: "临水而建的旧酒楼，灯火总比暮色早亮一刻。",
     atmosphere: "灯暖 · 雨微",
     image: "/assets/scenes/drunken-moon-tavern.webp",
-    characters: ["hua", "liu"],
+    characters: ["hua", "liu", "gu-tinglan"],
     minigameDifficulty: { drinking: 4 },
     variants: [
       { id: "tavern-after-ruin", name: "醉月楼·残垣", description: "旧日灯火已经熄灭，只余被风雨侵蚀的梁柱。", atmosphere: "灯灭 · 风寒", image: "/assets/scenes/drunken-moon-tavern.webp", priority: 100, conditions: [{ type: "flag", key: "world.tavern_ruined", value: true }] },
@@ -37,7 +38,7 @@ export const SCENES: SceneDefinition[] = [
     description: "浮云托起百家铺面，灵石、宝器与甜香都在此处流转。",
     atmosphere: "云开 · 市喧",
     image: "/assets/scenes/yunzhou-market.webp",
-    characters: ["hua"],
+    characters: ["hua", "tang-feixian"],
   },
   {
     id: "bedroom",
@@ -46,7 +47,7 @@ export const SCENES: SceneDefinition[] = [
     description: "属于你的临崖小院。月光穿过窗棂，静室中央的聚灵阵正缓缓流转。",
     atmosphere: "月静 · 灵息",
     image: "/assets/scenes/lingxiao-hall.webp",
-    characters: [],
+    characters: ["bai-zhiwei"],
   },
   {
     id: "spirit-farm",
@@ -64,7 +65,7 @@ export const SCENES: SceneDefinition[] = [
     description: "藏在云州长街深处的消息中枢，万千纸鹤昼夜衔来诸界见闻。",
     atmosphere: "灯影 · 鹤讯",
     image: "/assets/scenes/yunzhou-market.webp",
-    characters: ["wenren-fei"],
+    characters: ["wenren-fei", "ning-xiaoman"],
   },
 ];
 
@@ -84,6 +85,17 @@ function relationshipStages(addresses: [string,string,string,string]) {
     { id: "devoted", min: 65, name: "同心", addressing: addresses[3], description: "山长水远，她仍愿与你并肩。" },
   ];
 }
+
+type TransparentNpcRecord = Omit<CharacterDefinition, "relationshipStages"> & {
+  relationshipAddresses: [string, string, string, string];
+};
+
+const TRANSPARENT_NPCS: CharacterDefinition[] = (
+  transparentNpcContent as { characters: TransparentNpcRecord[] }
+).characters.map(({ relationshipAddresses, ...character }) => ({
+  ...character,
+  relationshipStages: relationshipStages(relationshipAddresses),
+}));
 
 export const CHARACTERS: CharacterDefinition[] = [
   {
@@ -197,6 +209,7 @@ export const CHARACTERS: CharacterDefinition[] = [
       { sceneId: "market", mode: "resident", guaranteedRules: [], randomRules: [] },
     ],
   },
+  ...TRANSPARENT_NPCS,
 ];
 
 export const CHARACTER_MESSAGES: CharacterMessageDefinition[] = [

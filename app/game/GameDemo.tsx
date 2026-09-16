@@ -59,6 +59,12 @@ import { getFarmWeather } from "./farm/farm";
 import { BattleReturnPanel, type BattleReturnReceipt } from "./battle/BattlePreparation";
 import { ACTION_COSTS, actionCostLabel, checkActionUnits } from "./core/action-service";
 import MobileUtilityDrawer from "./ui/MobileUtilityDrawer";
+import AlchemyGame from "./alchemy/AlchemyGame";
+import { MowingGame } from "./battle/MowingGame";
+import WorldHud from "./ui/WorldHud";
+import { experienceToNextLevel } from "./core/progression-service";
+import RecentOutcomeCard from "./ui/RecentOutcomeCard";
+import type { ActivityDestination } from "./core/types";
 
 const PERIODS: Period[] = ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"];
 
@@ -155,17 +161,6 @@ export default function GameDemo() {
   const [bondQueue, setBondQueue] = useState<BondFeedback[]>([]);
   const booted = useRef(false);
   const bondId = useRef(0);
-
-  useEffect(() => {
-    const receiveModuleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin || event.data?.type !== "huaian-close-module") return;
-      setActiveModule(null);
-      if (event.data?.receipt) setBattleReturnReceipt(event.data.receipt as BattleReturnReceipt);
-      setNotice(event.data?.settled ? "秘境结算已归入乾坤行囊，时辰随之推移。" : "已返回当前场景。");
-    };
-    window.addEventListener("message", receiveModuleMessage);
-    return () => window.removeEventListener("message", receiveModuleMessage);
-  }, []);
 
   useEffect(() => {
     if (!activeModule) return;
@@ -277,12 +272,13 @@ export default function GameDemo() {
 
   useEffect(() => {
     setGame((state) => {
-      const inventory = { ...state.inventory }; const flags = { ...state.flags }; let changed = false;
+      const inventory = { ...state.inventory }; const flags = { ...state.flags }; const relationships = { ...state.relationships }; let changed = false;
       gifts.forEach((gift) => { if (inventory[gift.id] === undefined) { inventory[gift.id] = gift.initialCount; changed = true; } });
       globalKeys.forEach((key) => { if (flags[key.id] === undefined) { flags[key.id] = key.initialValue; changed = true; } });
-      return changed ? { ...state, inventory, flags } : state;
+      characters.forEach((character) => { if (relationships[character.id] === undefined) { relationships[character.id] = 0; changed = true; } });
+      return changed ? { ...state, inventory, flags, relationships } : state;
     });
-  }, [gifts, globalKeys]);
+  }, [characters, gifts, globalKeys]);
 
   useEffect(() => { setGame((state)=>applyAutomaticGlobalKeys(state,globalKeys)); }, [game, globalKeys]);
 
@@ -350,7 +346,10 @@ export default function GameDemo() {
   const baseScene = sceneMap[game.sceneId] ?? playableScenes[0] ?? scenes[0];
   const residentFishingLocation = FISHING_LOCATIONS.find((location) => location.kind === "resident" && location.sceneId === game.sceneId);
   const scene = resolveSceneVariant(baseScene, game);
-  const scheduledPresentIds = game.presentCharacters[scene.id] ?? scene.characters.filter((id)=>{const item=characterMap[id];const appearances=item?.appearances?.filter((entry)=>entry.sceneId===scene.id);return appearances?.length?appearances.some((entry)=>entry.mode==="resident"):((item?.presence?.mode??"resident")==="resident")});
+  const residentIds = scene.characters.filter((id)=>{const item=characterMap[id];const appearances=item?.appearances?.filter((entry)=>entry.sceneId===scene.id);return appearances?.length?appearances.some((entry)=>entry.mode==="resident"):((item?.presence?.mode??"resident")==="resident")});
+  const scheduledPresentIds = game.presentCharacters[scene.id]
+    ? [...new Set([...(game.presentCharacters[scene.id] ?? []), ...residentIds])]
+    : residentIds;
   const restoredClinic=Boolean(game.flags.medicine_supply_restored);
   const liuClinicScene=characterMap.liu?.sceneId;
   const presentIds = restoredClinic&&scene.id===liuClinicScene&&["清晨","上午","午后"].includes(game.period)?["liu",...scheduledPresentIds.filter(id=>id!=="liu")]:scheduledPresentIds;
@@ -726,12 +725,23 @@ export default function GameDemo() {
     if(target.kind==="story"&&target.sceneId)enterScene(target.sceneId);
   }
 
+  function navigateFromOutcome(target: ActivityDestination) {
+    if (target === "inventory") setSystemPanel("inventory");
+    else if (target === "tasks") setQuestOpen(true);
+    else if (target === "alchemy") setActiveModule({ kind: "alchemy" });
+    else if (target === "farm") enterScene("spirit-farm");
+    else if (target === "battle" || target === "fishing" || target === "mining") setMapOpen(true);
+    applyUnifiedEffects([{ type: "clear_activity" }]);
+  }
+
+  const worldHudVisible = !mapOpen && !questOpen && !calendarOpen && !panel && !systemPanel && !activeModule && !giftOpen && !shopOpen && !cultivationOpen && !drinkingOpen && !fishingTarget && !miningTarget && !forumOpen && !projectOpen && !galleryOpen && !collectionOpen && !messageInboxOpen;
+
   return (
     <main className="game-shell huaian-phone-viewport">
       <QuestStateSynchronizer />
       <div className="paper-noise" aria-hidden="true" />
       <header className="topbar">
-        <button type="button" className={`map-entry-button ${visibleMapEvents.length ? "has-map-event" : ""}`} onClick={() => setMapOpen(true)} aria-label={visibleMapEvents.length ? `打开山河地图，有${visibleMapEvents.length}处待完成异闻` : "打开山河地图"}><span className="map-fold-icon"><i/><i/><i/></span><small>地图</small>{visibleMapEvents.length > 0 && <b className="map-entry-alert">!</b>}</button>
+        <button type="button" className={`map-entry-button ${visibleMapEvents.length ? "has-map-event" : ""}`} disabled={Boolean(game.activeEvent)} onClick={() => setMapOpen(true)} aria-label={visibleMapEvents.length ? `打开山河地图，有${visibleMapEvents.length}处待完成异闻` : "打开山河地图"}><span className="map-fold-icon"><i/><i/><i/></span><small>地图</small>{visibleMapEvents.length > 0 && <b className="map-entry-alert">!</b>}</button>
         <button type="button" className="calendar-entry-button" onClick={() => setCalendarOpen(true)} aria-label="打开云和历"><span className="calendar-page-icon"><i/><i/><b>{calendarDate.day}</b></span><small>日历</small></button>
         <div className="brand-block">
           <div className="seal">槐</div>
@@ -760,7 +770,7 @@ export default function GameDemo() {
         </nav>
       </header>
 
-      <div className="mobile-calendar-date" aria-label="当前地点、时辰与行动资源"><span>{scene.name} · {calendarDate.monthName}{calendarDate.dayName} · {game.period}</span><b>体 {game.stamina}/10</b><b>石 {game.spiritStones.toLocaleString()}</b></div>
+      {worldHudVisible && <WorldHud location={scene.name} date={`${calendarDate.monthName}${calendarDate.dayName}`} period={game.period} level={unifiedState.shared.playerLevel} experience={unifiedState.shared.playerExperience} nextExperience={experienceToNextLevel(unifiedState.shared.playerLevel)} stamina={unifiedState.shared.stamina} spiritStones={unifiedState.shared.spiritStones} onOpenCalendar={() => setCalendarOpen(true)} />}
 
       <section className="scene-tabs" aria-label="场景选择">
         {playableScenes.map((item) => (
@@ -774,7 +784,8 @@ export default function GameDemo() {
         {isSpecialEvent && <div key={`${activeDefinition?.id}-${activeDefinition?.openingEffect}`} className={`special-opening special-opening-${activeDefinition?.openingEffect ?? "none"}`} aria-hidden="true" />}
         <div className="stage-wash" aria-hidden="true" />
         <div className="scene-title"><p>{scene.atmosphere}</p><h2>{scene.name}</h2><span>{scene.description}</span></div>
-        {!game.activeEvent&&<CurrentQuestCard onOpen={()=>setQuestOpen(true)} onNavigate={navigateToQuest}/>}
+        {!game.activeEvent && !unifiedState.activity.last && <CurrentQuestCard onOpen={()=>setQuestOpen(true)} onNavigate={navigateToQuest}/>}
+        {!game.activeEvent && unifiedState.activity.last && <RecentOutcomeCard receipt={unifiedState.activity.last} onNext={() => navigateFromOutcome(unifiedState.activity.last!.nextStep.target)} onDismiss={() => applyUnifiedEffects([{ type: "clear_activity" }])} />}
         {restoredClinic&&!game.activeEvent&&<div className="clinic-restored-chip"><i>医</i><span><small>道途结果已生效</small><strong>医馆药路重开</strong></span></div>}
         {activeFortuneSign&&activeFortuneSign.effect!=="none"&&<div className="fortune-buff-chip"><i>✦</i><span><small>今日金运 · {activeFortuneSign.rank}</small><strong>{activeFortuneSign.title}</strong><em>{fortuneEffectLabel(activeFortuneSign.effect).replace("金运 · ","")}</em></span></div>}
         {!game.activeEvent&&!activeExploration&&explorePoints.map((point)=>{const event=eventDefinitions.find((item)=>item.id===point.eventId);if(!event)return null;const egg=event.cardStyle==="easter_egg";return <button type="button" key={event.id} className={`explore-light ${egg?"easter-light":"trigger-light"}`} style={{left:`${point.x}%`,top:`${point.y}%`}} onClick={()=>setActiveExploration(event)} aria-label={egg?"发现彩蛋光点":"发现剧情光点"}><i/><span>{egg?"拾":"寻"}</span></button>})}
@@ -790,14 +801,14 @@ export default function GameDemo() {
           {!game.activeEvent && <ActivityCards activities={availableActivities.slice(0,1)} completedIds={activeFortune?["daily-divination"]:[]} onOpen={openActivity} />}
         </aside>}
 
-        {hasPresentCharacter && !isSpecialEvent && <div className="portrait-wrap" key={character.id}>
+        {hasPresentCharacter && !isSpecialEvent && <div className={`portrait-wrap portrait-${character.id}`} key={character.id}>
           <div className="portrait-halo" style={{ "--accent": character.accent } as React.CSSProperties} />
           <img className="main-portrait" src={character.image} alt={`${character.name}人物立绘`} />
           {availableQuestOffer&&<span className="npc-quest-marker"><b>!</b><em>{questText("offerAvailable")}</em></span>}
         </div>}
         {isSpecialEvent && <div className="special-portrait-wrap" key={`${game.activeEvent?.eventId}-${game.activeEvent?.nodeId}`}><div className="special-portrait-aura" /><img src={specialPortrait} alt={`${character.name}特殊事件立绘`} /></div>}
         {hasPresentCharacter && <Inspectable className="character-plaque" aria-label={`查看${character.name}详情`} feedback={{ titleKey:"relationship.profileTitle", icon:"缘", imageSrc:character.image, bodyKey:"relationship.stageBody", params:{name:character.name,stage:currentStage.name,description:currentStage.description}, details:[{labelKey:"relationship.nameLabel",value:character.name,emphasis:true},{labelKey:"relationship.roleLabel",value:character.role},{labelKey:"relationship.stageLabel",value:currentStage.name},{labelKey:"relationship.valueLabel",value:relationship},{labelKey:"relationship.addressLabel",value:`「${currentStage.addressing}」`}] }}><p>{character.role}</p><h3>{character.name}</h3><span>{currentStage.name} · 唤你「{currentStage.addressing}」</span></Inspectable>}
-        {!game.activeEvent&&scene.id==="bedroom"&&<div className="bedroom-practice-card"><div className="bedroom-formation"><i/><i/><span>炁</span></div><p>PRIVATE CULTIVATION · 静室</p><h3>聚灵阵已启</h3><span>每次练功消耗 {ACTION_COSTS.cultivation.stamina} 点体力，运转一周天需 1 秒。</span><div><b>修为 {game.experience}</b><b>体力 {game.stamina}/10</b></div><button type="button" disabled={game.stamina<ACTION_COSTS.cultivation.stamina} onClick={()=>setCultivationOpen(true)}>{game.stamina<ACTION_COSTS.cultivation.stamina?"体力不足":`入阵练功 · ${actionCostLabel("cultivation")}`}</button></div>}
+        {!game.activeEvent&&scene.id==="bedroom"&&<div className={`bedroom-practice-card ${hasPresentCharacter?"with-resident":""}`}><div className="bedroom-formation"><i/><i/><span>炁</span></div><p>PRIVATE CULTIVATION · 静室</p><h3>聚灵阵已启</h3><span>每次练功消耗 {ACTION_COSTS.cultivation.stamina} 点体力，运转一周天需 1 秒。</span><div><b>修为 {game.experience}</b><b>体力 {game.stamina}/10</b></div><button type="button" disabled={game.stamina<ACTION_COSTS.cultivation.stamina} onClick={()=>setCultivationOpen(true)}>{game.stamina<ACTION_COSTS.cultivation.stamina?"体力不足":`入阵练功 · ${actionCostLabel("cultivation")}`}</button></div>}
         {!game.activeEvent&&scene.id==="spirit-farm"&&<SpiritFarmScene day={game.day} period={game.period} onNotice={setNotice}/>}
         {!game.activeEvent&&scene.id==="intelligence-bureau"&&<IntelligenceBureauScene day={game.day} period={game.period} onNotice={setNotice} onOpenForum={()=>setForumOpen(true)}/>}
 
@@ -820,7 +831,7 @@ export default function GameDemo() {
         )}
 
         {game.activeEvent && node && activeDefinition && activeDefinition.cardStyle !== "audio" && (
-          <div className="dialogue-box" role="dialog" aria-label={activeDefinition.title}>
+          <div className={`dialogue-box dialogue-${node.type}`} role="dialog" aria-modal="true" aria-label={activeDefinition.title}>
             <div className="event-kicker"><span>{activeDefinition.chapter}</span><i /><span>{activeDefinition.type}</span></div>
             {node.type === "choice" ? (
               <div className="choice-content">
@@ -847,7 +858,7 @@ export default function GameDemo() {
 
       <nav className="fusion-world-dock" aria-label="槐安一梦主要功能">
         <button type="button" className={systemPanel === "profile" ? "active" : ""} onClick={() => setSystemPanel("profile")}><i>我</i><span>修士属性</span></button>
-        <button type="button" className={mapOpen ? "active" : ""} onClick={() => { setSystemPanel(null); setMapOpen(true); }}><i>山</i><span>山河地图</span>{visibleMapEvents.length > 0 && <b>{visibleMapEvents.length}</b>}</button>
+        <button type="button" className={mapOpen ? "active" : ""} disabled={Boolean(game.activeEvent)} onClick={() => { setSystemPanel(null); setMapOpen(true); }}><i>山</i><span>山河地图</span>{visibleMapEvents.length > 0 && <b>{visibleMapEvents.length}</b>}</button>
         <button type="button" className={questOpen ? "active" : ""} onClick={() => { setSystemPanel(null); setQuestOpen(true); }}><i>任</i><span>{questText("panelTitle")}</span>{claimableQuestCount>0&&<b>{claimableQuestCount}</b>}</button>
         <button type="button" onClick={() => setPanel("characters")}><i>缘</i><span>人物谱</span></button>
         <button type="button" className={utilityOpen ? "active" : ""} onClick={() => setUtilityOpen(true)}><i>匣</i><span>百宝匣</span><b>{game.receivedMessages.length}</b></button>
@@ -875,9 +886,10 @@ export default function GameDemo() {
       {miningTarget && <MiningModal locationId={miningTarget.locationId} randomSpotId={miningTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setMiningTarget(null)} onNotice={setNotice} />}
       {systemPanel && <FusionSystemPanel panel={systemPanel} onClose={() => setSystemPanel(null)} />}
       {activeModule && <div className={`fusion-module-backdrop module-${activeModule.kind}`} role="presentation"><section className="fusion-module-window" role="dialog" aria-modal="true" aria-label={activeModule.kind === "battle" ? `${activeModule.dungeon.name}秘境战斗` : "玄火丹炉"}>
-        <header><button type="button" onClick={() => setActiveModule(null)} aria-label="返回当前场景">‹</button><div><small>{activeModule.kind === "battle" ? "山河地图 · 秘境投影" : "云州山河 · 常驻生产场景"}</small><strong>{activeModule.kind === "battle" ? activeModule.dungeon.name : "玄火丹炉"}</strong></div><span><b>{game.period}</b><i />灵石 {unifiedState.shared.spiritStones.toLocaleString()}</span></header>
-        <div className="fusion-module-frame"><iframe title={activeModule.kind === "battle" ? `${activeModule.dungeon.name}战斗窗口` : "玄火丹炉窗口"} src={activeModule.kind === "battle" ? `/battle?wave=${activeModule.dungeon.waveId}&embedded=1&ready=1` : "/alchemy?embedded=1"} /></div>
-        {activeModule.kind === "battle" && <div className="module-orientation-note"><i>↻</i><strong>请横置手机进入秘境</strong><span>地图与恋爱场景会在结算后继续</span></div>}
+        <button type="button" className="fusion-module-close" onClick={() => setActiveModule(null)} aria-label={feedbackText("system.close")}>‹</button>
+        <div className="fusion-module-native">
+          {activeModule.kind === "alchemy" ? <AlchemyGame embedded onExit={() => { setActiveModule(null); setNotice("已返回当前场景。"); }} /> : <MowingGame initialWaveId={activeModule.dungeon.waveId} embedded autoStart onExit={(receipt) => { setActiveModule(null); if (receipt) setBattleReturnReceipt(receipt); setNotice(receipt ? "秘境结算已归入乾坤行囊，时辰随之推移。" : "已返回当前场景。"); }} />}
+        </div>
       </section></div>}
       {battleReturnReceipt && <BattleReturnPanel receipt={battleReturnReceipt} onOpenTasks={() => { setBattleReturnReceipt(null); setQuestOpen(true); }} onOpenPanel={(panel) => { setBattleReturnReceipt(null); setSystemPanel(panel); }} onClose={() => setBattleReturnReceipt(null)} />}
       {calendarOpen && <CalendarModal state={game} events={eventDefinitions} onClose={() => setCalendarOpen(false)} />}
@@ -894,7 +906,7 @@ export default function GameDemo() {
 
       {collectionOpen&&<div className="modal-backdrop collection-backdrop" onMouseDown={()=>setCollectionOpen(false)}><section className="collection-sheet" role="dialog" aria-modal="true" aria-label="藏珍录" onMouseDown={(event)=>event.stopPropagation()}><div className="sheet-heading"><div><p>HIDDEN TREASURES · {game.collectedEasterEggs.length}/{easterEggEvents.length}</p><h3>藏珍录</h3></div><button type="button" onClick={()=>setCollectionOpen(false)}>×</button></div><p className="collection-intro">散落于各处的微小旧物。每一件都记着一段旁人未曾留意的故事。</p><div className="collection-grid">{collectedEggItems.map(({event,item})=><article key={item.id}><img src={item.image} alt=""/><div><small>{event.chapter}</small><h4>{item.name}</h4><p>{item.description}</p><i>发现于 · {sceneMap[event.sceneId]?.name??event.sceneId}</i></div></article>)}{!collectedEggItems.length&&<div className="em-empty">尚未发现彩蛋。留意场景中如呼吸般明灭的金色微光。</div>}</div></section></div>}
 
-      {activeAudioEvent&&activeAudioSegment&&<div className="audio-story-overlay" role="dialog" aria-label={activeAudioEvent.title} onClick={advanceAudioStory}><div className="audio-story-heading"><span>{replayEvent?"展馆 · 回忆模式":"音画事件"}</span><strong>{activeAudioEvent.title}</strong><i>{audioIndex+1} / {activeAudioEvent.audioSegments?.length}</i></div><div className="audio-story-art"><img className="audio-story-picture" src={activeAudioSegment.image} alt=""/><img className="audio-story-frame" src={activeAudioFrame.src} alt=""/></div><p>{activeAudioSegment.subtitle}</p><audio key={`${activeAudioEvent.id}-${audioIndex}`} src={activeAudioSegment.audio} autoPlay controls onClick={event=>event.stopPropagation()}/><small>点击画面进入下一段</small></div>}
+      {activeAudioEvent&&activeAudioSegment&&<div className="audio-story-overlay" role="dialog" aria-modal="true" aria-label={activeAudioEvent.title} onClick={advanceAudioStory}><div className="audio-story-heading"><span>{replayEvent?"展馆 · 回忆模式":"音画事件"}</span><strong>{activeAudioEvent.title}</strong><i>{audioIndex+1} / {activeAudioEvent.audioSegments?.length}</i></div><div className="audio-story-art"><img className="audio-story-picture" src={activeAudioSegment.image} alt=""/><img className="audio-story-frame" src={activeAudioFrame.src} alt=""/></div><p>{activeAudioSegment.subtitle}</p><audio key={`${activeAudioEvent.id}-${audioIndex}`} src={activeAudioSegment.audio} autoPlay controls onClick={event=>event.stopPropagation()}/><small>点击画面进入下一段</small></div>}
       {unlockNotice&&<div className="audio-unlock-banner"><span>✦</span><p>{unlockNotice}</p><small>已收入展馆，可随时回放</small></div>}
 
       {keyAnnouncementQueue[0]&&<div className="global-announcement-backdrop"><section className="global-announcement" role="dialog" aria-modal="true" aria-label="游戏公告"><div className="announcement-seal">告</div><p>WORLD NOTICE · 游戏公告</p><h3>{keyAnnouncementQueue[0].announcement?.title||keyAnnouncementQueue[0].name}</h3><div className="announcement-rule"><i/><span>◆</span><i/></div><div className="announcement-message">{keyAnnouncementQueue[0].announcement?.message||keyAnnouncementQueue[0].description}</div><small>{keyAnnouncementQueue[0].category} · {keyAnnouncementQueue[0].name}</small><button type="button" onClick={()=>setKeyAnnouncementQueue((queue)=>queue.slice(1))}>知晓</button></section></div>}
@@ -906,7 +918,7 @@ export default function GameDemo() {
 
       {messageInboxOpen&&!activeMessage&&<div className="modal-backdrop message-inbox-backdrop" onMouseDown={()=>setMessageInboxOpen(false)}><section className="message-inbox" role="dialog" aria-modal="true" onMouseDown={(event)=>event.stopPropagation()}><div className="sheet-heading"><div><p>LETTERS & WHISPERS</p><h3>传音匣</h3></div><button type="button" onClick={()=>setMessageInboxOpen(false)}>×</button></div><div className="message-list">{messageDefinitions.filter((message)=>game.receivedMessages.includes(message.id)).map((message)=><button type="button" key={message.id} onClick={()=>{setMessageInboxOpen(false);setReplayMessage(message)}}><img src={characterMap[message.senderCharacterId]?.image} alt=""/><span><small>{characterMap[message.senderCharacterId]?.name}</small><strong>{message.title}</strong><p>{message.body}</p></span><i>重读</i></button>)}{!game.receivedMessages.length&&<div className="em-empty">传音匣尚空。随着关系与时间推进，她们会主动写信给你。</div>}</div></section></div>}
 
-      {galleryOpen&&!replayEvent&&<div className="modal-backdrop gallery-backdrop" role="presentation" onMouseDown={()=>setGalleryOpen(false)}><section className="memory-gallery" role="dialog" aria-label="音画展馆" onMouseDown={event=>event.stopPropagation()}><div className="sheet-heading"><div><p>COLLECTED MEMORIES</p><h3>云上展馆</h3></div><button type="button" onClick={()=>setGalleryOpen(false)}>×</button></div><p className="gallery-intro">已解锁的音画事件会成为回忆卡片。点击卡片进入回忆模式，从第一段重新播放。</p><div className="gallery-card-grid">{audioEvents.map((event,index)=>{const unlocked=game.completedEvents.includes(event.id);const cover=event.audioSegments?.[0]?.image;return <button type="button" key={event.id} className={unlocked?"unlocked":"locked"} disabled={!unlocked} onClick={()=>{setGalleryOpen(false);setReplayEvent(event);setAudioIndex(0)}}><span className="gallery-card-art" style={{backgroundImage:cover?`url(${cover})`:undefined}}><img src={getAudioFrame(event.audioFrameId).src} alt=""/></span><small>{String(index+1).padStart(2,"0")} · {event.chapter}</small><strong>{unlocked?(event.unlockTitle||event.title):"未解锁回忆"}</strong><i>{unlocked?`${event.audioSegments?.length??0} 段音画 · 点击回放`:event.clue}</i></button>})}{!audioEvents.length&&<div className="em-empty">尚未发布音画事件。可在 EM 中创建第一张音画事件卡。</div>}</div></section></div>}
+      {galleryOpen&&!replayEvent&&<div className="modal-backdrop gallery-backdrop" role="presentation" onMouseDown={()=>setGalleryOpen(false)}><section className="memory-gallery" role="dialog" aria-modal="true" aria-label="音画展馆" onMouseDown={event=>event.stopPropagation()}><div className="sheet-heading"><div><p>COLLECTED MEMORIES</p><h3>云上展馆</h3></div><button type="button" onClick={()=>setGalleryOpen(false)}>×</button></div><p className="gallery-intro">已解锁的音画事件会成为回忆卡片。点击卡片进入回忆模式，从第一段重新播放。</p><div className="gallery-card-grid">{audioEvents.map((event,index)=>{const unlocked=game.completedEvents.includes(event.id);const cover=event.audioSegments?.[0]?.image;return <button type="button" key={event.id} className={unlocked?"unlocked":"locked"} disabled={!unlocked} onClick={()=>{setGalleryOpen(false);setReplayEvent(event);setAudioIndex(0)}}><span className="gallery-card-art" style={{backgroundImage:cover?`url(${cover})`:undefined}}><img src={getAudioFrame(event.audioFrameId).src} alt=""/></span><small>{String(index+1).padStart(2,"0")} · {event.chapter}</small><strong>{unlocked?(event.unlockTitle||event.title):"未解锁回忆"}</strong><i>{unlocked?`${event.audioSegments?.length??0} 段音画 · 点击回放`:event.clue}</i></button>})}{!audioEvents.length&&<div className="em-empty">尚未发布音画事件。可在 EM 中创建第一张音画事件卡。</div>}</div></section></div>}
 
       {giftOpen && (
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setGiftOpen(false)}>

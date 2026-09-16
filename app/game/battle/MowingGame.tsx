@@ -59,10 +59,11 @@ import { MainEquipmentPanel } from "../ui/FusionSystemPanel";
 import { useFeedback } from "../feedback/FeedbackProvider";
 import { feedbackText } from "../feedback/texts";
 import { DUNGEONS } from "../core/dungeons";
-import { BattlePreparation, preparationSupplyBonus, readBattlePreparation } from "./BattlePreparation";
+import { BattlePreparation, preparationSupplyBonus, readBattlePreparation, type BattleReturnReceipt } from "./BattlePreparation";
 import { computeFinalAttributes } from "../core/attributes-service";
 import { itemTemplateId } from "../core/inventory-service";
 import { CARD_QUALITY_NAMES } from "../core/card-service";
+import { createActivityReceipt } from "../core/activity-receipt";
 
 type Screen = "loading" | "menu" | "preparing" | "battle" | "result";
 type HeldTreasure = { uid: string; source: ContainerKind | "loot"; treasureId: string };
@@ -164,7 +165,7 @@ function skillVisual(data: GameData | null, choice: UpgradeChoice) {
   return path ? assetUrl(path) : null;
 }
 
-export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = false }: { initialWaveId?: number; embedded?: boolean; autoStart?: boolean }) {
+export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = false, onExit }: { initialWaveId?: number; embedded?: boolean; autoStart?: boolean; onExit?: (receipt?: BattleReturnReceipt) => void }) {
   const { state: unifiedState, setBattle: setMeta, applyEffects } = useUnifiedGame();
   const feedback = useFeedback();
   const [screen, setScreen] = useState<Screen>("loading");
@@ -240,8 +241,8 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
         if (!active) return;
         setData(loaded);
         setHeroId(Number(loaded.heroes[0]?.id ?? 400001));
-        // 无论从主世界还是独立入口进入，都必须先经过统一战前整备。
-        setScreen("menu");
+        // 主世界已经完成统一整备时直接布置战场；独立入口仍从整备页开始。
+        setScreen(autoStart ? "preparing" : "menu");
       })
       .catch((reason) => {
         setError(reason instanceof Error ? reason.message : "资源加载失败");
@@ -341,6 +342,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
             return { type: "add_item" as const, item: { itemId: `treasure:${item.treasureId}`, itemType: "treasure" as const, rarity: rarityMap[definition.rarity] ?? 1, amount: 1, sourceTags: ["battle", `wave-${waveId}`] } };
           }),
           ...(kind === "victory" ? [{ type: "add_item" as const, item: { itemId: ALCHEMY_MATERIALS[(waveId * 11) % ALCHEMY_MATERIALS.length].id, itemType: "material" as const, rarity: Math.min(7, 2 + Math.floor(waveId / 4)) as UnifiedRarity, amount: 1, sourceTags: ["battle", "alchemy", `wave-${waveId}`] } }] : []),
+          { type: "record_activity", receipt: createActivityReceipt({ kind: "battle", title: kind === "victory" ? "秘境镇压完成" : kind === "extracted" ? "携宝撤离" : "暂退秘境", summary: kind === "victory" ? "战利品、修为与任务进度已经同步结算。" : "本次可保留所得已经写入统一状态。", rewards: [`战利品 ×${settlement.accepted.length}`, `修为 +${progression.gained}`], impacts: [kind === "victory" ? "秘境与任务进度已推进" : "秘境进度未推进", `悟道残卷 +${bookReward.gained}`], nextStep: { target: kind === "victory" ? "tasks" : "battle", label: kind === "victory" ? "查看任务与新解锁" : "重整配装再次挑战" } }) },
         ]);
         setResult({ kind, snapshot: finalSnapshot, accepted: settlement.accepted, overflow: settlement.overflow, equipmentOverflow: settlement.equipmentOverflow, experience: progression.gained, levelsGained: progression.levelsGained, skillBooks: bookReward.gained });
         feedback.publish({
@@ -553,7 +555,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
               <button className="round-help" onClick={() => setHelpOpen(true)} aria-label="查看操作说明">?</button>
             </div>
             <div className="hero-grid">
-              {data.heroes.map((hero) => (
+              {data!.heroes.map((hero) => (
                 <button
                   key={hero.id}
                   className={`hero-card ${Number(hero.id) === heroId ? "selected" : ""}`}
@@ -565,7 +567,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
                     <span className="hero-seal">{String(hero.name).slice(0, 1)}</span>
                   )}
                   <strong>{hero.name}</strong>
-                  <small>{data.skills.find((skill) => Number(skill.resId) === Number(hero.weapon))?.name ?? "本命法器"}</small>
+                  <small>{data!.skills.find((skill) => Number(skill.resId) === Number(hero.weapon))?.name ?? "本命法器"}</small>
                 </button>
               ))}
             </div>
@@ -920,7 +922,13 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
             {result.overflow.length > 0 && <p className="overflow-warning">藏宝阁空间不足，{result.overflow.length} 件宝物未能收纳。</p>}
             {result.equipmentOverflow.length > 0 && <p className="overflow-warning">10×4 法器行囊已满，{result.equipmentOverflow.length} 件装备留在秘境。</p>}
             <div className="result-actions">
-              <button onClick={() => { engineRef.current?.destroy(); if (embedded && window.parent !== window) window.parent.postMessage({ type: "huaian-close-module", settled: true, receipt: { kind: result.kind, waveId, dungeonName: DUNGEONS.find((dungeon) => dungeon.waveId === waveId)?.name ?? selectedWave?.name ?? `第 ${waveId} 重秘境`, accepted: result.accepted.length, experience: result.experience, skillBooks: result.skillBooks, attributePoints: availableAttributePoints(metaRef.current), skillPoints: availableSkillPoints(metaRef.current), equippedCount: Object.values(metaRef.current.equipped).filter(Boolean).length, learnedCount: Object.values(metaRef.current.skillMastery).filter((skill) => skill.learned).length, cardCount: unifiedState.shared.cards.length, supplyName: preparedSupplyName } }, window.location.origin); else setScreen("menu"); }}>{embedded ? "返回山河" : "返回整备"}</button>
+              <button onClick={() => {
+                engineRef.current?.destroy();
+                const receipt: BattleReturnReceipt = { kind: result.kind, waveId, dungeonName: DUNGEONS.find((dungeon) => dungeon.waveId === waveId)?.name ?? selectedWave?.name ?? `第 ${waveId} 重秘境`, accepted: result.accepted.length, experience: result.experience, skillBooks: result.skillBooks, attributePoints: availableAttributePoints(metaRef.current), skillPoints: availableSkillPoints(metaRef.current), equippedCount: Object.values(metaRef.current.equipped).filter(Boolean).length, learnedCount: Object.values(metaRef.current.skillMastery).filter((skill) => skill.learned).length, cardCount: unifiedState.shared.cards.length, supplyName: preparedSupplyName };
+                if (onExit) onExit(receipt);
+                else if (embedded && window.parent !== window) window.parent.postMessage({ type: "huaian-close-module", settled: true, receipt }, window.location.origin);
+                else setScreen("menu");
+              }}>{embedded ? "返回山河" : "返回整备"}</button>
               <button className="primary" onClick={requestStart}>再次历练</button>
             </div>
           </div>

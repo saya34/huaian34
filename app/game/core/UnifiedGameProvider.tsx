@@ -16,7 +16,7 @@ import type { GearRarity } from "../battle/progression";
 import { createInitialQuestProgress, normalizeQuestProgress } from "../quests/engine";
 import type { QuestProgress } from "../quests/types";
 import { keyFor, LocalPlayerStateRepository } from "./player-state-repository";
-import { SAVE_VERSION, type AlchemyProgress, type GameEffect, type StateSetter, type UnifiedCardInstance, type UnifiedGameState, type UnifiedItemStack } from "./types";
+import { SAVE_VERSION, type ActivityReceipt, type AlchemyProgress, type GameEffect, type StateSetter, type UnifiedCardInstance, type UnifiedGameState, type UnifiedItemStack } from "./types";
 import { grantPlayerExperience, normalizePlayerGrowth, type PlayerGrowth } from "./progression-service";
 import { inventoryProjection, syncAlchemyProductInventory } from "./inventory-service";
 import { ACTION_COSTS } from "./action-service";
@@ -133,6 +133,24 @@ function collectedQuestItems(collectedIds: string[] = []) {
   }));
 }
 
+function sanitizeActivityReceipt(value: unknown): ActivityReceipt | undefined {
+  const receipt = asRecord(value);
+  const kinds = new Set(["battle", "alchemy", "fishing", "mining", "farming", "livestock", "story", "quest"]);
+  const targets = new Set(["inventory", "tasks", "alchemy", "battle", "farm", "fishing", "mining", "world"]);
+  const nextStep = asRecord(receipt.nextStep);
+  if (typeof receipt.id !== "string" || typeof receipt.title !== "string" || typeof receipt.summary !== "string" || !kinds.has(String(receipt.kind)) || !targets.has(String(nextStep.target)) || typeof nextStep.label !== "string") return undefined;
+  return {
+    id: receipt.id,
+    kind: receipt.kind as ActivityReceipt["kind"],
+    title: receipt.title,
+    summary: receipt.summary,
+    rewards: stringArray(receipt.rewards),
+    impacts: stringArray(receipt.impacts),
+    nextStep: { target: nextStep.target as ActivityReceipt["nextStep"]["target"], label: nextStep.label },
+    createdAt: finiteNumber(receipt.createdAt, Date.now(), 0),
+  };
+}
+
 function cloneInitial(): UnifiedGameState {
   const romance = { ...INITIAL_STATE, inventory: { ...INITIAL_STATE.inventory }, relationships: { ...INITIAL_STATE.relationships }, flags: { ...INITIAL_STATE.flags }, playerLevel: 1, teacherSkillRanks: {}, learnedSkillIds: [], ownedCardIds: ["story-shen-sword-1", "story-liu-ward-1"], completedDungeons: [], alchemyResults: [], inventoryRarities: {}, inventoryItems: {}, pendingUnifiedEffects: [] };
   romance.spiritStones = 5000;
@@ -158,13 +176,16 @@ function cloneInitial(): UnifiedGameState {
     gathering: createInitialGathering(),
     dungeons: { highestUnlocked: 1, completed: [], randomVisible: [] },
     quests: createInitialQuestProgress(),
+    activity: {},
   };
 }
 
-function mergeSave(saved: unknown) {
+export function mergeSave(saved: unknown) {
   const base = cloneInitial();
-  const envelope = asRecord(saved);
-  if (envelope.version !== SAVE_VERSION) return base;
+  const rawEnvelope = asRecord(saved);
+  const rawVersion = integer(rawEnvelope.version, rawEnvelope.sceneId ? 1 : 0, 0, SAVE_VERSION + 1);
+  if (rawVersion > SAVE_VERSION || rawVersion === 0) return base;
+  const envelope = rawEnvelope.romance || !rawEnvelope.sceneId ? rawEnvelope : { version: rawVersion, romance: rawEnvelope };
   const savedShared = asRecord(envelope.shared);
   const savedRomance = asRecord(envelope.romance);
   const savedAlchemy = asRecord(envelope.alchemy);
@@ -216,8 +237,8 @@ function mergeSave(saved: unknown) {
   normalizedBattle.backpackLevel = integer(savedBattle.backpackLevel, base.battle.backpackLevel, 0);
   normalizedBattle.safeLevel = integer(savedBattle.safeLevel, base.battle.safeLevel, 0);
   normalizedBattle.warehouseLevel = integer(savedBattle.warehouseLevel, base.battle.warehouseLevel, 0);
-  normalizedBattle.baseAttributes = numberRecord(savedBattle.baseAttributes, base.battle.baseAttributes, 0) as typeof normalizedBattle.baseAttributes;
-  normalizedBattle.attributeAllocation = numberRecord(savedBattle.attributeAllocation, base.battle.attributeAllocation, 0) as typeof normalizedBattle.attributeAllocation;
+  normalizedBattle.baseAttributes = numberRecord(savedBattle.baseAttributes, base.battle.baseAttributes as unknown as Record<string, number>, 0) as unknown as typeof normalizedBattle.baseAttributes;
+  normalizedBattle.attributeAllocation = numberRecord(savedBattle.attributeAllocation, base.battle.attributeAllocation as unknown as Record<string, number>, 0) as unknown as typeof normalizedBattle.attributeAllocation;
   normalizedBattle.passiveRanks = numberRecord(savedBattle.passiveRanks, {}, 0);
   normalizedBattle.cardSlots = normalizedBattle.cardSlots.map((id) => id && shared.cards.some((card) => card.id === id && card.mode === "active") ? id : null);
   const romanceCandidate = { ...base.romance, ...savedRomance } as UnifiedGameState["romance"];
@@ -292,6 +313,7 @@ function mergeSave(saved: unknown) {
       statuses: Object.fromEntries(Object.entries(asRecord(savedQuests.statuses)).filter(([, status]) => ["unaccepted", "in_progress", "completed", "claimable", "claimed"].includes(String(status)))) as QuestProgress["statuses"],
       trackedQuestId: typeof savedQuests.trackedQuestId === "string" ? savedQuests.trackedQuestId : null,
     }),
+    activity: { last: sanitizeActivityReceipt(asRecord(envelope.activity).last) },
   };
   const growth = normalizePlayerGrowth({ playerLevel: shared.playerLevel, playerExperience: shared.playerExperience });
   merged = projectGrowth(merged, growth);
@@ -466,6 +488,8 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
         battle: { ...next.battle, highestUnlockedWave: highestUnlocked },
       };
     }
+    if (effect.type === "record_activity") return { ...next, activity: { last: effect.receipt } };
+    if (effect.type === "clear_activity") return { ...next, activity: {} };
     return next;
   }, current)), []);
 

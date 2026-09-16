@@ -21,6 +21,8 @@
   "freeExploreBody": "当前没有正在追踪的任务。与场景人物交谈，留意她们想托付给你的事情。",
   "currentObjective": "当前目标",
   "viewAll": "查看全部任务",
+  "backToList": "返回任务列表",
+  "selectQuestHint": "选择一项任务查看详情",
   "collapseCard": "收起当前任务",
   "expandCard": "展开当前任务",
   "background": "任务背景",
