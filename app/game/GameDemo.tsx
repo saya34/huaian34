@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CHARACTERS, CHARACTER_MESSAGES, DIALOGUE_PROFILES, EVENTS, GIFTS, GLOBAL_KEYS, SCENES } from "./content";
 import {
   INITIAL_STATE,
   advanceEvent,
@@ -16,7 +15,7 @@ import {
   startDefinition,
   startTransient,
 } from "./event-engine";
-import { applyAutomaticGlobalKeys, getEligibleMessages, resolveScenePresence, resolveSceneVariant, resolveSeekingEncounter } from "./world-engine";
+import { applyAutomaticGlobalKeys, getEligibleMessages, resolveScenePresence, resolveSceneVariant } from "./world-engine";
 import { getAudioFrame } from "./audio-frames";
 import WorldMapModal from "./WorldMapModal";
 import { getSceneEventHints, getVisibleMapEvents, scheduleMapEvents } from "./map-event-engine";
@@ -35,7 +34,7 @@ import { getInspectionHints, rollInspectionEvent } from "./inspection-engine";
 import type { CultivationEntry } from "./cultivation-engine";
 import { getAvailableActivities, isMarketReminderDay, marketReminderKey, type PeriodicActivityId } from "./periodic-activities";
 import { drawDailyFortune, FORTUNE_STORAGE_KEY, fortuneBoosts, fortuneEffectLabel, getFortuneSign, getLocalDateKey, type FortuneDrawRecord } from "./fortune-engine";
-import type { CharacterDefinition, CharacterId, CharacterMessageDefinition, DialogueProfileDefinition, EventDefinition, GiftDefinition, GiftId, GameState, GlobalKeyDefinition, Period, RelationshipStageDefinition, SceneDefinition, SceneId, TriggerContext } from "./types";
+import type { CharacterId, CharacterMessageDefinition, EventDefinition, GiftDefinition, GiftId, GameState, GlobalKeyDefinition, Period, RelationshipStageDefinition, SceneDefinition, SceneId, TriggerContext } from "./types";
 import { useUnifiedGame } from "./core/UnifiedGameProvider";
 import { DUNGEONS, type DungeonDefinition } from "./core/dungeons";
 import FusionSystemPanel, { type FusionPanelId } from "./ui/FusionSystemPanel";
@@ -65,19 +64,20 @@ import { MowingGame } from "./battle/MowingGame";
 import WorldHud from "./ui/WorldHud";
 import { experienceToNextLevel } from "./core/progression-service";
 import RecentOutcomeCard from "./ui/RecentOutcomeCard";
-import type { ActivityDestination } from "./core/types";
+import WorldQuickDock, { type QuickDestination } from "./ui/WorldQuickDock";
+import ShenStoryDebugPanel, { createShenStoryPreview } from "./ui/ShenStoryDebugPanel";
+import type { ActivityDestination, GameEffect, UnifiedRarity } from "./core/types";
+import { useWorldContent } from "./world/useWorldContent";
+import { relationshipStage, selectWorldScene, speakerName } from "./world/selectors";
+import { prepareSceneTransition, prepareTimeTransition, previewTimeAdvance, WORLD_PERIODS } from "./world/world-transitions";
+import TurnCombatModule, { TurnCombatPracticeEntry } from "./turn-combat/TurnCombatModule";
+import { TURN_COMBAT_SYSTEM, turnCombatInventory } from "./turn-combat/content";
+import { createPlayerTurnProfile } from "./turn-combat/stat-adapter";
+import type { TheftLoot, TurnCombatResult } from "./turn-combat/types";
 
-const PERIODS: Period[] = ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"];
+const PERIODS: Period[] = WORLD_PERIODS;
 
 function advanceOneStage(state:GameState){const current=Math.max(0,PERIODS.indexOf(state.period)),wrapped=current===PERIODS.length-1;return{...state,period:PERIODS[(current+1)%PERIODS.length],day:state.day+(wrapped?1:0),shortRestDay:wrapped?state.day+1:state.shortRestDay,shortRestCount:wrapped?0:state.shortRestCount};}
-
-function bondTitle(value: number) {
-  if (value >= 70) return "同心";
-  if (value >= 45) return "心悦";
-  if (value >= 25) return "相知";
-  if (value >= 10) return "初识";
-  return "初逢";
-}
 
 function bondFeeling(amount: number) {
   if (amount >= 8) return "十分开心";
@@ -86,15 +86,7 @@ function bondFeeling(amount: number) {
   return "心情变好了";
 }
 
-const FALLBACK_STAGES:RelationshipStageDefinition[]=[{id:"stranger",min:0,name:"初识",addressing:"道友",description:"彼此仍守着礼数。"},{id:"familiar",min:15,name:"相知",addressing:"你",description:"她开始记住你说过的话。"},{id:"close",min:35,name:"心悦",addressing:"名字",description:"牵挂已藏不住。"},{id:"devoted",min:65,name:"同心",addressing:"心上人",description:"愿与你共赴山海。"}];
-function relationshipStage(character:CharacterDefinition,value:number){return [...(character.relationshipStages?.length?character.relationshipStages:FALLBACK_STAGES)].sort((a,b)=>b.min-a.min).find((stage)=>value>=stage.min)??FALLBACK_STAGES[0]}
 const PREFERENCE_LABELS={loved:"珍爱",liked:"喜欢",neutral:"寻常",disliked:"不喜"} as const;
-
-function speakerName(speaker: string, characterMap: Record<string, CharacterDefinition>) {
-  if (speaker === "player") return "你";
-  if (speaker === "narrator") return "旁白";
-  return characterMap[speaker as CharacterId]?.name ?? speaker;
-}
 
 type BondFeedback = { id: number; characterId: CharacterId; amount: number; source?: string };
 type ExplorePoint = { eventId: string; x: number; y: number };
@@ -104,15 +96,7 @@ export default function GameDemo() {
   const { state: unifiedState, setRomance: setGame, setFishing, setMining, applyEffects: applyUnifiedEffects, hydrated, resetGame } = useUnifiedGame();
   const feedback = useFeedback();
   const game = unifiedState.romance;
-  const [eventDefinitions, setEventDefinitions] = useState<EventDefinition[]>(EVENTS);
-  const [definitionsReady, setDefinitionsReady] = useState(false);
-  const [contentReady, setContentReady] = useState(false);
-  const [managedCharacters, setManagedCharacters] = useState<CharacterDefinition[]>([]);
-  const [managedScenes, setManagedScenes] = useState<SceneDefinition[]>([]);
-  const [managedGifts, setManagedGifts] = useState<GiftDefinition[]>([]);
-  const [managedMessages, setManagedMessages] = useState<CharacterMessageDefinition[]>([]);
-  const [dialogueProfiles, setDialogueProfiles] = useState<DialogueProfileDefinition[]>(DIALOGUE_PROFILES);
-  const [globalKeys, setGlobalKeys] = useState<GlobalKeyDefinition[]>(GLOBAL_KEYS);
+  const { characters, scenes, gifts, messageDefinitions, dialogueProfiles, globalKeys, eventDefinitions, definitionsReady, contentReady } = useWorldContent();
   const [giftOpen, setGiftOpen] = useState(false);
   const [interactionMenuOpen,setInteractionMenuOpen]=useState(false);
   const [drinkingOpen,setDrinkingOpen]=useState(false);
@@ -124,6 +108,8 @@ export default function GameDemo() {
   const [miningTarget, setMiningTarget] = useState<{ locationId: MiningLocationId; randomSpotId?: string } | null>(null);
   const [forumOpen,setForumOpen]=useState(false);
   const [projectOpen,setProjectOpen]=useState(false);
+  const [farmQuickRequest, setFarmQuickRequest] = useState<{ module: "field" | "livestock"; token: number } | null>(null);
+  const [currentFarmModule, setCurrentFarmModule] = useState<"field" | "livestock" | null>(null);
   const [questOpen,setQuestOpen]=useState(false);
   const [questOffer,setQuestOffer]=useState<QuestDefinition|null>(null);
   const [questConversationMenuOpen,setQuestConversationMenuOpen]=useState(false);
@@ -150,6 +136,14 @@ export default function GameDemo() {
   const [notice, setNotice] = useState("剧情系统已就绪");
   const [keyAnnouncementQueue, setKeyAnnouncementQueue] = useState<GlobalKeyDefinition[]>([]);
   const [messageQueue,setMessageQueue]=useState<CharacterMessageDefinition[]>([]);
+  const [storyDebugEnabled,setStoryDebugEnabled]=useState(false);
+  const [storyDebugOpen,setStoryDebugOpen]=useState(false);
+  const [turnCombatRequest,setTurnCombatRequest]=useState<{encounterId?:string}|null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setStoryDebugEnabled(["localhost", "127.0.0.1"].includes(window.location.hostname) || params.get("storyDebug") === "1");
+  }, []);
 
   useEffect(() => {
     if (!notice) return;
@@ -164,11 +158,22 @@ export default function GameDemo() {
   const bondId = useRef(0);
 
   useEffect(() => {
-    if (!activeModule) return;
+    if (!hydrated || turnCombatRequest || game.activeEvent || game.flags[TURN_COMBAT_SYSTEM.invasion.resolvedFlag]) return;
+    const currentPeriodIndex = Math.max(0, PERIODS.indexOf(game.period));
+    const invasionPeriodIndex = Math.max(0, PERIODS.indexOf(TURN_COMBAT_SYSTEM.invasion.period as Period));
+    const invasionDue = game.day > TURN_COMBAT_SYSTEM.invasion.day
+      || (game.day === TURN_COMBAT_SYSTEM.invasion.day && currentPeriodIndex >= invasionPeriodIndex);
+    const anotherSurfaceOpen = Boolean(activeModule || activeActivity || activeExploration || battleReturnReceipt || inspectionReveal || mapOpen || questOpen || questOffer || calendarOpen || panel || systemPanel || giftOpen || shopOpen || cultivationOpen || drinkingOpen || fishingTarget || miningTarget || forumOpen || projectOpen || galleryOpen || collectionOpen || messageInboxOpen || messageQueue.length || keyAnnouncementQueue.length || stageNotice || storyDebugOpen || utilityOpen);
+    if (!invasionDue || anotherSurfaceOpen) return;
+    setTurnCombatRequest({ encounterId: "invasion-day-five" });
+  }, [activeActivity, activeExploration, activeModule, battleReturnReceipt, calendarOpen, collectionOpen, cultivationOpen, drinkingOpen, fishingTarget, forumOpen, galleryOpen, game.activeEvent, game.day, game.flags, game.period, giftOpen, hydrated, inspectionReveal, keyAnnouncementQueue.length, mapOpen, messageInboxOpen, messageQueue.length, miningTarget, panel, projectOpen, questOffer, questOpen, shopOpen, stageNotice, storyDebugOpen, systemPanel, turnCombatRequest, utilityOpen]);
+
+  useEffect(() => {
+    if (!activeModule && !turnCombatRequest) return;
     const previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = previousBodyOverflow; };
-  }, [activeModule]);
+  }, [activeModule, turnCombatRequest]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -192,81 +197,14 @@ export default function GameDemo() {
   useEffect(()=>{if(fortuneHydrated)window.localStorage.setItem(FORTUNE_STORAGE_KEY,JSON.stringify(fortuneHistory))},[fortuneHistory,fortuneHydrated]);
 
   useEffect(() => {
-    let active = true;
-    Promise.all([
-      fetch("/api/em/gifts?status=published", { cache: "no-store" }).then((response) => response.ok ? response.json() as Promise<any> : Promise.reject()),
-      fetch("/api/em/dialogues?status=published", { cache: "no-store" }).then((response) => response.ok ? response.json() as Promise<any> : Promise.reject()),
-      fetch("/api/em/global-keys?status=published", { cache: "no-store" }).then((response) => response.ok ? response.json() as Promise<any> : Promise.reject()),
-    ]).then(([giftData, dialogueData, keyData]: [{ gifts?: Array<{ definition: GiftDefinition }> }, { dialogues?: Array<{ definition: DialogueProfileDefinition }> }, { keys?: Array<{ definition: GlobalKeyDefinition }> }]) => {
-      if (!active) return;
-      setManagedGifts((giftData.gifts ?? []).map((item) => item.definition));
-      const managedDialogues = (dialogueData.dialogues ?? []).map((item) => item.definition);
-      const managedDialogueIds = new Set(managedDialogues.map((item) => item.id));
-      setDialogueProfiles([...DIALOGUE_PROFILES.filter((item) => !managedDialogueIds.has(item.id)), ...managedDialogues]);
-      const managed=(keyData.keys ?? []).map((item) => item.definition); const ids=new Set(managed.map((item)=>item.id)); setGlobalKeys([...GLOBAL_KEYS.filter((item)=>!ids.has(item.id)),...managed]);
-    }).catch(() => { /* Built-in gifts and default character lines remain available. */ });
-    return () => { active = false; };
-  }, []);
-
-  useEffect(()=>{
-    let active=true;
-    fetch("/api/em/messages?status=published",{cache:"no-store"}).then((response)=>response.ok?response.json() as Promise<any>:Promise.reject()).then((data:{messages?:Array<{definition:CharacterMessageDefinition}>})=>{if(active)setManagedMessages((data.messages??[]).map((item)=>item.definition))}).catch(()=>{/* Built-in letters remain available. */});
-    return()=>{active=false};
-  },[]);
-
-  useEffect(() => {
     const current = bondQueue[0];
     if (!current) return;
     const timer = window.setTimeout(() => setBondQueue((queue) => queue.slice(1)), current.amount === 1 ? 1300 : 2800);
     return () => window.clearTimeout(timer);
   }, [bondQueue]);
 
-  useEffect(() => {
-    let active = true;
-    fetch("/api/em/content?status=published", { cache: "no-store" })
-      .then((response) => response.ok ? response.json() as Promise<any> : Promise.reject(new Error("内容库暂不可用")))
-      .then((data: { characters?: Array<{ definition: CharacterDefinition }>; scenes?: Array<{ definition: SceneDefinition }> }) => {
-        if (!active) return;
-        const characters = (data.characters ?? []).map((item) => item.definition);
-        const scenes = (data.scenes ?? []).map((item) => item.definition);
-        setManagedCharacters(characters); setManagedScenes(scenes);
-        setGame((state) => ({ ...state, relationships: { ...Object.fromEntries(characters.map((item) => [item.id, 4])), ...state.relationships } }));
-      })
-      .catch(() => { /* Built-in content remains playable if the content library is offline. */ })
-      .finally(() => { if (active) setContentReady(true); });
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    fetch("/api/em/events?status=published", { cache: "no-store" })
-      .then((response) => response.ok ? response.json() as Promise<any> : Promise.reject(new Error("事件库暂不可用")))
-      .then((data: { events?: Array<{ definition: EventDefinition }> }) => {
-        if (!active) return;
-        const merged = new Map(EVENTS.map((event) => [event.id, event]));
-        for (const item of data.events ?? []) merged.set(item.definition.id, item.definition);
-        setEventDefinitions([...merged.values()]);
-      })
-      .catch(() => { /* Built-in events remain available when the manager is offline. */ })
-      .finally(() => { if (active) setDefinitionsReady(true); });
-    return () => { active = false; };
-  }, []);
-
-  const characters = useMemo(() => {
-    const ids = new Set(managedCharacters.map((item) => item.id));
-    return [...CHARACTERS.filter((item) => !ids.has(item.id)), ...managedCharacters];
-  }, [managedCharacters]);
-  const characterMap = useMemo(() => Object.fromEntries(characters.map((item) => [item.id, item])) as Record<string, CharacterDefinition>, [characters]);
-  const scenes = useMemo(() => {
-    const ids = new Set(managedScenes.map((item) => item.id));
-    const definitions = [...SCENES.filter((item) => !ids.has(item.id)), ...managedScenes];
-    return definitions.map((item) => ({ ...item, characters: characters.filter((character) => character.sceneId === item.id || character.appearances?.some((appearance)=>appearance.sceneId===item.id)).map((character) => character.id) }));
-  }, [characters, managedScenes]);
-  const playableScenes = scenes.filter((item) => item.characters.length > 0 || item.id === "bedroom" || item.id === "spirit-farm");
-  const sceneMap = useMemo(() => Object.fromEntries(scenes.map((item) => [item.id, item])) as Record<string, SceneDefinition>, [scenes]);
-  const gifts = useMemo(() => { const ids = new Set(managedGifts.map((item) => item.id)); return [...GIFTS.filter((item) => !ids.has(item.id)), ...managedGifts]; }, [managedGifts]);
+  const { characterMap, playableScenes, sceneMap, scene, restoredClinic, presentIds, activeCharacters, character } = useMemo(() => selectWorldScene(game, scenes, characters), [characters, game, scenes]);
   const giftMap = useMemo(() => Object.fromEntries(gifts.map((item) => [item.id, item])) as Record<string, GiftDefinition>, [gifts]);
-  const messageDefinitions=useMemo(()=>{const ids=new Set(managedMessages.map((item)=>item.id));return[...CHARACTER_MESSAGES.filter((item)=>!ids.has(item.id)),...managedMessages]},[managedMessages]);
 
   useEffect(() => {
     if (!hydrated || !definitionsReady) return;
@@ -346,19 +284,8 @@ export default function GameDemo() {
     });
   }, [contentReady, definitionsReady, eventDefinitions, game.activeEvent, game.calendarEventRuns, game.completedEvents, game.day, game.flags, game.period, game.relationships, hydrated]);
 
-  const baseScene = sceneMap[game.sceneId] ?? playableScenes[0] ?? scenes[0];
   const residentFishingLocation = FISHING_LOCATIONS.find((location) => location.kind === "resident" && location.sceneId === game.sceneId);
-  const scene = resolveSceneVariant(baseScene, game);
-  const residentIds = scene.characters.filter((id)=>{const item=characterMap[id];const appearances=item?.appearances?.filter((entry)=>entry.sceneId===scene.id);return appearances?.length?appearances.some((entry)=>entry.mode==="resident"):((item?.presence?.mode??"resident")==="resident")});
-  const scheduledPresentIds = game.presentCharacters[scene.id]
-    ? [...new Set([...(game.presentCharacters[scene.id] ?? []), ...residentIds])]
-    : residentIds;
-  const restoredClinic=Boolean(game.flags.medicine_supply_restored);
-  const liuClinicScene=characterMap.liu?.sceneId;
-  const presentIds = restoredClinic&&scene.id===liuClinicScene&&["清晨","上午","午后"].includes(game.period)?["liu",...scheduledPresentIds.filter(id=>id!=="liu")]:scheduledPresentIds;
-  const activeCharacters = presentIds.map((id) => characterMap[id]).filter(Boolean);
   const hasPresentCharacter = activeCharacters.length > 0;
-  const character = characterMap[game.selectedCharacterId] ?? activeCharacters[0] ?? characters[0];
   const node = currentNode(game, eventDefinitions);
   const activeDefinition = game.activeEvent ? resolveEvent(game.activeEvent, eventDefinitions) : null;
   const audioEvents = eventDefinitions.filter((event)=>event.cardStyle==="audio");
@@ -454,17 +381,19 @@ export default function GameDemo() {
     // character-only guard made the farm button look clickable while silently
     // rejecting the transition.
     if (!destination || (!destination.characters.length && destination.id !== "bedroom" && destination.id !== "spirit-farm")) return;
+    if (sceneId !== "spirit-farm") { setFarmQuickRequest(null); setCurrentFarmModule(null); }
     setInteractionMenuOpen(false);
     setQuestConversationMenuOpen(false);
     setNotice(`抵达 · ${destination.name}`);
-    // Production scenes are intentionally characterless. Do not pass them
-    // through character-presence resolution, otherwise an unrelated forced
-    // romance event can hijack the first visit and make the scene look broken.
-    if (destination.id === "spirit-farm") {
-      setGame((state) => applyAutomaticGlobalKeys({ ...state, sceneId, activeEvent: null }, globalKeys));
-      return;
-    }
-    setGame((state)=>{const base:GameState=applyAutomaticGlobalKeys({...state,sceneId,activeEvent:null},globalKeys);const resolved=resolveScenePresence(base,sceneId,characters,eventDefinitions,true);const selected=resolved.present[0]??destination.characters[0]??state.selectedCharacterId;const ready={...resolved.state,selectedCharacterId:selected};const context:TriggerContext={trigger:"scene_enter",sceneId,characterId:selected};if(resolved.forcedEvent){setNotice(`人物事件触发 · ${resolved.forcedEvent.title}`);return startDefinition(ready,resolved.forcedEvent,context)}return launch(context,ready)});
+    setGame((state)=>{
+      const transition = prepareSceneTransition({ state, sceneId, destination, characters, events: eventDefinitions, globalKeys });
+      const context: TriggerContext = { trigger:"scene_enter", sceneId, characterId: transition.selectedCharacterId };
+      if (transition.forcedEvent) {
+        setNotice(`人物事件触发 · ${transition.forcedEvent.title}`);
+        return startDefinition(transition.state, transition.forcedEvent, context);
+      }
+      return destination.id === "spirit-farm" ? transition.state : launch(context, transition.state);
+    });
   }
 
   function triggerMapEvent(eventId: string) {
@@ -524,14 +453,39 @@ export default function GameDemo() {
 
   function advanceTime(mode:"wait"|"rest"|"sleep"="wait") {
     if (game.activeEvent) return;
-    const current = PERIODS.indexOf(game.period),wrapped = current === PERIODS.length - 1;
-    const period = mode==="sleep"?"清晨":PERIODS[(current + 1) % PERIODS.length];
-    const targetDay=mode==="sleep"?game.day+1:wrapped?game.day+1:game.day;
-    const context: TriggerContext = { trigger: "time_change", sceneId: game.sceneId };
+    const preview = previewTimeAdvance(game, mode);
     setInteractionMenuOpen(false);setTimeMenuOpen(false);
-    const restCount=game.shortRestDay===game.day?game.shortRestCount:0,restGain=Math.max(1,3-restCount);
-    setNotice(mode==="sleep"?`安睡至第${targetDay}日 · 体力恢复`:mode==="rest"?`短休一时段 · 体力 +${Math.min(restGain,10-game.stamina)}`:targetDay>game.day?`第${targetDay}日 · ${period}`:`等待至 · ${period}`);
-    setGame((state)=>{const currentRest=state.shortRestDay===state.day?state.shortRestCount:0;const gain=Math.max(1,3-currentRest);const stamina=mode==="sleep"?10:mode==="rest"?Math.min(10,state.stamina+gain):state.stamina;const base=applyAutomaticGlobalKeys({...state,period,day:mode==="sleep"?state.day+1:PERIODS.indexOf(state.period)===PERIODS.length-1?state.day+1:state.day,stamina,shortRestDay:mode==="sleep"||wrapped?targetDay:state.day,shortRestCount:mode==="sleep"||wrapped?0:mode==="rest"?currentRest+1:currentRest},globalKeys);const resolved=resolveScenePresence(base,state.sceneId,characters,eventDefinitions,false);const ready={...resolved.state,selectedCharacterId:resolved.present[0]??state.selectedCharacterId};if(resolved.forcedEvent){const eventContext:TriggerContext={trigger:"scene_enter",sceneId:state.sceneId,characterId:resolved.present[0]};setNotice(`人物事件触发 · ${resolved.forcedEvent.title}`);return startDefinition(ready,resolved.forcedEvent,eventContext)}const seeking=resolveSeekingEncounter(ready,characters,eventDefinitions);if(seeking){setNotice(`主动相遇 · ${seeking.rule.intro}`);const seekingContext:TriggerContext={trigger:"time_change",sceneId:ready.sceneId,characterId:seeking.character.id};return seeking.event?startDefinition(seeking.state,seeking.event,seekingContext):seeking.state}return launch({...context,characterId:ready.selectedCharacterId},ready)});
+    setNotice(mode==="sleep"?`安睡至第${preview.day}日 · 体力恢复`:mode==="rest"?`短休一时段 · 体力 +${Math.min(preview.restGain,10-game.stamina)}`:preview.day>game.day?`第${preview.day}日 · ${preview.period}`:`等待至 · ${preview.period}`);
+    setGame((state)=>{
+      const transition = prepareTimeTransition({ state, mode, characters, events: eventDefinitions, globalKeys });
+      if (transition.forcedEvent) {
+        const eventContext: TriggerContext = { trigger:"scene_enter", sceneId:transition.state.sceneId, characterId:transition.state.selectedCharacterId };
+        setNotice(`人物事件触发 · ${transition.forcedEvent.title}`);
+        return startDefinition(transition.state, transition.forcedEvent, eventContext);
+      }
+      if (transition.seeking) {
+        setNotice(`主动相遇 · ${transition.seeking.rule.intro}`);
+        const seekingContext: TriggerContext = { trigger:"time_change", sceneId:transition.state.sceneId, characterId:transition.seeking.character.id };
+        return transition.seeking.event ? startDefinition(transition.state, transition.seeking.event, seekingContext) : transition.state;
+      }
+      return launch({ trigger:"time_change", sceneId:transition.state.sceneId, characterId:transition.state.selectedCharacterId }, transition.state);
+    });
+  }
+
+  function useQuickDestination(destination: QuickDestination) {
+    if (destination.kind === "alchemy") {
+      setActiveModule({ kind: "alchemy" });
+      setNotice("玄火已候 · 进入丹炉");
+      return;
+    }
+    if (destination.kind === "farm" && destination.module) {
+      const module = destination.module as "field" | "livestock";
+      setCurrentFarmModule(module);
+      setFarmQuickRequest({ module, token: Date.now() });
+      if (game.sceneId !== "spirit-farm") enterScene("spirit-farm");
+      return;
+    }
+    if (destination.kind === "scene" && destination.sceneId) enterScene(destination.sceneId as SceneId);
   }
 
   function currentInitialState(): GameState {
@@ -551,11 +505,11 @@ export default function GameDemo() {
     setGiftOpen(false);
     setInteractionMenuOpen(false);setDrinkingOpen(false);
     setMapOpen(false);setQuestOpen(false);setQuestOffer(null);setProjectOpen(false);
-    setCalendarOpen(false);
+    setCalendarOpen(false);setTurnCombatRequest(null);
     setCultivationOpen(false);setInspectionReveal(null);
     setActiveActivity(null);
     setGalleryOpen(false); setReplayEvent(null); setUnlockNotice(""); setAudioIndex(0);setCollectionOpen(false);setActiveExploration(null);setExplorePoints([]);setEggRewardNotice(null);
-    setKeyAnnouncementQueue([]);setMessageQueue([]);setReplayMessage(null);setMessageInboxOpen(false);setStageNotice(null);setPreferenceNotice("");
+    setKeyAnnouncementQueue([]);setMessageQueue([]);setReplayMessage(null);setMessageInboxOpen(false);setStageNotice(null);setPreferenceNotice("");setStoryDebugOpen(false);
     const resetState = currentInitialState();
     setGame(resetState);
     setNotice("篇章已经重新开始");
@@ -728,6 +682,18 @@ export default function GameDemo() {
     if(target.kind==="story"&&target.sceneId)enterScene(target.sceneId);
   }
 
+  function previewShenStory(event: EventDefinition) {
+    const preview = createShenStoryPreview(event);
+    setStoryDebugOpen(false);
+    setPanel(null);setGiftOpen(false);setMapOpen(false);setQuestOpen(false);setCalendarOpen(false);setSystemPanel(null);setUtilityOpen(false);
+    setNotice(`无效果校验 · ${event.title}`);
+    setGame((state) => startTransient(
+      { ...state, activeEvent: null, sceneId: event.sceneId, selectedCharacterId: "shen" },
+      preview,
+      { trigger: "talk", sceneId: event.sceneId, characterId: "shen" },
+    ));
+  }
+
   function navigateFromProject(target: PathProjectDestination, options?: { sceneId?: string; characterId?: string; waveId?: number }) {
     setProjectOpen(false);
     if (target === "farm") { enterScene("spirit-farm"); return; }
@@ -760,7 +726,72 @@ export default function GameDemo() {
     applyUnifiedEffects([{ type: "clear_activity" }]);
   }
 
-  const worldHudVisible = !mapOpen && !questOpen && !calendarOpen && !panel && !systemPanel && !activeModule && !giftOpen && !shopOpen && !cultivationOpen && !drinkingOpen && !fishingTarget && !miningTarget && !forumOpen && !projectOpen && !galleryOpen && !collectionOpen && !messageInboxOpen;
+  function completeTurnCombat(result: TurnCombatResult) {
+    const storyEncounter = result.encounter.kind === "story";
+    if (storyEncounter) {
+      const victory = result.outcome === "victory";
+      const rewards = result.encounter.rewards;
+      const effects: GameEffect[] = [
+        { type: "set_global_key", key: TURN_COMBAT_SYSTEM.invasion.resolvedFlag, value: true },
+        {
+          type: "record_activity",
+          receipt: {
+            id: `turn-combat:${result.encounter.id}:day-${game.day}`,
+            kind: "battle",
+            title: result.encounter.name,
+            summary: victory ? `以 ${result.actionCount} 式击退来犯者，护山阵重新稳定。` : "山门暂时收缩防线，本轮未取得战利品。",
+            rewards: victory ? [
+              `修为 +${rewards.experience}`,
+              `灵石 +${rewards.spiritStones}`,
+              ...(rewards.itemName ? [`${rewards.itemName} ×1`] : []),
+            ] : [],
+            impacts: victory ? ["山门危机解除", "奖励已写入统一行囊与成长状态"] : ["山门进入警戒状态", "本轮没有扣除额外资源"],
+            nextStep: { target: victory ? "inventory" : "world", label: victory ? "查看战利品" : "返回世界" },
+            createdAt: Date.now(),
+          },
+        },
+      ];
+      if (victory) {
+        if (rewards.experience > 0) effects.push({ type: "add_player_exp", amount: rewards.experience });
+        if (rewards.spiritStones > 0) effects.push({ type: "add_currency", amount: rewards.spiritStones });
+        if (rewards.itemId) effects.push({
+          type: "add_item",
+          item: {
+            itemId: rewards.itemId,
+            itemType: "quest",
+            rarity: Math.max(1, Math.min(7, rewards.itemRarity ?? 1)) as UnifiedRarity,
+            amount: 1,
+            sourceTags: ["回合战斗", result.encounter.name],
+            displayName: rewards.itemName,
+          },
+        });
+      }
+      applyUnifiedEffects(effects);
+      setGame((state) => advanceOneStage(state));
+      setNotice(victory ? `山门来犯已平定 · ${result.actionCount} 式制胜` : "山门防线暂时收缩 · 可在听云居继续试招");
+    } else {
+      setNotice(result.outcome === "victory" ? `演武完成 · 共用 ${result.actionCount} 式` : result.outcome === "retreated" ? "已从木人阵中收势" : "演武未成 · 可重新布阵再试");
+    }
+    setTurnCombatRequest(null);
+  }
+
+  function gainTurnCombatLoot(loot: TheftLoot) {
+    if (loot.kind === "currency") {
+      applyUnifiedEffects([{ type: "add_currency", amount: loot.amount }]);
+      return;
+    }
+    applyUnifiedEffects([{ type: "add_item", item: {
+      itemId: loot.itemId ?? `turn-loot:${loot.name}`,
+      templateId: loot.templateId,
+      itemType: loot.kind === "manual" ? "manual" : "treasure",
+      rarity: Math.max(1, Math.min(7, loot.rarity)) as UnifiedRarity,
+      amount: loot.amount,
+      displayName: loot.name,
+      sourceTags: ["回合战斗", "妙手所得"],
+    } }]);
+  }
+
+  const worldHudVisible = !mapOpen && !questOpen && !calendarOpen && !panel && !systemPanel && !activeModule && !turnCombatRequest && !giftOpen && !shopOpen && !cultivationOpen && !drinkingOpen && !fishingTarget && !miningTarget && !forumOpen && !projectOpen && !galleryOpen && !collectionOpen && !messageInboxOpen;
 
   return (
     <main className="game-shell huaian-phone-viewport">
@@ -809,6 +840,7 @@ export default function GameDemo() {
       <section className={`stage ${scene.id === "spirit-farm" ? "farm-stage" : ""} ${scene.id === "intelligence-bureau" ? "bureau-stage" : ""} ${isSpecialEvent ? "special-event-active" : ""} stage-fx-${stageEffect}`} style={{ backgroundImage: `url(${scene.image})` }}>
         {isSpecialEvent && <div key={`${activeDefinition?.id}-${activeDefinition?.openingEffect}`} className={`special-opening special-opening-${activeDefinition?.openingEffect ?? "none"}`} aria-hidden="true" />}
         <div className="stage-wash" aria-hidden="true" />
+        {worldHudVisible && !game.activeEvent && <WorldQuickDock currentSceneId={game.sceneId} currentFarmModule={currentFarmModule} period={game.period} nextPeriod={PERIODS[(Math.max(0, PERIODS.indexOf(game.period)) + 1) % PERIODS.length]} onDestination={useQuickDestination} onAdvanceTime={() => advanceTime("wait")} />}
         <div className="scene-title"><p>{scene.atmosphere}</p><h2>{scene.name}</h2><span>{scene.description}</span></div>
         {!game.activeEvent && !unifiedState.activity.last && <CurrentQuestCard onOpen={()=>setQuestOpen(true)} onNavigate={navigateToQuest}/>}
         {!game.activeEvent && !questOpen && !activeModule && !projectOpen && unifiedState.activity.last && <RecentOutcomeCard receipt={unifiedState.activity.last} onNext={() => navigateFromOutcome(unifiedState.activity.last!.nextStep.target)} onDismiss={() => applyUnifiedEffects([{ type: "clear_activity" }])} />}
@@ -835,7 +867,8 @@ export default function GameDemo() {
         {isSpecialEvent && <div className="special-portrait-wrap" key={`${game.activeEvent?.eventId}-${game.activeEvent?.nodeId}`}><div className="special-portrait-aura" /><img src={specialPortrait} alt={`${character.name}特殊事件立绘`} /></div>}
         {hasPresentCharacter && <Inspectable className="character-plaque" aria-label={`查看${character.name}详情`} feedback={{ titleKey:"relationship.profileTitle", icon:"缘", imageSrc:character.image, bodyKey:"relationship.stageBody", params:{name:character.name,stage:currentStage.name,description:currentStage.description}, details:[{labelKey:"relationship.nameLabel",value:character.name,emphasis:true},{labelKey:"relationship.roleLabel",value:character.role},{labelKey:"relationship.stageLabel",value:currentStage.name},{labelKey:"relationship.valueLabel",value:relationship},{labelKey:"relationship.addressLabel",value:`「${currentStage.addressing}」`}] }}><p>{character.role}</p><h3>{character.name}</h3><span>{currentStage.name} · 唤你「{currentStage.addressing}」</span></Inspectable>}
         {!game.activeEvent&&scene.id==="bedroom"&&<div className={`bedroom-practice-card ${hasPresentCharacter?"with-resident":""}`}><div className="bedroom-formation"><i/><i/><span>炁</span></div><p>PRIVATE CULTIVATION · 静室</p><h3>聚灵阵已启</h3><span>每次练功消耗 {ACTION_COSTS.cultivation.stamina} 点体力，运转一周天需 1 秒。</span><div><b>修为 {game.experience}</b><b>体力 {game.stamina}/10</b></div><button type="button" disabled={game.stamina<ACTION_COSTS.cultivation.stamina} onClick={()=>setCultivationOpen(true)}>{game.stamina<ACTION_COSTS.cultivation.stamina?"体力不足":`入阵练功 · ${actionCostLabel("cultivation")}`}</button></div>}
-        {!game.activeEvent&&scene.id==="spirit-farm"&&<SpiritFarmScene day={game.day} period={game.period} onNotice={setNotice}/>}
+        {!game.activeEvent&&scene.id==="bedroom"&&!turnCombatRequest&&<TurnCombatPracticeEntry onOpen={()=>setTurnCombatRequest({})}/>}
+        {!game.activeEvent&&scene.id==="spirit-farm"&&<SpiritFarmScene day={game.day} period={game.period} requestedModule={farmQuickRequest} onModuleOpened={setCurrentFarmModule} onNotice={setNotice}/>}
         {!game.activeEvent&&scene.id==="intelligence-bureau"&&<IntelligenceBureauScene day={game.day} period={game.period} onNotice={setNotice} onOpenForum={()=>setForumOpen(true)}/>}
 
         {bondFeedback && bondFeedback.amount === 1 && <div key={bondFeedback.id} className="bond-gain-mini"><span>♥</span> 好感度 +1</div>}
@@ -910,6 +943,15 @@ export default function GameDemo() {
       {forumOpen&&<ForumModal day={game.day} period={game.period} onClose={()=>setForumOpen(false)} player={{name:"槐安行者",title:"云州新秀",level:unifiedState.shared.playerLevel,cultivation:game.experience,dungeons:unifiedState.dungeons.completed.length,bondName:characters.reduce((best,item)=>(game.relationships[item.id]??0)>(game.relationships[best.id]??0)?item:best,characters[0]).name,bond:Math.max(...characters.map(item=>game.relationships[item.id]??0))}}/>}
       {fishingTarget && <FishingModal locationId={fishingTarget.locationId} randomSpotId={fishingTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setFishingTarget(null)} onNotice={setNotice} />}
       {miningTarget && <MiningModal locationId={miningTarget.locationId} randomSpotId={miningTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setMiningTarget(null)} onNotice={setNotice} />}
+      {turnCombatRequest && <TurnCombatModule
+        encounterId={turnCombatRequest.encounterId}
+        player={createPlayerTurnProfile(unifiedState)}
+        inventory={turnCombatInventory(unifiedState.shared.items)}
+        onClose={()=>setTurnCombatRequest(null)}
+        onComplete={completeTurnCombat}
+        onConsumeItem={(itemId)=>applyUnifiedEffects([{ type:"remove_item", itemId, amount:1 }])}
+        onGainLoot={gainTurnCombatLoot}
+      />}
       {systemPanel && <FusionSystemPanel panel={systemPanel} onClose={() => setSystemPanel(null)} />}
       {activeModule && <div className={`fusion-module-backdrop module-${activeModule.kind}`} role="presentation"><section className="fusion-module-window" role="dialog" aria-modal="true" aria-label={activeModule.kind === "battle" ? `${activeModule.dungeon.name}秘境战斗` : "玄火丹炉"}>
         <button type="button" className="fusion-module-close" onClick={() => setActiveModule(null)} aria-label={feedbackText("system.close")}>‹</button>
@@ -990,6 +1032,8 @@ export default function GameDemo() {
           </section>
         </div>
       )}
+      {storyDebugEnabled && !game.activeEvent && !storyDebugOpen && <button type="button" className="shen-debug-launcher" onClick={() => setStoryDebugOpen(true)}><i>验</i><span>剧情校验</span></button>}
+      {storyDebugEnabled && storyDebugOpen && <ShenStoryDebugPanel events={eventDefinitions} game={game} onClose={() => setStoryDebugOpen(false)} onPreview={previewShenStory} />}
     </main>
   );
 }

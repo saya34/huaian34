@@ -1,0 +1,40 @@
+{
+  "flee": {
+    "recovery": 980,
+    "minimumChance": 0.1,
+    "maximumChance": 0.9,
+    "speedDeltaScale": 0.006
+  },
+  "steal": {
+    "recovery": 1080,
+    "baseChance": 0.34,
+    "finesseScale": 0.0035,
+    "enemyLevelScale": 0.028,
+    "minimumChance": 0.12,
+    "maximumChance": 0.82,
+    "treasureChance": 0.14,
+    "specialChance": 0.025,
+    "currencyBase": 22,
+    "currencyPerLevel": 13,
+    "treasures": [
+      { "kind": "treasure", "itemId": "turn-loot-shadow-token", "name": "影盗令", "amount": 1, "rarity": 3, "description": "来犯者腰间的暗纹铜令，可用于交易或收藏。" },
+      { "kind": "treasure", "itemId": "turn-loot-ward-fragment", "name": "镇岳甲片", "amount": 1, "rarity": 4, "description": "仍残留护体罡气的甲片，可作高阶炼器辅材。" },
+      { "kind": "treasure", "itemId": "turn-loot-blood-jade", "name": "断岳血玉", "amount": 1, "rarity": 5, "description": "沾染刀魁气血的古玉，光下可见山岳裂纹。" }
+    ],
+    "specialLoot": {
+      "swift-raider": { "kind": "treasure", "itemId": "turn-loot-swift-step", "name": "掠影腰牌", "amount": 1, "rarity": 5, "description": "迅影客从不离身的身份腰牌，极少被人夺得。" },
+      "ward-raider": { "kind": "treasure", "itemId": "turn-loot-ward-core", "name": "镇山罡心", "amount": 1, "rarity": 5, "description": "镇山客护盾内嵌的阵心，可用于防御法器。" },
+      "raid-leader": { "kind": "manual", "itemId": "manual-eight-wastes", "templateId": "manual-eight-wastes", "skillId": 10008, "name": "《弑神八荒残卷》", "amount": 1, "rarity": 6, "description": "断岳魁秘藏的残卷，研读后可习得功法「弑神八荒」。" }
+    }
+  },
+  "consumables": [
+    { "templateId": "prd-37", "role": "health", "label": "赤霄回命", "summary": "回复45%气血，并凝聚两回合专注。", "recovery": 900, "effects": [{ "healthRatio": 0.45 }, { "statusId": "focus", "duration": 2 }] },
+    { "templateId": "prd-38", "role": "mana", "label": "月露凝神", "summary": "回复42%法力，并清除危险减益。", "recovery": 840, "effects": [{ "manaRatio": 0.42 }, { "cleanseDanger": true }] },
+    { "templateId": "prd-39", "role": "health", "label": "万木回春", "summary": "回复24%气血，并获得三回合回春。", "recovery": 880, "effects": [{ "healthRatio": 0.24 }, { "statusId": "regen", "duration": 3 }] },
+    { "templateId": "prd-40", "role": "mana", "label": "紫雷破境", "summary": "回复30%法力，并提高两回合出手速度。", "recovery": 820, "effects": [{ "manaRatio": 0.3 }, { "statusId": "haste", "duration": 2 }] },
+    { "templateId": "prd-41", "role": "buff", "label": "金阳筑基", "summary": "恢复30%架势，并获得三回合专注。", "recovery": 920, "effects": [{ "postureRatio": 0.3 }, { "statusId": "focus", "duration": 3 }] },
+    { "templateId": "prd-42", "role": "mana", "label": "星命唤灵", "summary": "回复55%法力，并获得两回合迅行。", "recovery": 960, "effects": [{ "manaRatio": 0.55 }, { "statusId": "haste", "duration": 2 }] },
+    { "templateId": "prd-43", "role": "buff", "label": "沧海护心", "summary": "恢复35%架势，并获得三回合守势。", "recovery": 860, "effects": [{ "postureRatio": 0.35 }, { "statusId": "guarded", "duration": 3 }] },
+    { "templateId": "prd-44", "role": "buff", "label": "厚土金刚", "summary": "获得三回合金刚护体。", "recovery": 940, "effects": [{ "statusId": "fortified", "duration": 3 }] }
+  ]
+}

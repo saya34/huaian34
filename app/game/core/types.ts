@@ -13,7 +13,7 @@ import type { GatheringProgress } from "../gathering/types";
 export const SAVE_VERSION = 6 as const;
 
 export type UnifiedRarity = 1 | 2 | 3 | 4 | 5 | 6 | 7;
-export type UnifiedItemType = "gift" | "material" | "pill" | "equipment" | "card" | "treasure" | "quest" | "fish";
+export type UnifiedItemType = "gift" | "material" | "pill" | "equipment" | "card" | "treasure" | "quest" | "fish" | "manual";
 
 export type UnifiedItemStack = {
   itemId: string;

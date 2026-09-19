@@ -318,6 +318,8 @@ export class BattleEngine {
   private joystick = { x: 0, y: 0 };
   private animationFrame = 0;
   private resizeObserver: ResizeObserver | null = null;
+  private started = false;
+  private destroyed = false;
   private previousTime = 0;
   private snapshotTimer = 0;
   private spawnTimer = 0;
@@ -496,6 +498,8 @@ export class BattleEngine {
   }
 
   start() {
+    if (this.started || this.destroyed) return;
+    this.started = true;
     this.paused = false;
     this.previousTime = performance.now();
     this.resize();
@@ -509,12 +513,18 @@ export class BattleEngine {
   }
 
   destroy() {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.started = false;
+    this.paused = true;
     cancelAnimationFrame(this.animationFrame);
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
     window.removeEventListener("resize", this.resize);
+    this.keys.clear();
+    this.joystick = { x: 0, y: 0 };
   }
 
   setJoystick(x: number, y: number) {
@@ -805,6 +815,7 @@ export class BattleEngine {
   };
 
   private loop = (now: number) => {
+    if (this.destroyed) return;
     const rawDelta = clamp((now - this.previousTime) / 1000, 0, 0.08);
     this.previousTime = now;
     if (!this.paused && !this.ended) {
@@ -820,7 +831,7 @@ export class BattleEngine {
       if (remaining > 0) this.update(Math.min(remaining, 0.15));
     }
     this.render(now / 1000);
-    this.animationFrame = requestAnimationFrame(this.loop);
+    if (!this.destroyed) this.animationFrame = requestAnimationFrame(this.loop);
   };
 
   private update(delta: number) {

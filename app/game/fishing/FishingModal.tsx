@@ -36,6 +36,7 @@ import { resolveGatheringOutcome, selectedTool } from "../gathering/engine";
 import reelUi from "./content/reel-ui.json";
 import { createActivityReceipt } from "../core/activity-receipt";
 import RotarySelector from "../ui/RotarySelector";
+import { FISHING_SECOND_CATCH_MANUAL } from "../skills/manual-items";
 
 type Props = {
   locationId: FishingLocationId;
@@ -117,6 +118,10 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
       ] as Parameters<typeof applyEffects>[0];
       if(careerResult.companion)rewards.push({type:"add_item",item:{itemId:careerResult.companion.id,itemType:careerResult.companion.itemType,rarity:careerResult.companion.rarity as 1|2|3|4|5,amount:1,sourceTags:["钓鱼伴生",...careerResult.companion.tags],locked:careerResult.companion.locked}});
       if (reel.ok && reel.mapFragment) rewards.push({ type: "add_item", item: { itemId: "river-map-fragment", itemType: "quest", rarity: 4, amount: 1, sourceTags: ["钓鱼", "河图残片"] } });
+      const isSecondSuccessfulCatch = progress.totalCaught + 1 === 2;
+      if (isSecondSuccessfulCatch && !state.shared.learnedSkills.includes(FISHING_SECOND_CATCH_MANUAL.skillId) && !state.shared.items[FISHING_SECOND_CATCH_MANUAL.itemId]?.amount) {
+        rewards.push({ type: "add_item", item: { itemId: FISHING_SECOND_CATCH_MANUAL.itemId, itemType: "manual", rarity: FISHING_SECOND_CATCH_MANUAL.rarity, amount: 1, sourceTags: [location.name, "第二次垂钓奇遇", "功法玉简"] } });
+      }
       rewards.push({ type: "record_activity", receipt: createActivityReceipt({ kind: "fishing", title: `钓得 · ${target.name}`, summary: `${location.name}的鱼获已完整收入乾坤行囊。`, rewards: [`${target.name} ×1`, careerResult.companion ? `${careerResult.companion.name} ×1` : reel.ok && reel.mapFragment ? "河图残片 ×1" : `修为 +${target.rarity * 3}`], impacts: [`听澜师经验 +${careerResult.experience}`, "任务与配方进度已同步"], nextStep: { target: "inventory", label: "查看鱼获与可用配方" } }) });
       applyEffects(rewards);
       feedback.publish({
@@ -130,7 +135,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
         imageSrc: target.art,
         dedupeKey: `fishing:catch:${target.id}:${progress.totalCaught + 1}`,
       });
-      onNotice(`收杆成功 · 获得${target.name}${careerResult.companion?`、${careerResult.companion.name}`:""}${reel.ok && reel.mapFragment ? "与河图残片" : ""} · 听澜师经验 +${careerResult.experience}`);
+      onNotice(`收杆成功 · 获得${target.name}${careerResult.companion?`、${careerResult.companion.name}`:""}${reel.ok && reel.mapFragment ? "与河图残片" : ""}${isSecondSuccessfulCatch ? `，另从鱼腹灵匣中取得${FISHING_SECOND_CATCH_MANUAL.name}` : ""} · 听澜师经验 +${careerResult.experience}`);
       return;
     }
     setPhase("failed");

@@ -1,0 +1,33 @@
+{
+  "skillVisuals": {
+    "basic-attack": { "key": "ink-slash", "family": "ink-slash", "sigil": "锋", "primary": "#e9d7a5", "accent": "#8ca796", "intensity": "light" },
+    "guard": { "key": "jade-guard", "family": "barrier", "sigil": "守", "primary": "#8fd1ad", "accent": "#e0f1c9", "intensity": "light" },
+    "breathe": { "key": "qi-breath", "family": "breath", "sigil": "息", "primary": "#8fd7b3", "accent": "#e5f6d5", "intensity": "light" },
+    "manual-10000": { "key": "flying-sword", "family": "flying-sword", "sigil": "剑", "primary": "#d6c77d", "accent": "#e8f2d9", "intensity": "medium" },
+    "manual-10002": { "key": "bolt-rain", "family": "bolt-rain", "sigil": "弩", "primary": "#d7aa61", "accent": "#fff0b0", "intensity": "medium" },
+    "manual-10004": { "key": "shadow-arrow", "family": "shadow-arrow", "sigil": "弓", "primary": "#9d8bc4", "accent": "#dfd0ff", "intensity": "medium" },
+    "manual-10006": { "key": "blood-blade", "family": "blood-blade", "sigil": "修", "primary": "#c94c43", "accent": "#ffc0a0", "intensity": "heavy" },
+    "manual-10010": { "key": "swallow-trails", "family": "swallow", "sigil": "燕", "primary": "#82d2c6", "accent": "#edfff4", "intensity": "medium" },
+    "manual-10012": { "key": "spirit-serpent", "family": "serpent", "sigil": "蛇", "primary": "#73be76", "accent": "#d7f29a", "intensity": "medium" },
+    "manual-10014": { "key": "golden-dome", "family": "golden-dome", "sigil": "护", "primary": "#ecc65d", "accent": "#fff2ac", "intensity": "medium" },
+    "manual-10016": { "key": "buddha-ward", "family": "buddha", "sigil": "藏", "primary": "#83c7a0", "accent": "#f3d68b", "intensity": "heavy" },
+    "manual-10018": { "key": "fire-lotus", "family": "fire-lotus", "sigil": "焰", "primary": "#ee6637", "accent": "#ffd078", "intensity": "heavy" },
+    "manual-10037": { "key": "staff-impact", "family": "staff", "sigil": "棍", "primary": "#c88b4c", "accent": "#ffe0a0", "intensity": "heavy" },
+    "manual-10020": { "key": "frost-child", "family": "frost", "sigil": "雪", "primary": "#8dd9ee", "accent": "#f0fdff", "intensity": "medium" },
+    "manual-10008": { "key": "void-cleave", "family": "void-cleave", "sigil": "荒", "primary": "#8d60c4", "accent": "#efcaff", "intensity": "heavy" },
+    "manual-10023": { "key": "heaven-sword", "family": "heaven-sword", "sigil": "天", "primary": "#efd36b", "accent": "#fff7c2", "intensity": "heavy" },
+    "manual-10024": { "key": "demon-pierce", "family": "demon-pierce", "sigil": "魔", "primary": "#c54254", "accent": "#ff9ea9", "intensity": "heavy" },
+    "manual-10025": { "key": "dragon-orbit", "family": "dragon", "sigil": "龙", "primary": "#59c49f", "accent": "#d8f2a8", "intensity": "heavy" },
+    "manual-10027": { "key": "yin-yang", "family": "yin-yang", "sigil": "阴阳", "primary": "#d8d4c4", "accent": "#726e81", "intensity": "medium" },
+    "manual-10029": { "key": "ghost-blade", "family": "ghost-blade", "sigil": "冥", "primary": "#8e668f", "accent": "#d7a1c8", "intensity": "heavy" },
+    "manual-10031": { "key": "thunder-fall", "family": "thunder", "sigil": "雷", "primary": "#82b7ff", "accent": "#fff184", "intensity": "heavy" },
+    "manual-10033": { "key": "blade-array", "family": "blade-array", "sigil": "阵", "primary": "#b8c5d7", "accent": "#ffffff", "intensity": "heavy" },
+    "manual-10035": { "key": "reincarnation-orb", "family": "orbs", "sigil": "轮", "primary": "#d8cfae", "accent": "#a7d5c0", "intensity": "heavy" },
+    "enemy-quick-cut": { "key": "enemy-quick-cut", "family": "quick-cut", "sigil": "袭", "primary": "#d85847", "accent": "#ffc099", "intensity": "medium" },
+    "enemy-ward-bash": { "key": "enemy-ward-bash", "family": "shield-bash", "sigil": "撞", "primary": "#b79762", "accent": "#f1d1a0", "intensity": "medium" },
+    "enemy-brace": { "key": "enemy-brace", "family": "iron-wall", "sigil": "壁", "primary": "#8f8065", "accent": "#e7c98e", "intensity": "light" },
+    "enemy-heavy-cleave": { "key": "enemy-heavy-cleave", "family": "heavy-cleave", "sigil": "斩", "primary": "#c9483f", "accent": "#ffd0a7", "intensity": "heavy" },
+    "enemy-command": { "key": "enemy-command", "family": "war-cry", "sigil": "喝", "primary": "#b34e45", "accent": "#f0b387", "intensity": "medium" },
+    "dummy-tap": { "key": "dummy-tap", "family": "wood-impact", "sigil": "桩", "primary": "#a77d51", "accent": "#dec190", "intensity": "light" }
+  }
+}

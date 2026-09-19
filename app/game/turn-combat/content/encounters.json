@@ -1,0 +1,8 @@
+{
+  "encounters": [
+    { "id": "invasion-day-five", "kind": "story", "name": "山门来犯", "subtitle": "第五日 · 清晨", "objective": "击退来犯者，守住山门法阵", "briefing": "迅影客会抢先扰乱气机，镇山客必须先破架势。断岳魁的重斩会提前显露意图。", "enemyIds": ["swift-raider", "ward-raider", "raid-leader"], "background": "/game-assets/turn-combat/mountain-gate-dawn-v1.png", "rewards": { "experience": 180, "spiritStones": 160, "itemId": "mountain-ward-seal", "itemName": "残缺护山符", "itemRarity": 3 }, "allowRetreat": true },
+    { "id": "practice-single", "kind": "practice", "name": "木人单桩", "subtitle": "听云居 · 无消耗", "objective": "熟悉气机轴、伤害预览与基础调息", "briefing": "木人出手缓慢。尝试观察行动顺序，再比较轻招与重招的恢复时间。", "enemyIds": ["wooden-dummy"], "background": "/game-assets/turn-combat/mountain-gate-dawn-v1.png", "rewards": { "experience": 0, "spiritStones": 0 }, "allowRetreat": true },
+    { "id": "practice-break", "kind": "practice", "name": "铁骨重桩", "subtitle": "听云居 · 破势", "objective": "击破铁桩架势，并在破绽期集中攻击", "briefing": "铁桩防御很高。直接攻击收效有限，先使用桃木飞剑或法棍削减架势。", "enemyIds": ["iron-dummy"], "background": "/game-assets/turn-combat/mountain-gate-dawn-v1.png", "rewards": { "experience": 0, "spiritStones": 0 }, "allowRetreat": true },
+    { "id": "practice-group", "kind": "practice", "name": "三才桩阵", "subtitle": "听云居 · 群攻", "objective": "使用群攻、增益与减益处理多个目标", "briefing": "三个木人行动速度不同。使用修罗刀压低全体生命，再用护体金光稳住架势。", "enemyIds": ["wooden-dummy", "wooden-dummy", "wooden-dummy"], "background": "/game-assets/turn-combat/mountain-gate-dawn-v1.png", "rewards": { "experience": 0, "spiritStones": 0 }, "allowRetreat": true }
+  ]
+}

@@ -1,0 +1,754 @@
+{
+  "events": [
+    {
+      "id": "shen.arc.01.sleeve-at-dawn", "order": 1, "phase": "一·仍是师徒", "title": "袖口的血", "subtitle": "她一眼就看见了你想藏起来的伤", "type": "相识", "trigger": "scene_enter", "priority": 180, "sceneId": "lingxiao",
+      "conditions": [{ "type": "scene", "value": "lingxiao" }],
+      "clue": "回到凌霄殿，沈清霜会检查你的晨课",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "晨雾还压在石阶上，你刚迈进凌霄殿，沈清霜便从案后抬起眼。", "stageEffect": "soft_glow" },
+        { "kind": "line", "speaker": "shen", "text": "站住。右手袖口抬起来。", "mood": "不容商量" },
+        { "kind": "line", "speaker": "player", "text": "师尊，我只是回来晚了半刻，不至于一早就罚站吧？" },
+        { "kind": "line", "speaker": "shen", "text": "我看见血了。你若再拿玩笑挡我，我现在就把你按在椅子上检查。", "mood": "平静而严厉" },
+        { "kind": "line", "speaker": "narrator", "text": "她说得很轻，手却已经握住你的手腕，将卷起的袖口一点点放开。" },
+        { "kind": "choice", "prompt": "她看见伤口后，眉心明显沉了下来。", "options": [
+          { "id": "honest", "label": "如实说昨夜替人挡了一剑", "response": "肯说实话就好。救人没有错，但你也在我要护着的人里面。你先别笑，我这句没有别的意思……也不是完全没有。", "mood": "担忧又慌乱", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }] },
+          { "id": "light", "label": "说只是擦伤，不值得担心", "response": "值不值得，不由伤口决定。至少在我这里，你受一点伤都值得。", "mood": "压着火气", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 2 }, { "type": "set_flag", "key": "memory.shen.hid_injury", "value": true }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "坐好。我替你上药。疼就说，不许在我面前装得很能忍。你、你别一直看我，药都要抹歪了。", "mood": "强作镇定" },
+        { "kind": "line", "speaker": "player", "text": "师尊好像比受伤的人还紧张。" },
+        { "kind": "line", "speaker": "shen", "text": "因为受伤的人从小就不省心。你小时候发热，抓着我的袖子一整夜都不松。" },
+        { "kind": "line", "speaker": "player", "text": "那师尊现在怎么不让我抓了？" },
+        { "kind": "line", "speaker": "shen", "text": "……药上好了。少得寸进尺。", "mood": "耳尖微红", "stageEffect": "heartbeat" },
+        { "kind": "line", "speaker": "narrator", "text": "她重新替你放下袖口，动作比训话时温柔得多。" }
+      ],
+      "summary": "她没有追问昨夜的凶险，只把伤药和一顿早饭都留在了你手边。",
+      "endingEffects": [{ "type": "set_flag", "key": "shen.arc.started", "value": true }]
+    },
+    {
+      "id": "shen.arc.02.extra-breakfast", "order": 2, "phase": "一·仍是师徒", "title": "多出来的早膳", "subtitle": "她说只是把分量算错了", "type": "闲谈", "trigger": "talk", "priority": 178, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "event_completed", "eventId": "shen.arc.01.sleeve-at-dawn" }],
+      "clue": "完成「袖口的血」后，再与沈清霜交谈",
+      "script": [
+        { "kind": "line", "speaker": "shen", "text": "来得正好。桌上那碗粥拿走。" },
+        { "kind": "line", "speaker": "player", "text": "师尊不是不吃甜粥吗？里面还放了我喜欢的蜜枣。" },
+        { "kind": "line", "speaker": "shen", "text": "厨房把分量算错了。扔掉可惜。你别去问厨房，他们……他们今日很忙。", "mood": "急着掩饰" },
+        { "kind": "line", "speaker": "narrator", "text": "你低头看了一眼。蜜枣被仔细去了核，连温度都刚好入口。" },
+        { "kind": "line", "speaker": "player", "text": "厨房也知道我不吃枣核？" },
+        { "kind": "line", "speaker": "shen", "text": "问题很多。吃不吃？" },
+        { "kind": "choice", "prompt": "她已经把勺子推到你面前。", "options": [
+          { "id": "share", "label": "请她坐下一起吃", "response": "只有一只勺子……你先用。算了，拿来，我再取一只。", "mood": "被说中心思", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }] },
+          { "id": "praise", "label": "夸她煮得比厨房好", "response": "我没有说是我煮的。你也没有证据。锅底那张写着火候的纸也不是我的，不许过去看。", "mood": "当场慌乱", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 3 }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "那我明日还能遇到厨房算错分量吗？" },
+        { "kind": "line", "speaker": "shen", "text": "若你按时起床，也不是不能。" },
+        { "kind": "line", "speaker": "player", "text": "原来还附带条件。" },
+        { "kind": "line", "speaker": "shen", "text": "世上没有白来的好处。除了……算了，快吃，凉了伤胃。", "mood": "温柔又克制" }
+      ],
+      "summary": "从这天起，凌霄殿的厨房时常会“算错”一份早膳。"
+    },
+    {
+      "id": "shen.arc.03.sword-lesson", "order": 3, "phase": "一·仍是师徒", "title": "罚练三遍", "subtitle": "师尊的威严与偷偷放的水", "type": "闲谈", "trigger": "time_change", "priority": 176, "sceneId": "lingxiao",
+      "conditions": [{ "type": "period", "value": "上午" }, { "type": "event_completed", "eventId": "shen.arc.02.extra-breakfast" }],
+      "clue": "完成「多出来的早膳」后，在凌霄殿进入上午",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "上午的剑坪风声很硬。沈清霜持剑站在中央，周围弟子连呼吸都放轻了。" },
+        { "kind": "line", "speaker": "shen", "text": "你方才那一式，手腕浮、下盘乱。再来。", "mood": "威严" },
+        { "kind": "line", "speaker": "player", "text": "已经第十二遍了。" },
+        { "kind": "line", "speaker": "shen", "text": "所以你更该知道，错在哪里。" },
+        { "kind": "line", "speaker": "narrator", "text": "她抬剑压住你的剑锋，力道很稳，却在你旧伤牵动时立刻松了半寸。" },
+        { "kind": "line", "speaker": "player", "text": "师尊刚才是不是让了我？" },
+        { "kind": "line", "speaker": "shen", "text": "没有。是你终于有一点长进。", "mood": "面不改色" },
+        { "kind": "choice", "prompt": "周围弟子都在偷看，你准备怎么做？", "options": [
+          { "id": "serious", "label": "认真再走一遍剑式", "response": "这一遍不错。记住刚才的感觉，今日便到这里。", "mood": "满意", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 3 }] },
+          { "id": "tease", "label": "低声说她心软了", "response": "当众编排师长，罚练三遍。等他们走后……一遍也可以。你笑什么？我只是怕你旧伤复发。", "mood": "威严险些没撑住", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }] }
+        ] },
+        { "kind": "line", "speaker": "narrator", "text": "其他弟子散去后，她立刻收剑，递来一瓶活血药。" },
+        { "kind": "line", "speaker": "shen", "text": "方才人多，我不能总偏着你。" },
+        { "kind": "line", "speaker": "player", "text": "所以人少的时候可以？" },
+        { "kind": "line", "speaker": "shen", "text": "人少的时候……你先把药喝了再说。", "mood": "拿你没办法" }
+      ],
+      "summary": "她在人前仍是严厉的峰主，人后却把罚练换成了热药。"
+    },
+    {
+      "id": "shen.arc.04.one-umbrella", "order": 4, "phase": "一·仍是师徒", "title": "一把伞的位置", "subtitle": "黄昏骤雨把两个人推得很近", "type": "心事", "trigger": "scene_enter", "priority": 174, "sceneId": "lingxiao",
+      "conditions": [{ "type": "scene", "value": "lingxiao" }, { "type": "period", "value": "黄昏" }, { "type": "event_completed", "eventId": "shen.arc.03.sword-lesson" }],
+      "clue": "完成「罚练三遍」后，于黄昏回到凌霄殿",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "黄昏骤雨来得毫无预兆。你跑上最后一级石阶时，一把青伞停在了头顶。" },
+        { "kind": "line", "speaker": "shen", "text": "知道要下雨，还不带伞。你到底什么时候才能让我少操一点心？" },
+        { "kind": "line", "speaker": "player", "text": "师尊不是来接我了吗？" },
+        { "kind": "line", "speaker": "shen", "text": "我是来收晾在廊下的剑穗。顺路。", "mood": "一本正经" },
+        { "kind": "line", "speaker": "narrator", "text": "廊下空空如也。她把伞往你这边倾，自己的肩头很快湿了一片。" },
+        { "kind": "line", "speaker": "player", "text": "伞偏了。" },
+        { "kind": "line", "speaker": "shen", "text": "没有。是你站得太远。靠近一点。不是让你贴过来……罢了，别再动，伞要掉了。", "mood": "耳根发热" },
+        { "kind": "choice", "prompt": "青伞下只剩很窄的一段距离。", "options": [
+          { "id": "closer", "label": "靠近她，与她并肩走", "response": "这样就好。路很短，你不用紧张。为师也没有紧张，伞柄会抖只是因为风大。", "mood": "悄悄安心又嘴硬", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }] },
+          { "id": "take", "label": "接过伞，让她站到里面", "response": "你倒学会照顾我了。那便拿稳，别让我们两个都淋湿。", "mood": "意外而柔和", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "这条石阶平日有这么长吗？" },
+        { "kind": "line", "speaker": "shen", "text": "大概是雨太大。慢些走也好。" },
+        { "kind": "line", "speaker": "narrator", "text": "雨声盖住了周围的一切，她却始终走得很慢。" }
+      ],
+      "summary": "回廊明明就在眼前，那段共伞的路却被她走得很久。"
+    },
+    {
+      "id": "shen.arc.05.snow-tea", "order": 5, "phase": "一·仍是师徒", "title": "雪芽的喝法", "subtitle": "一罐茶换来半个下午", "type": "赠礼", "trigger": "gift", "priority": 172, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "gift", "value": "snowTea" }, { "type": "event_completed", "eventId": "shen.arc.04.one-umbrella" }],
+      "clue": "完成「一把伞的位置」后，赠予沈清霜雪芽灵茶",
+      "script": [
+        { "kind": "line", "speaker": "shen", "text": "寒峰雪芽？这东西今年很难买到。" },
+        { "kind": "line", "speaker": "player", "text": "路过时看见，觉得师尊会喜欢。" },
+        { "kind": "line", "speaker": "shen", "text": "只是路过，就记得我喜欢什么？我没有很高兴，只是……你先把茶给我，我怕你反悔。", "mood": "高兴得有些慌" },
+        { "kind": "line", "speaker": "narrator", "text": "她接过茶罐，指腹在封口上轻轻摸了两遍，才想起要维持平静。" },
+        { "kind": "line", "speaker": "shen", "text": "这茶不能用沸水，会苦。你坐下，我教你。" },
+        { "kind": "line", "speaker": "player", "text": "我以为礼物送到就可以走了。" },
+        { "kind": "line", "speaker": "shen", "text": "送茶的人不陪着喝，算什么礼数？", "mood": "理直气壮" },
+        { "kind": "choice", "prompt": "她摆出两只茶盏，显然早有准备。", "options": [
+          { "id": "stay", "label": "留下陪她慢慢泡茶", "response": "嗯。第一泡给你，第二泡才是最好的……不，最好的也给你。", "mood": "温柔", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] },
+          { "id": "joke", "label": "问她是不是早就在等礼物", "response": "没有。我只是每天都多放一只茶盏，与你送不送礼无关。你别数，柜里那些也只是备用。", "mood": "被拆穿后急着找补", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "师尊今天的话比平时多。" },
+        { "kind": "line", "speaker": "shen", "text": "茶要慢慢喝。总不能两个人坐着，谁也不说话。" },
+        { "kind": "line", "speaker": "shen", "text": "下次若还看见，不必再买。你回来陪我喝旧茶，也一样。", "mood": "认真" }
+      ],
+      "summary": "她把雪芽收进最顺手的柜子，也把你的座位留在了茶案旁。",
+      "endingEffects": [{ "type": "set_flag", "key": "shen.arc.received_snow_tea", "value": true }]
+    },
+    {
+      "id": "shen.arc.06.lamp-after-midnight", "order": 6, "phase": "一·仍是师徒", "title": "灯为什么还亮着", "subtitle": "她在无人时承认自己会等", "type": "心事", "trigger": "inspection", "priority": 170, "sceneId": "lingxiao", "inspection": { "chance": 100, "hint": true },
+      "conditions": [{ "type": "period", "value": "深夜" }, { "type": "event_completed", "eventId": "shen.arc.05.snow-tea" }],
+      "clue": "完成「雪芽的喝法」后，深夜检视凌霄殿",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "整座凌霄殿都暗了，唯独侧殿还亮着一盏灯。你推门时，沈清霜正把凉透的茶重新温热。" },
+        { "kind": "line", "speaker": "shen", "text": "你怎么来了？我不是在等你。先别看那盏刚热过的茶。", "mood": "被撞个正着" },
+        { "kind": "line", "speaker": "player", "text": "这句话该我问。师尊不是早该休息了吗？" },
+        { "kind": "line", "speaker": "shen", "text": "卷宗没有看完。" },
+        { "kind": "line", "speaker": "narrator", "text": "桌上的卷宗整整齐齐，一页都没有翻开，旁边却摆着两只茶盏。" },
+        { "kind": "line", "speaker": "player", "text": "另一只茶盏给谁？" },
+        { "kind": "line", "speaker": "shen", "text": "给一个明明说晚上回来，却迟了三个时辰的人。", "mood": "委屈藏不住" },
+        { "kind": "choice", "prompt": "她低头拨弄灯芯，没有看你。", "options": [
+          { "id": "apology", "label": "认真道歉，并答应以后传讯", "response": "我不要你事事报备。只要晚归时告诉我一声，让我知道该等多久。", "mood": "克制", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }] },
+          { "id": "sit", "label": "坐下喝掉那杯等你的茶", "response": "已经凉过两次了，味道不好。你若不嫌……便坐近一点。不是这么近，我还没有准备好。", "mood": "安心后又慌了", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "我从前喜欢清静。你来以后，殿里一静，我反而会听见很多乱七八糟的念头。" },
+        { "kind": "line", "speaker": "player", "text": "比如把我关在山上？" },
+        { "kind": "line", "speaker": "shen", "text": "……比如让纸鹤去接你。不要擅自替为师补充。", "mood": "心虚" }
+      ],
+      "summary": "那晚以后，你知道凌霄殿最后熄灭的灯通常在等谁。"
+    },
+    {
+      "id": "shen.arc.07.the-wrong-book", "order": 7, "phase": "二·渐渐亲近", "title": "拿错的书", "subtitle": "《如何让远行之人常回家》", "type": "闲谈", "trigger": "talk", "priority": 168, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "relationship", "characterId": "shen", "min": 15 }, { "type": "event_completed", "eventId": "shen.arc.06.lamp-after-midnight" }],
+      "clue": "缘分达到15并完成「灯为什么还亮着」后交谈",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "你替沈清霜收拾剑谱时，从最底下抽出一本薄册，封面写着《如何让远行之人常回家》。" },
+        { "kind": "line", "speaker": "shen", "text": "放下。那不是我的书。封面上也没有我的批注，你先把手指从名字上移开。", "mood": "明显慌乱", "stageEffect": "shake" },
+        { "kind": "line", "speaker": "player", "text": "里面每一页都有师尊的批注。" },
+        { "kind": "line", "speaker": "shen", "text": "我是在研究人心破绽，方便以后审问敌人。" },
+        { "kind": "line", "speaker": "player", "text": "第一条：不能管得太紧，否则他会躲。" },
+        { "kind": "line", "speaker": "shen", "text": "这是擒敌之术。把书给我。现在。", "mood": "强撑镇定" },
+        { "kind": "choice", "prompt": "她伸手来夺，脸上难得写满了心虚。", "options": [
+          { "id": "return", "label": "把书还给她，保证不再看", "response": "你什么都没看见。作为交换，明日晨课少一遍。两遍也行，总之不许复述第三页。", "mood": "松口气后继续找补", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 3 }] },
+          { "id": "read", "label": "继续念第二条给她听", "response": "第二条是，对得寸进尺的人立刻没收书册。你亲自验证得很好。", "mood": "羞恼", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }] }
+        ] },
+        { "kind": "line", "speaker": "narrator", "text": "她把薄册抱在怀里，转身就要走，却又在门口停下。" },
+        { "kind": "line", "speaker": "shen", "text": "书上写，偶尔要直接问。那我问你：你会因为我管得多，就不回来了么？", "mood": "小心试探" },
+        { "kind": "choice", "prompt": "她没有回头，声音却放得很轻。", "options": [
+          { "id": "always", "label": "告诉她，你会回来，但希望她相信你", "response": "好。我会学。学得不好时，你可以直接提醒我。", "mood": "认真", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }, { "type": "set_flag", "key": "shen.arc.boundary_promised", "value": true }] },
+          { "id": "tease-again", "label": "说要看她学得好不好再决定", "response": "那你最好每天回来检查。少一天都不算数。", "mood": "被逗笑", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "还有，这本书的名字不许告诉任何人。尤其不许告诉苏晚棠。" }
+      ],
+      "summary": "师尊的恋爱杂谈被当场发现；她却真的开始学习怎样好好询问。"
+    },
+    {
+      "id": "shen.arc.08.porridge-by-bed", "order": 8, "phase": "二·渐渐亲近", "title": "榻边的粥", "subtitle": "她守了一夜，却先怪你不懂休息", "type": "心事", "trigger": "time_change", "priority": 166, "sceneId": "lingxiao",
+      "conditions": [{ "type": "period", "value": "清晨" }, { "type": "event_completed", "eventId": "shen.arc.07.the-wrong-book" }],
+      "clue": "完成「拿错的书」后，在凌霄殿迎来清晨",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "你从练功脱力的昏睡中醒来，先看见榻边一只握着玉简的手。沈清霜伏在床沿，显然一夜没走。" },
+        { "kind": "line", "speaker": "player", "text": "师尊？" },
+        { "kind": "line", "speaker": "shen", "text": "醒了？有没有头晕，胸口闷不闷？先别坐起来。", "mood": "睡意全无" },
+        { "kind": "line", "speaker": "player", "text": "你守了一夜？" },
+        { "kind": "line", "speaker": "shen", "text": "你抓着我的袖子不放，我走不了。" },
+        { "kind": "line", "speaker": "narrator", "text": "你低头看去，自己的手明明安分地放在被子上。她顺着你的视线看了一眼。" },
+        { "kind": "line", "speaker": "shen", "text": "后来松开了。前半夜确实抓着。", "mood": "不肯改口" },
+        { "kind": "choice", "prompt": "她端起温着的粥，像是准备亲自喂你。", "options": [
+          { "id": "accept", "label": "乖乖张口，让她照顾", "response": "这才对。你小时候生病也没有现在这么难劝。", "mood": "温柔", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] },
+          { "id": "feed-her", "label": "先让她吃一口，她也一夜没吃", "response": "我不饿……好，只一口。吃完你也必须吃。", "mood": "怔住后妥协", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "师尊眼睛都红了。" },
+        { "kind": "line", "speaker": "shen", "text": "是困的，不是哭。你若再这样练功，我才真的会被你气哭。" },
+        { "kind": "line", "speaker": "shen", "text": "今日什么都不许做。躺好，我就在外间。你醒来喊我，我会听见。", "mood": "不容拒绝" }
+      ],
+      "summary": "她把一夜担心藏进训话里，也把所有事务都推到你康复以后。"
+    },
+    {
+      "id": "shen.arc.09.downhill-request", "order": 9, "phase": "二·渐渐亲近", "title": "下山申请", "subtitle": "她试着把命令改成询问", "type": "闲谈", "trigger": "talk", "priority": 164, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "relationship", "characterId": "shen", "min": 18 }, { "type": "event_completed", "eventId": "shen.arc.08.porridge-by-bed" }],
+      "clue": "康复后与沈清霜谈谈下山的事",
+      "script": [
+        { "kind": "line", "speaker": "player", "text": "师尊，我明日想下山帮药铺送一趟货。" },
+        { "kind": "line", "speaker": "shen", "text": "不准。", "mood": "回答得太快" },
+        { "kind": "line", "speaker": "narrator", "text": "她说完便沉默了，像是想起了薄册上的某条批注。" },
+        { "kind": "line", "speaker": "shen", "text": "……刚才那句收回。你为何想去？同行有谁？预计什么时候回来？" },
+        { "kind": "line", "speaker": "player", "text": "只是帮忙，同行的是药铺掌柜和她女儿，黄昏前回来。" },
+        { "kind": "line", "speaker": "shen", "text": "她女儿多大？不对，我为何先问这个……你先回答，问完我再解释。", "mood": "脱口而出" },
+        { "kind": "line", "speaker": "player", "text": "师尊，这和送货有关系吗？" },
+        { "kind": "line", "speaker": "shen", "text": "没有。为师随口问问。", "mood": "明显吃味" },
+        { "kind": "choice", "prompt": "她努力让语气听起来公正。", "options": [
+          { "id": "invite", "label": "邀请她一起下山", "response": "宗门事务很多……我可以挪出半日。不是监督你，只是顺路。", "mood": "立刻答应", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] },
+          { "id": "report", "label": "答应途中用纸鹤报平安", "response": "一只就够，不必每个时辰都报。你若愿意多发，我也不会嫌。", "mood": "安心", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "还有，不许逞强搬最重的箱子。你伤才好。" },
+        { "kind": "line", "speaker": "player", "text": "这算批准了吗？" },
+        { "kind": "line", "speaker": "shen", "text": "你不需要我的批准。只是……谢谢你愿意先来告诉我。", "mood": "认真学习信任" }
+      ],
+      "summary": "她第一次没有用师命留下你，而你也第一次主动留下了归期。"
+    },
+    {
+      "id": "shen.arc.10.mended-cloak", "order": 10, "phase": "二·渐渐亲近", "title": "补错的针脚", "subtitle": "藏在外袍内侧的笨拙心意", "type": "心事", "trigger": "map_event", "priority": 162, "sceneId": "lingxiao", "mapEvent": { "mapId": "yunzhou", "windowDays": 5, "x": 42, "y": 31 },
+      "conditions": [{ "type": "event_completed", "eventId": "shen.arc.09.downhill-request" }],
+      "clue": "完成「下山申请」后，五日内留意云州地图上的银色衣纹",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "地图上的银光将你引回问剑峰后院。晾衣绳上挂着你的旧外袍，破口被补成了一道歪歪扭扭的云纹。" },
+        { "kind": "line", "speaker": "shen", "text": "你怎么进来了？" },
+        { "kind": "line", "speaker": "player", "text": "来认领一件看起来很眼熟的衣服。" },
+        { "kind": "line", "speaker": "shen", "text": "执事弟子补的。手艺一般，你若嫌弃就拆掉。", "mood": "想把针线藏到身后" },
+        { "kind": "line", "speaker": "narrator", "text": "她指尖还缠着线，针脚的颜色也与她袖口那卷丝线完全一样。" },
+        { "kind": "line", "speaker": "player", "text": "那位执事弟子是不是也叫沈清霜？" },
+        { "kind": "line", "speaker": "shen", "text": "……为师只是觉得交给别人太慢。你若再盯着针脚看，我就、我就把它拆掉重缝。", "mood": "被拆穿后慌乱" },
+        { "kind": "choice", "prompt": "她盯着那道不太漂亮的云纹。", "options": [
+          { "id": "wear", "label": "当场穿上，说这是最好看的地方", "response": "你不用为了哄我说这种话……但不许再把它弄破。", "mood": "努力不笑", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] },
+          { "id": "learn", "label": "请她教你，下次也替她补衣", "response": "我也才学会。那便一起学，谁都不许笑谁。你坐远一点，不然我一紧张又要扎到手。", "mood": "期待得有些慌", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "外袍内侧还缝了护符。只是普通护符，不会追踪你。" },
+        { "kind": "line", "speaker": "player", "text": "为什么要特别说明不会追踪？" },
+        { "kind": "line", "speaker": "shen", "text": "因为我考虑过，后来觉得不合适。你不必知道考虑了多久。", "mood": "过分诚实" }
+      ],
+      "summary": "那件旧外袍仍不算漂亮，却成了你最常穿的一件。"
+    },
+    {
+      "id": "shen.arc.11.unfinished-chess", "order": 11, "phase": "二·渐渐亲近", "title": "没有下完的棋", "subtitle": "她真正想留住的不是输赢", "type": "闲谈", "trigger": "time_change", "priority": 160, "sceneId": "lingxiao",
+      "conditions": [{ "type": "period", "value": "夜晚" }, { "type": "relationship", "characterId": "shen", "min": 22 }, { "type": "event_completed", "eventId": "shen.arc.10.mended-cloak" }],
+      "clue": "缘分达到22后，于夜晚回到凌霄殿",
+      "script": [
+        { "kind": "line", "speaker": "shen", "text": "会下棋吗？" },
+        { "kind": "line", "speaker": "player", "text": "只会一点。师尊要教我？" },
+        { "kind": "line", "speaker": "shen", "text": "不教。今晚只是下棋，不考你。" },
+        { "kind": "line", "speaker": "narrator", "text": "棋盘摆到一半，她把最好的位置留给你，自己坐在风口。" },
+        { "kind": "line", "speaker": "player", "text": "师尊的黑子已经能赢了，为什么不落？" },
+        { "kind": "line", "speaker": "shen", "text": "落下以后，这局就结束了。" },
+        { "kind": "line", "speaker": "player", "text": "可以再开一局。" },
+        { "kind": "line", "speaker": "shen", "text": "可你未必还有时间。你今日不是还约了别人？", "mood": "故作随意" },
+        { "kind": "choice", "prompt": "门外的传讯纸鹤恰好亮了一下。", "options": [
+          { "id": "finish", "label": "熄掉纸鹤，陪她下完再开一局", "response": "不必为了我失约……既然你已经熄了，那便再下一局。", "mood": "藏不住高兴", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] },
+          { "id": "promise", "label": "先赴约，答应回来续棋", "response": "好。我不收棋盘。回来时若太晚，轻轻敲门便是。", "mood": "愿意相信", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "以前我总想让一切停在最好的一步。现在觉得，下一局也可以期待。" },
+        { "kind": "line", "speaker": "player", "text": "因为知道我会回来？" },
+        { "kind": "line", "speaker": "shen", "text": "嗯。至少今晚，我愿意这样相信。", "mood": "坦白" }
+      ],
+      "summary": "棋局不再需要故意拖延，因为你们约好了下一局。"
+    },
+    {
+      "id": "shen.arc.12.moon-tea", "order": 12, "phase": "二·渐渐亲近", "title": "月下只说闲话", "subtitle": "她主动来找你，却说只是顺路", "type": "情缘", "trigger": "talk", "priority": 158, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "relationship", "characterId": "shen", "min": 25 }, { "type": "event_completed", "eventId": "shen.arc.11.unfinished-chess" }],
+      "clue": "缘分达到25并完成「没有下完的棋」后交谈",
+      "script": [
+        { "kind": "line", "speaker": "shen", "text": "今夜不讲剑诀。陪我坐一会儿。" },
+        { "kind": "line", "speaker": "player", "text": "师尊特意来找我，只为了坐一会儿？" },
+        { "kind": "line", "speaker": "shen", "text": "我路过。手里恰好有两只茶盏。", "mood": "借口并不高明" },
+        { "kind": "line", "speaker": "narrator", "text": "她在你院里的石桌边坐下，熟练得像已经在心里排演过很多次。" },
+        { "kind": "line", "speaker": "shen", "text": "你平日和朋友相处，都聊些什么？" },
+        { "kind": "line", "speaker": "player", "text": "天气、吃饭、路上见到的小事。" },
+        { "kind": "line", "speaker": "shen", "text": "这些也值得聊？" },
+        { "kind": "line", "speaker": "player", "text": "和想见的人说话，内容不重要。" },
+        { "kind": "choice", "prompt": "她捧着茶盏，安静了好一会儿。", "options": [
+          { "id": "ask-day", "label": "问她今天过得怎么样", "response": "上午议事，下午看卷宗，黄昏开始想你什么时候回来。最后一句不算。你怎么偏偏只听见最后一句？", "mood": "说漏嘴后无处可逃", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] },
+          { "id": "share-day", "label": "把今天所有小事都讲给她", "response": "原来一日可以有这么多事。往后你若愿意，我每天都听。", "mood": "认真倾听", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "其实我不太会闲聊。总怕说得无趣，你便想走。" },
+        { "kind": "line", "speaker": "player", "text": "那就慢慢学，我也会慢慢听。" },
+        { "kind": "line", "speaker": "shen", "text": "好。第一件小事——今天的月亮很好看。第二件，你也在。", "mood": "温柔", "stageEffect": "heartbeat" }
+      ],
+      "summary": "从这晚起，她开始学会用寻常小事，换你多留一会儿。"
+    },
+    {
+      "id": "shen.arc.13.sweet-cake", "order": 13, "phase": "三·心意浮出", "title": "太甜了", "subtitle": "她把不喜欢的糕点吃得很慢", "type": "赠礼", "trigger": "gift", "priority": 156, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "gift", "value": "osmanthusCake" }, { "type": "relationship", "characterId": "shen", "min": 30 }, { "type": "event_completed", "eventId": "shen.arc.12.moon-tea" }],
+      "clue": "缘分达到30后，送沈清霜一份桂花云片糕",
+      "script": [
+        { "kind": "line", "speaker": "shen", "text": "桂花糕？你知道我不太吃甜。先放下，我只是看看……你别拿走，我没说不要。", "mood": "嘴硬得很明显" },
+        { "kind": "line", "speaker": "player", "text": "只买了一份，本来想自己吃。" },
+        { "kind": "line", "speaker": "shen", "text": "既然拿到我面前，便是送我的。没有收回去的道理。", "mood": "立刻护住糕盒" },
+        { "kind": "line", "speaker": "narrator", "text": "她尝了一小口，眉头轻轻皱了一下，却没有放下。" },
+        { "kind": "line", "speaker": "player", "text": "太甜就别勉强。" },
+        { "kind": "line", "speaker": "shen", "text": "尚可。配茶能吃。" },
+        { "kind": "line", "speaker": "player", "text": "师尊的表情不像尚可。" },
+        { "kind": "choice", "prompt": "她沉默地把另一半糕点推向你。", "options": [
+          { "id": "share", "label": "和她一人一半", "response": "这样甜味确实淡一些。以后买小份，不许浪费。你喂到嘴边做什么？我自己会拿。", "mood": "满意又手忙脚乱", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }] },
+          { "id": "tea", "label": "替她泡一壶苦茶解甜", "response": "你倒记得我喜欢什么。坐下，一起喝完。", "mood": "被照顾的惊喜", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "其实味道也没有很糟。主要是送的人还算用心。" },
+        { "kind": "line", "speaker": "player", "text": "刚才不是说本来给自己买的？" },
+        { "kind": "line", "speaker": "shen", "text": "所以我说还算。你若专程买，我会更喜欢一点。", "mood": "不再完全嘴硬" }
+      ],
+      "summary": "她后来仍说自己不爱甜，却会在柜里替你留一小盒桂花糕。"
+    },
+    {
+      "id": "shen.arc.14.rainy-laundry", "order": 14, "phase": "三·心意浮出", "title": "雨天洗衣", "subtitle": "一个不太高明的留人办法", "type": "闲谈", "trigger": "scene_enter", "priority": 154, "sceneId": "lingxiao",
+      "conditions": [{ "type": "scene", "value": "lingxiao" }, { "type": "period", "value": "午后" }, { "type": "event_completed", "eventId": "shen.arc.13.sweet-cake" }],
+      "clue": "完成「太甜了」后，于午后返回凌霄殿",
+      "script": [
+        { "kind": "line", "speaker": "player", "text": "师尊，我放在屋里的三件外袍怎么都湿了？" },
+        { "kind": "line", "speaker": "shen", "text": "我让人洗了。最近山路尘多，衣上都是灰。" },
+        { "kind": "line", "speaker": "player", "text": "可我今晚约了人下山。" },
+        { "kind": "line", "speaker": "shen", "text": "那便改日。穿湿衣容易受寒。", "mood": "过分平静" },
+        { "kind": "line", "speaker": "narrator", "text": "窗外分明阳光很好，三件外袍却像刚从水里捞出来。" },
+        { "kind": "line", "speaker": "player", "text": "师尊是不是故意的？" },
+        { "kind": "line", "speaker": "shen", "text": "……我只是觉得你最近下山太频繁。", "mood": "被当场抓住" },
+        { "kind": "choice", "prompt": "她没有继续找借口，只等你的反应。", "options": [
+          { "id": "boundary", "label": "告诉她，这样做会让你不舒服", "response": "对不起。衣服我会烘干，以后想留你，我会直接问。", "mood": "认真认错", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }, { "type": "set_flag", "key": "shen.arc.respects_boundary", "value": true }] },
+          { "id": "stay", "label": "说今天可以留下，但下次要直说", "response": "好。那我现在直说一次——今日能不能陪我？", "mood": "小心期待", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "衣服怎么办？" },
+        { "kind": "line", "speaker": "shen", "text": "半刻钟便能烘干。我原本也没有真想困住你。最多只是想让你多坐一会儿……这句也可以不听。", "mood": "小声承认" },
+        { "kind": "line", "speaker": "player", "text": "原本？" },
+        { "kind": "line", "speaker": "shen", "text": "后面的话不适合说。总之，我会改。", "mood": "压下蠢蠢欲动" }
+      ],
+      "summary": "她承认了那点不体面的占有欲，也第一次为越界认真道歉。"
+    },
+    {
+      "id": "shen.arc.15.outside-your-door", "order": 15, "phase": "三·心意浮出", "title": "门外的人", "subtitle": "她说只是走累了靠一会儿", "type": "心事", "trigger": "inspection", "priority": 152, "sceneId": "bedroom", "inspection": { "chance": 100, "hint": false },
+      "conditions": [{ "type": "period", "value": "夜晚" }, { "type": "event_completed", "eventId": "shen.arc.14.rainy-laundry" }],
+      "clue": "完成「雨天洗衣」后，夜晚检视听云居",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "你拉开房门时，沈清霜正贴着墙站在门外，手里还端着一碗已经凉了一半的药。" },
+        { "kind": "line", "speaker": "shen", "text": "你不是睡了吗？", "mood": "明显受惊" },
+        { "kind": "line", "speaker": "player", "text": "我听见门外有人。师尊在这里做什么？" },
+        { "kind": "line", "speaker": "shen", "text": "走得有些累，靠墙休息。" },
+        { "kind": "line", "speaker": "player", "text": "端着我的药，在我门口休息？" },
+        { "kind": "line", "speaker": "shen", "text": "顺便送药。见你已经熄灯，便不想吵醒你。" },
+        { "kind": "line", "speaker": "narrator", "text": "她的解释越来越轻，视线也慢慢移到了别处。" },
+        { "kind": "choice", "prompt": "夜风从门缝里钻过，她还穿着单薄的寝衣。", "options": [
+          { "id": "invite", "label": "请她进屋把药热一热", "response": "只等你喝完我便走。你若困，可以不用陪我说话。", "mood": "悄悄松气", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] },
+          { "id": "cloak", "label": "先把外袍披到她肩上", "response": "我是来照顾你的，怎么反倒让你照顾了……外袍先借我一会儿。", "mood": "柔软", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "师尊方才是不是在偷听？" },
+        { "kind": "line", "speaker": "shen", "text": "没有。你屋里很安静，什么都听不见。" },
+        { "kind": "line", "speaker": "player", "text": "那你站了多久？" },
+        { "kind": "line", "speaker": "shen", "text": "……足够确认你睡得安稳。下次我会敲门。", "mood": "心虚又诚实" }
+      ],
+      "summary": "她没有再否认自己担心到睡不着，只答应下次会先敲门。"
+    },
+    {
+      "id": "shen.arc.16.plum-scent", "order": 16, "phase": "三·心意浮出", "title": "梅香来处", "subtitle": "一场努力保持冷静的吃醋", "type": "情缘", "trigger": "talk", "priority": 150, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "relationship", "characterId": "shen", "min": 36 }, { "type": "event_completed", "eventId": "shen.arc.15.outside-your-door" }],
+      "clue": "缘分达到36并完成「门外的人」后交谈",
+      "script": [
+        { "kind": "line", "speaker": "shen", "text": "站住。你袖上为什么有梅花香？我不是要审你，只是……你先别把袖子藏到背后。", "mood": "努力平静" },
+        { "kind": "line", "speaker": "player", "text": "替山下药铺的姑娘扶了一下药筐，大概是那时沾上的。" },
+        { "kind": "line", "speaker": "shen", "text": "她又是药铺掌柜的女儿？" },
+        { "kind": "line", "speaker": "player", "text": "师尊还记得？" },
+        { "kind": "line", "speaker": "shen", "text": "记性好而已。她可曾问你姓名、住处、是否婚配？" },
+        { "kind": "line", "speaker": "player", "text": "最后一项没有。" },
+        { "kind": "line", "speaker": "shen", "text": "前两项问了。很好。", "mood": "一点也不好" },
+        { "kind": "choice", "prompt": "她攥着剑穗，显然在等你给出一个答案。", "options": [
+          { "id": "reassure", "label": "说回山后最先想见的人是她", "response": "这种话不要随便说。至少……不要对别人说。你也别靠这么近，我还没准备好听第二遍。", "mood": "迅速动摇后慌乱", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] },
+          { "id": "honest", "label": "告诉她，你不喜欢被审问", "response": "你说得对。是我越界了。我可以承认吃醋，但不该把它变成审问。", "mood": "克制反省", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 4 }, { "type": "set_flag", "key": "shen.arc.jealousy_acknowledged", "value": true }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "我以前以为自己不会在意这种小事。" },
+        { "kind": "line", "speaker": "player", "text": "现在呢？" },
+        { "kind": "line", "speaker": "shen", "text": "现在我连那缕梅香都觉得碍眼。很不讲道理，是不是？" },
+        { "kind": "choice", "prompt": "她难得把不体面的情绪摆在你面前。", "options": [
+          { "id": "accept", "label": "说可以吃醋，但不要替你做决定", "response": "好。我只说我不喜欢，不替你决定。你也别因为我难过就骗我。", "mood": "认真约定", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] },
+          { "id": "sleeve", "label": "把袖口递给她，让她用茶香盖掉", "response": "幼稚。坐下，我正好要泡茶……袖子放近些。", "mood": "忍不住开心", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "还有一件事。下次帮人没有问题，受伤之前先喊我。不要什么都自己扛。" }
+      ],
+      "summary": "她学会直说“我在吃醋”，也学会不把这句话变成你的枷锁。"
+    },
+    {
+      "id": "shen.arc.17.fever-day", "order": 17, "phase": "四·不再装作", "title": "轮到她生病", "subtitle": "平日什么都管的人终于被按回了被窝", "type": "心事", "trigger": "time_change", "priority": 148, "sceneId": "lingxiao",
+      "conditions": [{ "type": "scene", "value": "lingxiao" }, { "type": "period", "value": "清晨" }, { "type": "relationship", "characterId": "shen", "min": 44 }, { "type": "event_completed", "eventId": "shen.arc.16.plum-scent" }],
+      "clue": "缘分达到44并完成「梅香来处」后，于清晨推移时辰",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "凌霄殿一早没有开门。你从侧窗进去时，沈清霜还披着外袍坐在案前，脸色白得吓人。" },
+        { "kind": "line", "speaker": "player", "text": "师尊，您在发热。先回去躺着。" },
+        { "kind": "line", "speaker": "shen", "text": "只是昨夜受了点寒。桌上还有三封急信，我看完便去。" },
+        { "kind": "line", "speaker": "player", "text": "您以前就是这样把我按回床上的。今天规矩也一样。" },
+        { "kind": "line", "speaker": "shen", "text": "你倒学得很快。可惜修为还不足以命令师尊。", "mood": "有气无力地维持威严" },
+        { "kind": "choice", "prompt": "她刚起身便晃了一下，却还想伸手去拿卷宗。", "options": [
+          { "id": "carry", "label": "直接把她抱回榻上", "response": "放我下来……门还没有关。先、先关门，不是那个意思！我只是怕弟子看见。", "mood": "慌得忘了训人", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] },
+          { "id": "reason", "label": "拿出她从前训你的话逐句劝她", "response": "不要仗着记性好来对付我。好，我躺下，你不许笑。", "mood": "无奈认输", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "药太苦，少放一半黄连。蜂蜜可以多一点。你不许笑，生病的人有资格挑味道。", "mood": "难得任性" },
+        { "kind": "line", "speaker": "player", "text": "原来师尊也怕苦。" },
+        { "kind": "line", "speaker": "shen", "text": "我不怕。只是没有必要让药这么难喝。还有，蜂蜜可以多一点。", "mood": "理直气壮" },
+        { "kind": "line", "speaker": "narrator", "text": "喝完药后，她抓住你的袖口。力气不大，却没有松开的意思。" },
+        { "kind": "line", "speaker": "shen", "text": "坐在这里就好。等我睡着再去忙你的事。醒来若看不见你……算了，我会再睡一会儿。", "mood": "病中坦白" },
+        { "kind": "line", "speaker": "player", "text": "我不走。您安心睡。" }
+      ],
+      "summary": "她睡醒后第一件事是确认你还在，第二件事才是问那三封急信。"
+    },
+    {
+      "id": "shen.arc.18.market-disguise", "order": 18, "phase": "四·不再装作", "title": "宗主下山", "subtitle": "一场处处露馅的普通约会", "type": "闲谈", "trigger": "map_event", "priority": 146, "sceneId": "market", "mapEvent": { "mapId": "yunzhou", "windowDays": 6, "x": 47, "y": 56 },
+      "conditions": [{ "type": "scene", "value": "market" }, { "type": "event_completed", "eventId": "shen.arc.17.fever-day" }],
+      "clue": "完成「轮到她生病」后，在云州市集寻找戴斗笠的陌生女子",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "市集口站着一名压低斗笠的白衣女子。她刚说完“不必行礼”，三名弟子已经同时转身逃走。" },
+        { "kind": "line", "speaker": "player", "text": "师尊，您这样好像更显眼了。" },
+        { "kind": "line", "speaker": "shen", "text": "今日没有师尊。我姓沈，是陪你下山买东西的普通人。你若一时改不过口……小声叫我清霜也可以。", "mood": "镇定地说完后不敢看你" },
+        { "kind": "line", "speaker": "player", "text": "普通人不会让整条街的弟子绕路。" },
+        { "kind": "line", "speaker": "shen", "text": "那是他们心虚，与我无关。先去吃东西，你上次说想尝那家馄饨。", "mood": "准备得很充分" },
+        { "kind": "choice", "prompt": "摊主问你们是什么关系，她端着茶杯，没有先回答。", "options": [
+          { "id": "family", "label": "说是家里人", "response": "家里人……这样说也没有错。劳烦要两碗，不放香菜。你先别看我，我怕把钱数错。", "mood": "耳尖红透", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] },
+          { "id": "companion", "label": "说是一起出来玩的同伴", "response": "同伴也好。今日只谈想吃什么，不谈宗门公务。", "mood": "接受这个称呼", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "你碗里的肉多一块。摊主是不是认得你？" },
+        { "kind": "line", "speaker": "player", "text": "因为我替他搬过桌子。师尊连这个也要吃醋？" },
+        { "kind": "line", "speaker": "shen", "text": "我只是在确认他有没有算错钱。肉你吃，不必分我。", "mood": "又被看穿" },
+        { "kind": "line", "speaker": "narrator", "text": "离开摊位时，她在无人看见的袖下勾住你的小指。" },
+        { "kind": "line", "speaker": "shen", "text": "普通人下山，好像会这样走路。我只试一段。" },
+        { "kind": "line", "speaker": "player", "text": "前面还有很长一段街。" },
+        { "kind": "line", "speaker": "shen", "text": "那就试到街尾。你若觉得不自在，随时告诉我。" }
+      ],
+      "summary": "她买回一堆并不需要的小东西，只因为你在每个摊位前都多看了一眼。"
+    },
+    {
+      "id": "shen.arc.19.words-swallowed", "order": 19, "phase": "四·不再装作", "title": "说到一半的话", "subtitle": "她第一次允许自己不那么从容", "type": "情缘", "trigger": "talk", "priority": 144, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "relationship", "characterId": "shen", "min": 50 }, { "type": "event_completed", "eventId": "shen.arc.18.market-disguise" }],
+      "clue": "缘分达到50并完成「宗主下山」后交谈",
+      "script": [
+        { "kind": "line", "speaker": "shen", "text": "昨日下山的事，不要告诉旁人。" },
+        { "kind": "line", "speaker": "player", "text": "是因为宗主偷偷吃了两碗馄饨，还是因为牵了我的手？" },
+        { "kind": "line", "speaker": "shen", "text": "我只吃了一碗半。后面那件事……也不算偷偷。" },
+        { "kind": "line", "speaker": "player", "text": "那算什么？" },
+        { "kind": "line", "speaker": "shen", "text": "算我一时放纵。可我发现自己并不后悔。", "mood": "平静下面有明显紧张" },
+        { "kind": "line", "speaker": "narrator", "text": "她把桌上的茶盖转了两圈，像是在挑一个不会吓到你的说法。" },
+        { "kind": "choice", "prompt": "她没有继续，你可以给她时间，也可以向前一步。", "options": [
+          { "id": "wait", "label": "告诉她不用急着说完", "response": "谢谢。不是我不想说，是我太想说，反而怕说得过头。", "mood": "慢慢松开手", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] },
+          { "id": "ask", "label": "问她是不是喜欢你", "response": "是。我喜欢你。这句话比我想的短……你先别回应，让我喘口气。我练了很多遍，还是会慌。", "mood": "坦白后手足无措", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 7 }, { "type": "set_flag", "key": "shen.arc.feelings_spoken", "value": true }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "您担心的是什么？" },
+        { "kind": "line", "speaker": "shen", "text": "担心你分不清敬重和喜欢，也担心我利用师尊的身份让你不好拒绝。" },
+        { "kind": "line", "speaker": "player", "text": "所以呢？" },
+        { "kind": "line", "speaker": "shen", "text": "所以从现在起，你可以认真想。无论答案是什么，我都不会罚你，也不会减少对你的照顾。" },
+        { "kind": "line", "speaker": "shen", "text": "但若你的答案也是喜欢……请尽早告诉我。我没有表面上那么有耐心。", "mood": "坦诚又克制" }
+      ],
+      "summary": "她把喜欢说了出来，也把选择完整地留给了你。"
+    },
+    {
+      "id": "shen.arc.20.one-cup-wine", "order": 20, "phase": "四·不再装作", "title": "一杯就够", "subtitle": "酒量不好的人偏要证明自己没有醉", "type": "赠礼", "trigger": "gift", "priority": 142, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "gift", "value": "peachWine" }, { "type": "event_completed", "eventId": "shen.arc.19.words-swallowed" }],
+      "clue": "完成「说到一半的话」后，赠予沈清霜十年桃花酿",
+      "script": [
+        { "kind": "line", "speaker": "shen", "text": "桃花酿？你明知我平日不饮酒。" },
+        { "kind": "line", "speaker": "player", "text": "只尝一杯。今日没有公文，也没有弟子来打扰。" },
+        { "kind": "line", "speaker": "shen", "text": "那便一杯。若我醉了，你不许拿今天的话逗我。" },
+        { "kind": "line", "speaker": "narrator", "text": "半杯之后，她坐得比平日更直，说话也更慢，显然已经有些醉了。" },
+        { "kind": "line", "speaker": "shen", "text": "你为什么坐那么远？我又不会吃人。你一口气挪这么近做什么……罢了，不许再退回去。", "mood": "醉意里的慌张" },
+        { "kind": "choice", "prompt": "她拍了拍身边的位置，动作很轻，眼神却没有移开。", "options": [
+          { "id": "near", "label": "坐到她身边", "response": "这才对。我只是想看清你，不会做别的。至少今天不会。", "mood": "醉后过分诚实", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 7 }] },
+          { "id": "water", "label": "先给她倒一杯温水", "response": "你总在这种时候很会照顾人。水放下，人过来一点。等一下，太近了……不许走，只是让我适应一下。", "mood": "黏人又慌乱", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "我有时会想，把宗门交给别人，我们找个没人认识的地方住。" },
+        { "kind": "line", "speaker": "player", "text": "师尊舍得吗？" },
+        { "kind": "line", "speaker": "shen", "text": "舍不得。所以只是想。想一想又不犯法。" },
+        { "kind": "choice", "prompt": "她靠在你肩上，声音比平时软得多。", "options": [
+          { "id": "visit", "label": "答应以后陪她去住几日", "response": "说好了。不用很远，也不用很久。只要没人叫我宗主。", "mood": "满足", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] },
+          { "id": "name", "label": "试着直接叫她清霜", "response": "再叫一次……算了，今晚先不要。心跳太吵，我听不清。", "mood": "彻底慌了", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 7 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "酒杯拿走。明日若我问起，就说我只喝了半杯，而且什么都没说。" },
+        { "kind": "line", "speaker": "player", "text": "那您现在抓着我的手怎么办？" },
+        { "kind": "line", "speaker": "shen", "text": "这个不用说。让我抓一会儿，我很快就睡着。", "mood": "毫无威严" }
+      ],
+      "summary": "第二天她坚持自己没有醉，却把你答应的小住之约记得一字不差。"
+    },
+    {
+      "id": "shen.arc.21.locked-gate-dream", "order": 21, "phase": "四·不再装作", "title": "锁门的梦", "subtitle": "她把最不体面的念头也告诉了你", "type": "心事", "trigger": "time_change", "priority": 140, "sceneId": "bedroom",
+      "conditions": [{ "type": "scene", "value": "bedroom" }, { "type": "period", "value": "深夜" }, { "type": "event_completed", "eventId": "shen.arc.20.one-cup-wine" }],
+      "clue": "完成「一杯就够」后，在听云居进入深夜",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "深夜的纸鹤只写了四个字：我睡不着。你赶到殿中时，她正坐在门槛上。" },
+        { "kind": "line", "speaker": "shen", "text": "我做了一个很糟的梦。梦里我把山门锁了，不许你下山。" },
+        { "kind": "line", "speaker": "player", "text": "只是梦，师尊不用这样责怪自己。" },
+        { "kind": "line", "speaker": "shen", "text": "可梦里的我很高兴。醒来后有那么一瞬，我也觉得那样很好。", "mood": "压抑的不安" },
+        { "kind": "line", "speaker": "shen", "text": "我不想变成用爱困住你的人。可我也不能假装这个念头从未出现。" },
+        { "kind": "choice", "prompt": "她第一次没有用威严遮住这份危险的占有欲。", "options": [
+          { "id": "trust", "label": "告诉她，念头不等于选择，你相信她", "response": "我会记住。真正重要的是我醒来后做什么，不是梦里想了什么。", "mood": "重新平静", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 7 }, { "type": "set_flag", "key": "shen.arc.trust_boundaries", "value": true }] },
+          { "id": "rules", "label": "和她约定：不查行踪、不替你拒绝别人", "response": "好。若我越界，你要当场告诉我，不必照顾我的面子。", "mood": "认真承诺", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }, { "type": "set_flag", "key": "shen.arc.trust_boundaries", "value": true }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "那我也答应您，远行和晚归会提前说。不是报备，是不让您白等。" },
+        { "kind": "line", "speaker": "shen", "text": "这句话我喜欢。可你不用为了安抚我放弃想做的事。" },
+        { "kind": "line", "speaker": "narrator", "text": "她伸出手，又在碰到你之前停住。" },
+        { "kind": "line", "speaker": "shen", "text": "今晚可以抱一下吗？只到我不再发抖。" },
+        { "kind": "line", "speaker": "player", "text": "可以。您也不用规定什么时候松开。" },
+        { "kind": "line", "speaker": "shen", "text": "那可能会很久。你现在后悔还来得及。", "mood": "终于敢提出需要" }
+      ],
+      "summary": "她没有锁住山门，只学会了在害怕时先向你伸手。"
+    },
+    {
+      "id": "shen.arc.22.hairpin", "order": 22, "phase": "四·不再装作", "title": "发簪戴反了", "subtitle": "宗主也有不擅长的小事", "type": "赠礼", "trigger": "gift", "priority": 138, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "gift", "value": "goldHairpin" }, { "type": "event_completed", "eventId": "shen.arc.21.locked-gate-dream" }],
+      "clue": "完成「锁门的梦」后，赠予沈清霜金丝海棠簪",
+      "script": [
+        { "kind": "line", "speaker": "shen", "text": "送我的？会不会太显眼了。" },
+        { "kind": "line", "speaker": "player", "text": "您先试试，不喜欢就收起来。" },
+        { "kind": "line", "speaker": "shen", "text": "我没有说不喜欢。你转过去，我自己戴。你怎么还站着？转过去，我戴反了也不许现在看。", "mood": "慌忙赶人" },
+        { "kind": "line", "speaker": "narrator", "text": "片刻后你回头，海棠花朝里，流苏也缠进了发髻。" },
+        { "kind": "line", "speaker": "player", "text": "师尊，它好像戴反了。" },
+        { "kind": "line", "speaker": "shen", "text": "这是新式样。你若没见过，说明山下铺子的眼光也不过如此。", "mood": "一本正经地嘴硬" },
+        { "kind": "choice", "prompt": "她抬手想调整，反而把流苏缠得更紧。", "options": [
+          { "id": "help", "label": "走近替她重新戴好", "response": "动作慢一点。不是怕疼……你靠得太近，我有些不习惯。簪好以后也先别松手，我、我还没站稳。", "mood": "连呼吸都乱了", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] },
+          { "id": "mirror", "label": "把铜镜递给她，再从旁提醒", "response": "你若想笑便笑。只准笑一次，笑完教我。", "mood": "难得服软", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "现在很好看。" },
+        { "kind": "line", "speaker": "shen", "text": "你每次送东西都这么说，可信度不高。" },
+        { "kind": "line", "speaker": "player", "text": "那您为什么一直照镜子？" },
+        { "kind": "line", "speaker": "shen", "text": "确认有没有戴稳。今日议事我也戴着，让他们习惯一下。", "mood": "藏不住喜欢" },
+        { "kind": "line", "speaker": "shen", "text": "还有，下次买之前带我去。不是嫌你挑得不好，我想和你一起选。" }
+      ],
+      "summary": "那支海棠簪后来成了她最常用的一支，连重要议事也没有摘下。"
+    },
+    {
+      "id": "shen.arc.23.storm-shelter", "order": 23, "phase": "四·不再装作", "title": "山亭避雨", "subtitle": "暴雨让一段归途慢了下来", "type": "闲谈", "trigger": "map_event", "priority": 136, "sceneId": "market", "mapEvent": { "mapId": "yunzhou", "windowDays": 7, "x": 62, "y": 39 },
+      "conditions": [{ "type": "event_completed", "eventId": "shen.arc.22.hairpin" }],
+      "clue": "完成「发簪戴反了」后，在云州山路寻找避雨亭",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "回山途中暴雨骤至，你和沈清霜挤进一座只能容下两人的小亭。" },
+        { "kind": "line", "speaker": "shen", "text": "再靠里一点。你半边肩都湿了。" },
+        { "kind": "line", "speaker": "player", "text": "再靠就要贴在一起了。" },
+        { "kind": "line", "speaker": "shen", "text": "雨不会因为你害羞就停。过来。不是让你靠到肩上……算了，既然靠了便别动。", "mood": "镇定只维持了一瞬" },
+        { "kind": "line", "speaker": "narrator", "text": "雷声很近，她握着你的手腕，指尖比平时凉。" },
+        { "kind": "choice", "prompt": "你察觉她每次雷响都会微微收紧手指。", "options": [
+          { "id": "notice", "label": "问她是不是怕雷", "response": "不怕。只是小时候有过一场很大的雷雨……你可以握紧一点。", "mood": "承认软弱", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] },
+          { "id": "talk", "label": "装作没发现，讲山下的趣事", "response": "继续讲。那个卖伞的人后来怎样了？我在听。", "mood": "借你的声音安心", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 5 }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "师尊以前遇到这种雨会怎么做？" },
+        { "kind": "line", "speaker": "shen", "text": "御剑回去。可今日我不想赶。" },
+        { "kind": "line", "speaker": "player", "text": "为什么？" },
+        { "kind": "line", "speaker": "shen", "text": "因为亭子虽小，待着却不难受。雨再下一会儿也可以。" },
+        { "kind": "line", "speaker": "narrator", "text": "雨势渐小，她却直到最后一声雷散去才松开你的手。" },
+        { "kind": "line", "speaker": "shen", "text": "回去后不要说我怕雷。我会否认，而且会罚你。" }
+      ],
+      "summary": "这场雨没有困住你们，只给了她一个理直气壮靠近你的理由。"
+    },
+    {
+      "id": "shen.arc.24.heart-mark", "order": 24, "phase": "四·不再装作", "title": "同心印", "subtitle": "不是束缚，而是双方都能放开的牵挂", "type": "情缘", "trigger": "talk", "priority": 134, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "relationship", "characterId": "shen", "min": 58 }, { "type": "event_completed", "eventId": "shen.arc.23.storm-shelter" }],
+      "clue": "缘分达到58并完成「山亭避雨」后交谈",
+      "script": [
+        { "kind": "line", "speaker": "shen", "text": "我研究了一道同心印。能在对方受重伤时传来感应。" },
+        { "kind": "line", "speaker": "player", "text": "也能知道对方在哪里吗？" },
+        { "kind": "line", "speaker": "shen", "text": "原本可以。我把那部分去掉了。" },
+        { "kind": "line", "speaker": "player", "text": "因为我们之前的约定？" },
+        { "kind": "line", "speaker": "shen", "text": "嗯。关心不该变成监视。印记只报平安和危险，任何一方都能随时解除。" },
+        { "kind": "choice", "prompt": "她将两枚尚未激活的玉扣放在掌心。", "options": [
+          { "id": "accept", "label": "接受同心印", "response": "我会很珍惜，但不会依赖它查你的行踪。谢谢你愿意信我。", "mood": "郑重又欣喜", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 7 }, { "type": "set_flag", "key": "shen.arc.heart_mark", "value": true }] },
+          { "id": "wait", "label": "说现在还没准备好", "response": "好，那就先收起来。拒绝不是伤害我，你不用为此道歉。", "mood": "尊重你的选择", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "我以前会觉得，只要能保护你，用什么办法都可以。" },
+        { "kind": "line", "speaker": "player", "text": "现在改变了？" },
+        { "kind": "line", "speaker": "shen", "text": "现在我知道，你愿意留在我身边，比我有办法把你留下更重要。" },
+        { "kind": "line", "speaker": "player", "text": "师尊进步得很快。" },
+        { "kind": "line", "speaker": "shen", "text": "因为教我的人很有耐心。虽然偶尔故意逗我，也经常晚归。" },
+        { "kind": "line", "speaker": "shen", "text": "还有，私下不用一直叫师尊。你可以慢慢想一个别的称呼。", "mood": "留下明显暗示" }
+      ],
+      "summary": "她做出了一道能保护你们、却不能束缚任何一方的印记。"
+    },
+    {
+      "id": "shen.arc.25.birthday-noodles", "order": 25, "phase": "四·不再装作", "title": "生辰面", "subtitle": "她说不重要，却从清晨等到了你来", "type": "情缘", "trigger": "calendar_event", "priority": 132, "sceneId": "lingxiao", "calendarEvent": { "mode": "fixed", "month": 1, "day": 8, "doodle": "birthday" },
+      "conditions": [{ "type": "event_completed", "eventId": "shen.arc.24.heart-mark" }],
+      "clue": "完成「同心印」后，于正月初八前往凌霄殿",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "正月初八，殿中没有宴席，只有你端来的一碗面和一只歪得很明显的荷包蛋。" },
+        { "kind": "line", "speaker": "shen", "text": "修行之人不过生辰。你怎么还做了这些？先别点蜡烛，我还没有想好该摆什么表情。", "mood": "惊喜得不知所措" },
+        { "kind": "line", "speaker": "player", "text": "不过生辰的人会从清晨开始看门口吗？" },
+        { "kind": "line", "speaker": "shen", "text": "我是在等巡山弟子回报。你不要随意推断。", "mood": "被说中" },
+        { "kind": "line", "speaker": "player", "text": "那面我拿走了。" },
+        { "kind": "line", "speaker": "shen", "text": "放下。既然已经做了，浪费更不好。", "mood": "立刻护住碗" },
+        { "kind": "choice", "prompt": "她看着那只荷包蛋，嘴角已经有了笑意。", "options": [
+          { "id": "wish", "label": "请她许一个愿", "response": "愿望说出来便不灵。可若一定要说……希望明年还是你来。你不许立刻答应得这么响，我会、我会忍不住笑。", "mood": "认真又藏不住笑", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 7 }] },
+          { "id": "gift", "label": "说今天一整日都听她安排", "response": "这种承诺太危险。那先陪我吃面，之后去山后走走，晚上再回来喝茶。", "mood": "迅速安排妥当", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 7 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "蛋虽然不圆，味道还不错。你第一次做？" },
+        { "kind": "line", "speaker": "player", "text": "失败了三次，这是最好的一只。" },
+        { "kind": "line", "speaker": "shen", "text": "那前三只呢？" },
+        { "kind": "line", "speaker": "player", "text": "我吃了。" },
+        { "kind": "line", "speaker": "shen", "text": "下次不用做到最好。第一只就端来，我们一起吃。", "mood": "把明年也说进日常" },
+        { "kind": "line", "speaker": "narrator", "text": "她把最后一口汤也喝完，随后认真收起了那只并不好看的碗。" }
+      ],
+      "summary": "从这一年开始，正月初八成了你们两个人都不会忘记的日子。"
+    },
+    {
+      "id": "shen.arc.26.dont-say-hate", "order": 26, "phase": "四·不再装作", "title": "别说不需要我", "subtitle": "一次真正的争吵和一次不逃避的和好", "type": "心事", "trigger": "talk", "priority": 130, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "relationship", "characterId": "shen", "min": 64 }, { "type": "event_completed", "eventId": "shen.arc.25.birthday-noodles" }],
+      "clue": "缘分达到64并完成「生辰面」后交谈",
+      "script": [
+        { "kind": "line", "speaker": "shen", "text": "你昨日独自进了封锁的山谷。为什么不叫我？" },
+        { "kind": "line", "speaker": "player", "text": "我能处理，不需要每次都让您来。" },
+        { "kind": "line", "speaker": "shen", "text": "不需要。原来如此。……不对，我这句话太冷了。你先别走，让我重新说。", "mood": "受伤后急着挽回" },
+        { "kind": "line", "speaker": "narrator", "text": "她转身去收桌上的卷宗，动作很稳，纸页却被攥出了折痕。" },
+        { "kind": "line", "speaker": "player", "text": "我不是说不需要您这个人。我只是不想每次都躲在您身后。" },
+        { "kind": "line", "speaker": "shen", "text": "我知道。可那句话还是让我很难受。我也不想装作听不见。" },
+        { "kind": "choice", "prompt": "她没有用身份压你，只把受伤摆在了你面前。", "options": [
+          { "id": "apologize", "label": "为说法道歉，但坚持独立处理危险", "response": "我接受。你可以独立，我也可以担心。以后我们都把话说完整。", "mood": "愿意协商", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 7 }] },
+          { "id": "explain", "label": "告诉她，你想成为能与她并肩的人", "response": "那就并肩，不是你在前面逞强，也不是我把你护在身后。", "mood": "被这句话打动", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 8 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "我方才也有错。我听见“不需要”，就故意把后面的话都挡住了。" },
+        { "kind": "line", "speaker": "player", "text": "师尊生气时比平时还安静，很吓人。" },
+        { "kind": "line", "speaker": "shen", "text": "我会改。但你下次若再独自闯封锁区，我还是会生气。" },
+        { "kind": "choice", "prompt": "气氛已经缓下来，她却仍站得离你很远。", "options": [
+          { "id": "hug", "label": "问她现在能不能抱一下", "response": "能。我刚才就在等你问。", "mood": "终于靠近", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] },
+          { "id": "tea", "label": "先重新泡一壶茶，慢慢把话说完", "response": "好。今日不急着和好，我们把没说完的都说清楚。", "mood": "成熟而柔和", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "争吵不是关系坏了。只要你愿意回来把话说完，我就不会把门关上。" }
+      ],
+      "summary": "你们第一次争吵没有以冷战结束，而是留下了一套以后都能使用的和好方法。"
+    },
+    {
+      "id": "shen.arc.27.shared-breakfast", "order": 27, "phase": "五·往后日常", "title": "今天谁做早饭", "subtitle": "相恋之后也要面对烧糊的粥", "type": "闲谈", "trigger": "time_change", "priority": 128, "sceneId": "bedroom",
+      "conditions": [{ "type": "scene", "value": "bedroom" }, { "type": "period", "value": "清晨" }, { "type": "event_completed", "eventId": "shen.arc.26.dont-say-hate" }],
+      "clue": "完成「别说不需要我」后，在听云居迎来清晨",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "你被焦味叫醒时，沈清霜正站在灶前，严肃地盯着一锅已经看不出原样的粥。" },
+        { "kind": "line", "speaker": "shen", "text": "醒了？再等一会儿，早饭很快就好。" },
+        { "kind": "line", "speaker": "player", "text": "锅里那一块还能叫粥吗？" },
+        { "kind": "line", "speaker": "shen", "text": "上面还能吃。底下只是火候重了一点。", "mood": "拒绝承认失败" },
+        { "kind": "line", "speaker": "player", "text": "为什么不叫我一起？" },
+        { "kind": "line", "speaker": "shen", "text": "你昨日累了。我想让你多睡一会儿，也想证明我会做。现在看来只证明了一半。你别看锅底，另一半已经糊在那里了。", "mood": "尴尬又不服输" },
+        { "kind": "choice", "prompt": "她把还能吃的部分盛进两只碗，神情难得有些忐忑。", "options": [
+          { "id": "eat", "label": "坐下陪她吃完", "response": "不用勉强。若实在难吃，我们下山买……你既然吃了，我也吃。", "mood": "又心疼又高兴", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] },
+          { "id": "redo", "label": "和她重新煮一锅", "response": "好。你看火，我切东西。谁也不许独自证明什么。", "mood": "接受合作", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "以后轮流做，怎么样？" },
+        { "kind": "line", "speaker": "shen", "text": "可以。你做饭，我泡茶；我做饭，你负责在烧糊之前提醒。" },
+        { "kind": "line", "speaker": "player", "text": "听起来还是我比较忙。" },
+        { "kind": "line", "speaker": "shen", "text": "那我负责洗碗。宗主亲自洗碗，这个交换很公平。", "mood": "一本正经讨价还价" }
+      ],
+      "summary": "从这天起，听云居的清晨多了一张两个人轮流写的早饭单。"
+    },
+    {
+      "id": "shen.arc.28.ordinary-date", "order": 28, "phase": "五·往后日常", "title": "没有正事的一天", "subtitle": "她练习把陪伴本身当成理由", "type": "情缘", "trigger": "map_event", "priority": 126, "sceneId": "market", "mapEvent": { "mapId": "yunzhou", "windowDays": 8, "x": 33, "y": 64 },
+      "conditions": [{ "type": "event_completed", "eventId": "shen.arc.27.shared-breakfast" }],
+      "clue": "完成「今天谁做早饭」后，在云州地图寻找普通的一日",
+      "script": [
+        { "kind": "line", "speaker": "shen", "text": "今日没有公务。我也没有生病，更没有东西要买。" },
+        { "kind": "line", "speaker": "player", "text": "所以师尊为什么叫我下山？" },
+        { "kind": "line", "speaker": "shen", "text": "因为想见你。这个理由够不够？你先别笑，我好不容易才学会直接说。", "mood": "直白之后立刻慌了" },
+        { "kind": "line", "speaker": "player", "text": "够。那今天听谁安排？" },
+        { "kind": "line", "speaker": "shen", "text": "一人选一件事。你先。" },
+        { "kind": "choice", "prompt": "街上很热闹，你决定这场约会的第一站。", "options": [
+          { "id": "snack", "label": "去吃她上次多看了两眼的糖糕", "response": "我只看了一眼。不过既然你想吃，我可以陪你分一块。", "mood": "期待已久", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] },
+          { "id": "boat", "label": "去河边租一只小船", "response": "可以。你划船，我负责看路。若撞到岸边，我们谁也不许笑谁。", "mood": "认真期待", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] }
+        ] },
+        { "kind": "line", "speaker": "narrator", "text": "轮到她选择时，她带你去了街尾一家卖旧物的小铺。" },
+        { "kind": "line", "speaker": "shen", "text": "这里有很多普通人的东西。我想挑一件放在听云居。" },
+        { "kind": "line", "speaker": "player", "text": "您想放什么？" },
+        { "kind": "line", "speaker": "shen", "text": "两只一样的杯子。这样谁都不用再假装多摆一只只是顺手。" },
+        { "kind": "line", "speaker": "player", "text": "这算您的那一件事？" },
+        { "kind": "line", "speaker": "shen", "text": "不算。我的选择是和你把今天慢慢过完。杯子只是顺便。" },
+        { "kind": "line", "speaker": "narrator", "text": "回山时没有奇遇，也没有危险。她却说这是近来最好的一天。" }
+      ],
+      "summary": "没有正事、没有危机、没有借口，你们终于完整地约了一次会。"
+    },
+    {
+      "id": "shen.arc.29.unsent-letters", "order": 29, "phase": "五·往后日常", "title": "没有寄出的信", "subtitle": "每一封都写着她当时不敢说的话", "type": "心事", "trigger": "inspection", "priority": 124, "sceneId": "lingxiao", "inspection": { "chance": 100, "hint": true },
+      "conditions": [{ "type": "event_completed", "eventId": "shen.arc.28.ordinary-date" }],
+      "clue": "完成「没有正事的一天」后，检视凌霄殿书案旁的木匣",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "木匣没有上锁。里面整齐放着十几封信，收信人都是你，却一封也没有寄出。" },
+        { "kind": "line", "speaker": "shen", "text": "既然看见了，就拿出来吧。我原本也打算处理掉。" },
+        { "kind": "line", "speaker": "player", "text": "为什么不寄？" },
+        { "kind": "line", "speaker": "shen", "text": "有些写得太凶，有些太软。还有几封像在催你回来，我怕你觉得有压力。" },
+        { "kind": "line", "speaker": "player", "text": "我可以看吗？" },
+        { "kind": "line", "speaker": "shen", "text": "可以。但一封一封看。不要当着我的面一次读完。尤其那封写了三次想你的，先放到最后。", "mood": "越解释越心虚" },
+        { "kind": "choice", "prompt": "最上面一封只写了两句话：饭凉了，我也很想你。", "options": [
+          { "id": "keep", "label": "请求把这些信都留下", "response": "那就留下。以后我想你时还是会写，但会试着真的寄出去。", "mood": "羞赧又释然", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 7 }] },
+          { "id": "reply", "label": "提议给每封信补一封回信", "response": "十几封都要回？那你今晚别想走了。我会替你磨墨。等等，这句话听着像威胁……我只是很高兴。", "mood": "高兴得语无伦次", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 8 }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "这封为什么只写了“今天很烦”？" },
+        { "kind": "line", "speaker": "shen", "text": "那日你和别人出去喝酒，我不想无理取闹，只好对纸无理取闹。" },
+        { "kind": "line", "speaker": "player", "text": "下一封又写“记得添衣”。" },
+        { "kind": "line", "speaker": "shen", "text": "生气归生气，天冷也是真的。" },
+        { "kind": "line", "speaker": "shen", "text": "你看，我并没有想象中那么从容。只是以前不敢让你知道。" }
+      ],
+      "summary": "木匣里的信没有被烧掉；从此以后，其中一些会真正飞到你手里。"
+    },
+    {
+      "id": "shen.arc.30.quiet-night", "order": 30, "phase": "五·往后日常", "title": "什么都没发生的夜晚", "subtitle": "亲密并不总需要大事发生", "type": "闲谈", "trigger": "time_change", "priority": 122, "sceneId": "bedroom",
+      "conditions": [{ "type": "scene", "value": "bedroom" }, { "type": "period", "value": "夜晚" }, { "type": "relationship", "characterId": "shen", "min": 72 }, { "type": "event_completed", "eventId": "shen.arc.29.unsent-letters" }],
+      "clue": "缘分达到72并完成「没有寄出的信」后，在听云居进入夜晚",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "夜里没有月色，也没有突发事件。沈清霜靠在窗边看书，你在灯下整理行囊。" },
+        { "kind": "line", "speaker": "shen", "text": "你已经把同一件衣服叠了三次。是不是有话想说？" },
+        { "kind": "line", "speaker": "player", "text": "没有。只是觉得这样待着也很好。" },
+        { "kind": "line", "speaker": "shen", "text": "我也觉得。以前我总以为两个人在一起，就必须说些什么。" },
+        { "kind": "line", "speaker": "player", "text": "现在呢？" },
+        { "kind": "line", "speaker": "shen", "text": "现在听见你翻衣服、倒茶、偶尔叹气，我就知道这里不是空的。" },
+        { "kind": "choice", "prompt": "灯芯轻响了一声，她把书合上。", "options": [
+          { "id": "lap", "label": "坐到她身边，把头靠在她腿上", "response": "这样我就看不了书了……算了，今晚本来也没看进去。你别乱动，我腿有些僵，不是要推开你。", "mood": "幸福得紧张", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 7 }] },
+          { "id": "read", "label": "让她把书里的故事念给你听", "response": "这本很无聊。你若想听，我可以念；念到你睡着为止。", "mood": "温柔的日常", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 6 }] }
+        ] },
+        { "kind": "line", "speaker": "shen", "text": "明日有什么安排？" },
+        { "kind": "line", "speaker": "player", "text": "上午练功，午后下山，黄昏回来。" },
+        { "kind": "line", "speaker": "shen", "text": "好。黄昏我让厨房留饭。不用赶，凉了可以再热。" },
+        { "kind": "line", "speaker": "player", "text": "您不会站在门口等？" },
+        { "kind": "line", "speaker": "shen", "text": "不会。我会坐在屋里等。这样比较有进步。", "mood": "自己也觉得好笑" }
+      ],
+      "summary": "没有剧情发生的一夜，反而最像你们真正想要的生活。"
+    },
+    {
+      "id": "shen.arc.31.call-my-name", "order": 31, "phase": "五·往后日常", "title": "叫我的名字", "subtitle": "师徒之外，她想要一个只属于你们的称呼", "type": "情缘", "trigger": "talk", "priority": 120, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "event_completed", "eventId": "shen.arc.30.quiet-night" }],
+      "clue": "完成「什么都没发生的夜晚」后，与沈清霜交谈",
+      "script": [
+        { "kind": "line", "speaker": "shen", "text": "有件事我想了很久。只有我们两个人时，你能不能不叫师尊？你先别现在叫，我还没准备好。", "mood": "开口前反复排练过" },
+        { "kind": "line", "speaker": "player", "text": "那该叫什么？宗主大人？" },
+        { "kind": "line", "speaker": "shen", "text": "你明知我不是这个意思。", "mood": "立刻板起脸" },
+        { "kind": "line", "speaker": "player", "text": "清霜？" },
+        { "kind": "line", "speaker": "narrator", "text": "她安静了好一会儿，手里那页书始终没有翻过去。" },
+        { "kind": "line", "speaker": "shen", "text": "再叫一次。刚才太突然，我没有听清。其实听清了，但心跳太响，我想再确认一遍。", "mood": "彻底藏不住" },
+        { "kind": "choice", "prompt": "你可以认真回应，也可以稍微逗一逗她。", "options": [
+          { "id": "gentle", "label": "走近一些，认真叫她清霜", "response": "嗯。我在。以后你这样叫，我都会答应。", "mood": "眼神彻底软下来", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 8 }, { "type": "set_flag", "key": "shen.arc.first_name", "value": true }] },
+          { "id": "whisper", "label": "凑到她耳边小声叫", "response": "你故意的。今日晨课加……算了，不加。再叫一次就原谅你。", "mood": "威严全失", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 8 }, { "type": "set_flag", "key": "shen.arc.first_name", "value": true }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "那在外人面前呢？" },
+        { "kind": "line", "speaker": "shen", "text": "仍按从前。不是因为羞于承认，是不想让旁人拿我们的关系议论你。" },
+        { "kind": "line", "speaker": "player", "text": "如果我偶尔还是想叫师尊？" },
+        { "kind": "line", "speaker": "shen", "text": "也可以。只是有些时候你这样叫，我可能会误会你是在故意逗我。" },
+        { "kind": "line", "speaker": "player", "text": "什么时候？" },
+        { "kind": "line", "speaker": "shen", "text": "你靠得这么近的时候。现在先退半步，我需要缓一会儿。", "mood": "可爱地败下阵来" }
+      ],
+      "summary": "从此私下里，“清霜”成了只有你能叫得如此自然的名字。"
+    },
+    {
+      "id": "shen.arc.32.moonfall-vow", "order": 32, "phase": "五·往后日常", "title": "月落以后", "subtitle": "不是终点，是把未来说进每一天", "type": "情缘", "trigger": "talk", "priority": 118, "sceneId": "lingxiao",
+      "conditions": [{ "type": "character", "value": "shen" }, { "type": "relationship", "characterId": "shen", "min": 78 }, { "type": "event_completed", "eventId": "shen.arc.31.call-my-name" }],
+      "clue": "缘分达到78并完成「叫我的名字」后再次交谈",
+      "script": [
+        { "kind": "line", "speaker": "narrator", "text": "月亮将落未落时，沈清霜把你带到第一次教你握剑的石台。" },
+        { "kind": "line", "speaker": "shen", "text": "你小时候站在这里，连剑都拿不稳，却敢说以后要保护我。" },
+        { "kind": "line", "speaker": "player", "text": "现在拿得稳了。那句话也还算数。" },
+        { "kind": "line", "speaker": "shen", "text": "我以前听了只觉得孩子气。现在再听，心里还是会乱。" },
+        { "kind": "line", "speaker": "player", "text": "清霜叫我来，是想说什么？" },
+        { "kind": "line", "speaker": "shen", "text": "想问你，愿不愿意把今后的日子也分给我。不是困在凌霄殿，也不是事事听我的。你先别回答得太快，我怕自己高兴得接不上话。", "mood": "平静外表下慌得厉害" },
+        { "kind": "line", "speaker": "shen", "text": "你可以远行、冒险、认识很多人。只是累了、受伤了，或者单纯想回家时，希望你想到的地方有我。", "mood": "克制却不再退缩" },
+        { "kind": "choice", "prompt": "她把所有期待说清楚，没有替你预设答案。", "options": [
+          { "id": "together", "label": "答应和她一起把往后的日子过下去", "response": "好。那从今日开始，不论发生什么，我们都回来把话说完。", "mood": "含着笑意", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 10 }, { "type": "set_flag", "key": "shen.arc.vow_together", "value": true }] },
+          { "id": "slow", "label": "说愿意，但希望仍旧一步一步来", "response": "这正是我想要的。不是一句誓言后便什么都不用做，而是每天都重新选择彼此。", "mood": "安心而成熟", "effects": [{ "type": "relationship", "characterId": "shen", "amount": 9 }, { "type": "set_flag", "key": "shen.arc.vow_together", "value": true }] }
+        ] },
+        { "kind": "line", "speaker": "player", "text": "那明天先做什么？" },
+        { "kind": "line", "speaker": "shen", "text": "清晨练剑，上午议事，午后你陪我去买新的锅。旧锅已经不能用了。" },
+        { "kind": "line", "speaker": "player", "text": "这就是宗主想好的未来？" },
+        { "kind": "line", "speaker": "shen", "text": "未来本来就是这些事。练剑、吃饭、争吵、和好，偶尔一起下山。" },
+        { "kind": "line", "speaker": "narrator", "text": "她朝你伸出手。月色已经淡了，掌心却很暖。" },
+        { "kind": "line", "speaker": "shen", "text": "走吧。天快亮了。我们回家。", "mood": "平静而笃定", "stageEffect": "heartbeat" }
+      ],
+      "summary": "你们没有许下夸张的永恒，只决定从明日的早饭开始，一起生活。",
+      "endingEffects": [{ "type": "learn_skill", "skillId": 10023 }, { "type": "add_player_exp", "amount": 120 }, { "type": "set_flag", "key": "shen.arc.complete", "value": true }]
+    }
+  ]
+}

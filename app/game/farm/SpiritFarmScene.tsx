@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import type { Period } from "../types";
 import SpiritFarmPanel from "./SpiritFarmPanel";
@@ -8,7 +8,7 @@ import { BeastSprite } from "./LivestockPanel";
 import { HERB_CROPS, cropMaterial, farmLevel, gameTick, getFarmWeather, halfMonthCycle, nextHalfMonthDay, plotGrowth, rotatingHerbStock, type HerbCropDefinition } from "./farm";
 import { SPIRIT_BEASTS, buySpiritBeast, livestockCapacity, rotatingBeastStock, syncLivestock, type SpiritBeastDefinition } from "./livestock";
 
-type Props = { day: number; period: Period; onNotice: (message: string) => void };
+type Props = { day: number; period: Period; onNotice: (message: string) => void; requestedModule?: { module: FarmModule; token: number } | null; onModuleOpened?: (module: FarmModule) => void };
 type FarmModule = "field" | "livestock";
 type MerchantKind = "seed" | "ranch";
 
@@ -116,7 +116,7 @@ function FarmMerchant({ kind, day, period, onClose, onNotice }: { kind: Merchant
   </div>;
 }
 
-export default function SpiritFarmScene({ day, period, onNotice }: Props) {
+export default function SpiritFarmScene({ day, period, onNotice, requestedModule, onModuleOpened }: Props) {
   const { state } = useUnifiedGame();
   const [module, setModule] = useState<FarmModule | null>(null);
   const [merchant, setMerchant] = useState<MerchantKind | null>(null);
@@ -127,6 +127,12 @@ export default function SpiritFarmScene({ day, period, onNotice }: Props) {
   const growingCrops = state.farm.plots.filter((plot) => plot.cropId && !plotGrowth(plot, tick, weather).ready).length;
   const livestock = syncLivestock(state.farm.livestock, tick);
   const readyBeasts = livestock.animals.filter((animal) => animal.state === "ready").length;
+
+  useEffect(() => {
+    if (!requestedModule) return;
+    setModule(requestedModule.module);
+    onModuleOpened?.(requestedModule.module);
+  }, [onModuleOpened, requestedModule]);
 
   return <div className="farm-scene-hub" aria-label="云岫灵圃场景">
     <div className="farm-hub-heading"><small>CLOUD-CREST SPIRIT FARM</small><h2>云岫灵圃</h2><p>山泉穿过十二畦灵田，东坡药香与西苑兽铃在薄雾间相和。</p><span><i>{weather.icon}</i>{weather.name} · 第 {day} 日 {period}</span></div>

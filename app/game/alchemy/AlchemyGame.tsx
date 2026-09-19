@@ -51,19 +51,16 @@ import {
   productStackKey,
   rollMutation,
 } from "./commissions";
-import { COMMISSION_NPCS, CommissionNpc } from "./commission-npcs";
+import type { CommissionNpc } from "./commission-npcs";
 import {
   CharacterCardRecord,
   FatedCharacterCardRecord,
   isMythicCardRecord,
   MYTHIC_CARD_OPTIONS,
   MYTHIC_MAX_OPTIONS,
-  MYTHIC_OPTION_PAGES,
   MYTHIC_RARE_MAX_USES,
   MythicCardRecord,
   MythicOptionPage,
-  mythicTierLabel,
-  visibleMythicOptions,
 } from "./advanced-card";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import type { AlchemyProgress, UnifiedCardInstance } from "../core/types";
@@ -75,6 +72,9 @@ import alchemyUi from "./data/ui.json";
 import { createActivityReceipt } from "../core/activity-receipt";
 import RotarySelector from "../ui/RotarySelector";
 import { activeMedicineShortageRecipe } from "../projects/medicine-shortage-service";
+import { AlchemyResultOverlay, CommissionNpcDock, FatedCharacterOverlay, NpcDialogueOverlay } from "./AlchemyPresentation";
+import { AlchemyCodexOverlay, AlchemyMarketOverlay, FuzzyPickerOverlay } from "./AlchemyMarketOverlay";
+import { MythicCodexOverlay, MythicCreatorOverlay, MythicRevealOverlay } from "./AlchemyMythicOverlays";
 
 const FILTERS = ["全部", "灵草", "妖丹", "矿骨", "辅材", "法器"];
 const CODEX_FILTERS = ["全部", "材料", "成品", "神品", "神话"];
@@ -234,7 +234,6 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
   const selectedMythicOptions = MYTHIC_CARD_OPTIONS.filter((option) => mythicSelections.includes(option.id));
   const selectedMythicCharacter = selectedMythicOptions.find((option) => option.page === "character");
   const selectedMythicProfile = CHARACTER_PROFILES.find((profile) => profile.id === selectedMythicCharacter?.characterId);
-  const selectedMythicScene = selectedMythicOptions.find((option) => option.page === "scene");
   const mythicBrewConfigured = Boolean(selectedMythicCharacter && selectedMythicProfile);
   const brewAdmission = checkActionAdmission("alchemy", unifiedState.shared);
   const canBrew = (hasMythicScroll ? mythicBrewConfigured : filled >= 2) && hasEnoughStock && brewAdmission.ok && phase !== "brewing" && phase !== "done";
@@ -279,7 +278,6 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
   const revealedMythicOptions = MYTHIC_CARD_OPTIONS.filter((option) => revealedMythicCard?.optionIds.includes(option.id));
   const revealedMythicCharacter = revealedMythicOptions.find((option) => option.page === "character");
   const revealedMythicProfile = CHARACTER_PROFILES.find((profile) => profile.id === revealedMythicCharacter?.characterId);
-  const revealedMythicScene = revealedMythicOptions.find((option) => option.page === "scene");
   const mythicCardCount = characterCards.filter(isMythicCardRecord).length;
   const fatedCardCount = characterCards.length - mythicCardCount;
 
@@ -1065,23 +1063,11 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
         </aside>
       </section>
 
-      <section className="commission-npc-dock" aria-label="仙门委托来客">
-        <header>
-          <div><span>仙 门 来 客</span><h2>有人携委托登门</h2></div>
-          <p>点击人物交谈，听取委托后前往收购榜</p>
-          <button onClick={() => { setShowMarket(true); setMarketTab("commissions"); }}>直入委托榜 <b>{commissions.length}</b></button>
-        </header>
-        <div className="commission-npc-list">
-          {COMMISSION_NPCS.map((npc, index) => (
-            <button key={npc.id} className={`commission-npc-card npc-element-${npc.element}`} style={{ "--npc-delay": `${index * -0.7}s` } as CSSProperties} onClick={() => openNpcDialogue(npc)}>
-              <span className="npc-portrait"><img src={npc.portrait} alt={npc.name} /><i /></span>
-              <span className="npc-identity"><small>{npc.organization}</small><strong>{npc.name}</strong><em>{npc.title}</em></span>
-              <span className="npc-whisper">“{npc.greeting}”</span>
-              <span className="npc-talk-mark">访</span>
-            </button>
-          ))}
-        </div>
-      </section>
+      <CommissionNpcDock
+        commissionCount={commissions.length}
+        onOpenNpc={openNpcDialogue}
+        onOpenBoard={() => { setShowMarket(true); setMarketTab("commissions"); }}
+      />
 
       <section className="inventory-panel" aria-label="灵材物品栏">
         <div className="inventory-head">
@@ -1149,309 +1135,70 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
       {toast && <div className="toast" role="status"><span>◇</span>{toast}<span>◇</span></div>}
       {openingFlash && <div className="opening-flash" aria-hidden="true"><span /><i /></div>}
 
-      {showMythicCreator && (
-        <div className="mythic-creator-overlay" role="dialog" aria-modal="true" aria-label="太初命卷高级人物卡定制">
-          <div className="mythic-void" aria-hidden="true" />
-          <div className="mythic-cloud cloud-a" aria-hidden="true" /><div className="mythic-cloud cloud-b" aria-hidden="true" /><div className="mythic-cloud cloud-c" aria-hidden="true" />
-          <section className="mythic-scroll-panel">
-            <button className="mythic-close" onClick={closeMythicCreator} aria-label="收起太初命卷">×</button>
-            <header className="mythic-heading">
-              <div><span>鸿 蒙 初 判 · 诸 天 命 刻</span><h2>太初命卷</h2></div>
-              <p>择一命主，以衣、势、境共铸神话人物卡</p>
-              <div className="mythic-counter"><small>太初铭刻</small><strong>{mythicCardCount}</strong><span>卷</span></div>
-            </header>
+      <MythicCreatorOverlay open={showMythicCreator} tab={mythicTab} selections={mythicSelections} rareUses={mythicRareUses} mythicCardCount={mythicCardCount} onClose={closeMythicCreator} onTab={setMythicTab} onToggle={toggleMythicOption} onPrepare={prepareMythicBrew} />
+      <MythicRevealOverlay card={revealedMythicCard} fromCodex={mythicRevealFromCodex} onCollect={collectMythicCard} />
+      <MythicCodexOverlay open={showMythicCodex} cards={characterCards} fatedCount={fatedCardCount} mythicCount={mythicCardCount} onClose={() => setShowMythicCodex(false)} onOpenFated={(card, profile) => { setShowMythicCodex(false); setCharacterCardFromCodex(true); setCharacterCard({ ...profile, image: card.image, chance: card.chance, targeted: card.targeted }); }} onOpenMythic={(card) => { setShowMythicCodex(false); setMythicRevealFromCodex(true); setRevealedMythicCard(card); }} />
 
-            <div className={`mythic-preview is-sealed ${selectedMythicProfile ? "has-character" : ""}`}>
-              <div className="mythic-preview-rings" aria-hidden="true"><i /><i /><i /></div>
-              <div className="mythic-character-stage">
-                <div className={`mythic-sealed-figure ${selectedMythicProfile ? "is-bound" : ""}`} aria-label={selectedMythicProfile ? "人物命格已封存，真容尚未揭晓" : "尚未选择人物"}><i /><strong>{selectedMythicProfile ? "命" : "?"}</strong><span>{selectedMythicProfile ? "真容封印" : "待择命主"}</span></div>
-                <span className="mythic-scene-name">{selectedMythicScene ? "场景命纹已封存" : "混沌未定"}</span>
-              </div>
-              <div className="mythic-preview-copy">
-                <span className="mythic-preview-kicker">MYTHIC · SEALED DESTINY</span>
-                <h3>{selectedMythicProfile ? "命主已定 · 真容未显" : "无字命格"}</h3>
-                <p>{selectedMythicProfile ? "人物与诸般词条已封入卷中，需经十息玄火方可照见神话真容。" : "命卷尚待一位人物落笔"}</p>
-                <div className="mythic-selected-terms" aria-label="已选择的全部词条">
-                  {selectedMythicOptions.map((option) => <span key={option.id} className={`term-${option.tier}`}>{option.label}<i>{mythicTierLabel(option.tier)}</i></span>)}
-                  {selectedMythicOptions.length === 0 && <em>所选词条将在此显现</em>}
-                </div>
-              </div>
-              <div className="mythic-selection-count"><strong>{mythicSelections.length}</strong><span>/{MYTHIC_MAX_OPTIONS}</span><small>命纹</small></div>
-              {selectedMythicProfile && <div className="mythic-bound-seal"><span>已封</span><strong>十息后揭晓</strong></div>}
-            </div>
+      <NpcDialogueOverlay
+        npc={activeCommissionNpc}
+        step={npcDialogueStep}
+        onClose={() => setActiveCommissionNpc(null)}
+        onAdvance={advanceNpcDialogue}
+      />
 
-            <div className="mythic-form">
-              <nav className="mythic-tabs" aria-label="命卷词条分页">
-                {MYTHIC_OPTION_PAGES.map((page) => <button key={page.id} className={mythicTab === page.id ? "active" : ""} onClick={() => setMythicTab(page.id)}><i>{page.seal}</i><span>{page.label}</span><small>{page.id === "character" ? "单选" : "多选"}</small></button>)}
-              </nav>
-              <div className="mythic-options" role="group" aria-label={`${MYTHIC_OPTION_PAGES.find((page) => page.id === mythicTab)?.label}词条`}>
-                {visibleMythicOptions(mythicTab).map((option) => {
-                  const selected = mythicSelections.includes(option.id);
-                  const remaining = mythicRareUses[option.id] ?? MYTHIC_RARE_MAX_USES;
-                  return <button key={option.id} className={`mythic-term term-${option.tier} ${selected ? "selected" : ""} ${option.tier === "rare" && remaining <= 0 ? "exhausted" : ""}`} onClick={() => toggleMythicOption(option.id)} disabled={option.tier === "rare" && remaining <= 0 && !selected} aria-pressed={selected}>
-                    <span className="term-corner tl" /><span className="term-corner tr" /><span className="term-corner bl" /><span className="term-corner br" />
-                    <small>{mythicTierLabel(option.tier)}</small><strong>{option.label}</strong><em>{option.subtitle}</em>
-                    {option.tier === "rare" && <b className="rare-uses" aria-label={`剩余${remaining}次`}>{remaining}/{MYTHIC_RARE_MAX_USES}</b>}
-                    {selected && <b className="term-selected">✓</b>}
-                  </button>;
-                })}
-              </div>
-              <footer className="mythic-actions">
-                <div><span className="legend permanent">常驻词条</span><span className="legend unlocked">解锁词条</span><span className="legend rare">稀有解锁 · 5次</span></div>
-                <p>{mythicTab === "character" ? "人物页仅可择一命主" : `本页可多选 · 全卡至多 ${MYTHIC_MAX_OPTIONS} 条`}</p>
-                <button onClick={prepareMythicBrew}>封 卷 入 炉 · 炼 制 十 息</button>
-              </footer>
-            </div>
-          </section>
-        </div>
-      )}
+      <AlchemyMarketOverlay
+        open={showMarket}
+        onClose={() => setShowMarket(false)}
+        gold={gold}
+        tab={marketTab}
+        onTab={setMarketTab}
+        marketItems={marketItems}
+        marketReady={marketReady}
+        marketSoldOut={marketSoldOut}
+        soldOutRemaining={formatGameTicks(soldOutRemaining)}
+        manualRefreshCount={manualRefreshCount}
+        manualResetRemaining={formatGameTicks(manualResetRemaining)}
+        manualRefreshPrice={manualRefreshPrice}
+        onRefresh={refreshMarketManually}
+        onInspectOffer={(offer, item) => feedback.inspect({ titleKey: "shop.productTitle", bodyKey: "world.changeBody", params: { message: item.trait }, icon: "市", imageSrc: item.image, details: [{ labelKey: "items.nameLabel", value: item.name, emphasis: true }, { labelKey: "items.rarityLabel", value: item.quality }, { labelKey: "items.effectLabel", value: `${item.attribute} · ${item.trait}` }, { labelKey: "shop.priceLabel", value: getMarketPrice(item) }, { labelKey: "system.source", value: "云游集市" }], dedupeKey: `alchemy-market:${offer.id}` })}
+        onBuy={buyMarketItem}
+        commissions={commissions}
+        commissionRefreshAt={commissionRefreshAt}
+        commissionRemaining={formatGameTicks(commissionRemaining)}
+        commissionStock={commissionStock}
+        selectedEntries={fuzzySelectedEntries}
+        commissionReward={(commission) => commission.kind === "fuzzy" ? fuzzyCommissionReward(commission) : commission.reward}
+        onInspectCommission={(commission, item, stock, reward) => feedback.inspect({ titleKey: "alchemy.commissionTitle", bodyKey: "alchemy.commissionBody", params: { name: commission.kind === "specific" ? item?.name ?? "未知货品" : commission.title, quantity: commission.quantity }, icon: "榜", details: [{ labelKey: "alchemy.commissionLabel", value: commission.kind === "specific" && item?.itemType === "material" ? feedbackText("alchemy.commissionEmergency") : feedbackText("alchemy.commissionProcessed") }, { labelKey: "alchemy.referencePrice", value: reward }, { labelKey: "items.countLabel", value: `${stock}/${commission.quantity}` }, { labelKey: "system.reward", value: `${reward} 灵石` }], dedupeKey: `commission:${commission.id}` })}
+        onRemoveSelection={removeFuzzySelection}
+        onPickSelection={setPickerCommissionId}
+        onDeliver={deliverCommission}
+        productEntries={productStackList}
+      />
 
-      {revealedMythicCard && revealedMythicProfile && (
-        <div className="mythic-reveal-overlay" role="dialog" aria-modal="true" aria-label={`太初神话人物卡 太初·${revealedMythicProfile.name}`}>
-          <div className="mythic-reveal-sky" aria-hidden="true"><i /><i /><i /></div>
-          <div className="xian-cloud-curtain" aria-hidden="true"><i /><i /></div>
-          <div className="xian-reveal-mist mist-back" aria-hidden="true"><i /><i /><i /><i /></div>
-          <div className="mythic-reveal-cloud cloud-left" aria-hidden="true" /><div className="mythic-reveal-cloud cloud-right" aria-hidden="true" />
-          <section className="mythic-reveal-card xian-card-frame xian-card-mythic">
-            <div className="mythic-reveal-orbit" aria-hidden="true"><i /><i /><i /></div>
-            <div className="mythic-reveal-art xian-portrait-mask"><img src={revealedMythicProfile.images[0]} alt={revealedMythicProfile.title} /><span /></div>
-            <div className="mythic-reveal-copy">
-              <span>{cardQualityName(7)} · 太 初 命 刻 · 诸 天 唯 一</span>
-              <h2>太初·{revealedMythicProfile.name}</h2>
-              <p>{revealedMythicProfile.relation} · {revealedMythicProfile.trait}</p>
-              <div className="mythic-reveal-scene"><small>命定场景</small><strong>{revealedMythicScene?.label ?? "太虚云海"}</strong></div>
-              <div className="mythic-reveal-terms">{revealedMythicOptions.map((option) => <span key={option.id} className={`term-${option.tier}`}>{option.label}</span>)}</div>
-              <button onClick={collectMythicCard}>{mythicRevealFromCodex ? "返 回 太 虚 名 册" : "收 入 太 虚 名 册"}</button>
-            </div>
-            <div className="mythic-reveal-title"><small>TAICHU MYTHIC · PRIME ORIGIN</small><strong>太 初 神 话</strong></div>
-            {Array.from({ length: 16 }).map((_, index) => <i key={index} className={`mythic-reveal-particle particle-${(index % 12) + 1}`} aria-hidden="true" />)}
-          </section>
-          <div className="xian-reveal-mist mist-front" aria-hidden="true"><i /><i /><i /><i /><i /></div>
-        </div>
-      )}
+      <FuzzyPickerOverlay
+        commission={pickerCommission?.kind === "fuzzy" ? pickerCommission : null}
+        selections={pickerCommission?.kind === "fuzzy" ? fuzzySelections[pickerCommission.id] ?? [] : []}
+        products={productStackList}
+        reward={pickerCommission?.kind === "fuzzy" ? fuzzyCommissionReward(pickerCommission) : 0}
+        onPick={(key) => pickerCommission?.kind === "fuzzy" && addFuzzySelection(pickerCommission.id, key)}
+        onClose={() => setPickerCommissionId(null)}
+      />
 
-      {showMythicCodex && (
-        <div className="mythic-codex-overlay" role="dialog" aria-modal="true" aria-label="太虚名册人物卡背包">
-          <section className="mythic-codex-window">
-            <header><div><span>诸 天 命 轨 · 灵 契 归 藏</span><h2>太虚名册</h2><p>共 {characterCards.length} 张人物卡 · <b>灵契 {fatedCardCount}</b> · <em>太初 {mythicCardCount}</em></p></div><button onClick={() => setShowMythicCodex(false)} aria-label="关闭太虚名册">×</button></header>
-            <div className="mythic-codex-grid">
-              {characterCards.map((card, index) => {
-                if (!isMythicCardRecord(card)) {
-                  const profile = CHARACTER_PROFILES.find((candidate) => candidate.id === card.profileId);
-                  if (!profile) return null;
-                  return <button key={card.id} className="mythic-codex-card codex-card-fated" onClick={() => {
-                    setShowMythicCodex(false);
-                    setCharacterCardFromCodex(true);
-                    setCharacterCard({ ...profile, image: card.image, chance: card.chance, targeted: card.targeted });
-                  }}>
-                    <span className="codex-card-index">灵契 {String(index + 1).padStart(2, "0")}<b>{card.quality ?? cardQualityName(6)} · 星命神花</b></span>
-                    <span className="codex-card-art xian-portrait-mask"><img src={card.image} alt={profile.title} /><i /></span>
-                    <strong>灵契·{profile.name}</strong><small>{profile.relation} · {profile.trait}</small>
-                    <em>查看灵契</em>
-                  </button>;
-                }
-                const options = MYTHIC_CARD_OPTIONS.filter((option) => card.optionIds.includes(option.id));
-                const character = options.find((option) => option.page === "character");
-                const profile = CHARACTER_PROFILES.find((candidate) => candidate.id === character?.characterId);
-                const scene = options.find((option) => option.page === "scene");
-                if (!profile) return null;
-                return <button key={card.id} className="mythic-codex-card codex-card-mythic" onClick={() => { setShowMythicCodex(false); setMythicRevealFromCodex(true); setRevealedMythicCard(card); }}>
-                  <span className="codex-card-index">太初 {String(index + 1).padStart(2, "0")}<b>至高神话</b></span>
-                  <span className="codex-card-art xian-portrait-mask"><img src={profile.images[0]} alt={profile.title} /><i /></span>
-                  <strong>太初·{profile.name}</strong><small>{scene?.label ?? "太虚云海"} · {options.length} 道命纹</small>
-                  <em>展开太初命相</em>
-                </button>;
-              })}
-              {characterCards.length === 0 && <div className="mythic-codex-empty"><img src={MYTHIC_MATERIAL.image} alt="太初命卷" /><strong>名册尚空</strong><p>星命神花可唤来灵契卡；太初命卷可铭刻更高阶的太初神话卡。</p></div>}
-            </div>
-          </section>
-        </div>
-      )}
+      <AlchemyCodexOverlay
+        open={showCodex}
+        rows={codexRows}
+        search={codexSearch}
+        filter={codexFilter}
+        filters={CODEX_FILTERS}
+        groupCount={ITEM_GROUP_COUNT}
+        onSearch={setCodexSearch}
+        onFilter={setCodexFilter}
+        onExport={exportCodex}
+        onClose={() => setShowCodex(false)}
+      />
 
-      {activeCommissionNpc && (
-        <div className="npc-dialogue-overlay" role="dialog" aria-modal="true" aria-label={`与${activeCommissionNpc.name}交谈`}>
-          <button className="npc-dialogue-backdrop" onClick={() => setActiveCommissionNpc(null)} aria-label="结束交谈" />
-          <div className={`npc-dialogue-card npc-element-${activeCommissionNpc.element}`}>
-            <div className="npc-dialogue-portrait"><img src={activeCommissionNpc.portrait} alt={activeCommissionNpc.name} /><span /></div>
-            <div className="npc-dialogue-copy">
-              <small>{activeCommissionNpc.organization} · {activeCommissionNpc.title}</small>
-              <h2>{activeCommissionNpc.name}</h2>
-              <p>“{activeCommissionNpc.dialogue[npcDialogueStep]}”</p>
-              <div className="npc-dialogue-progress">{activeCommissionNpc.dialogue.map((_, index) => <i key={index} className={index <= npcDialogueStep ? "active" : ""} />)}</div>
-              <button onClick={advanceNpcDialogue}>{npcDialogueStep < activeCommissionNpc.dialogue.length - 1 ? "继 续" : "查 看 委 托"}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showMarket && (
-        <div className="market-overlay" role="dialog" aria-modal="true" aria-label="云游集市">
-          <div className="market-window">
-            <header className="market-heading">
-              <div><span>浮 云 有 市 · 奇 珍 自 来</span><h2>云游集市</h2><p>每轮六件灵材，售罄后十息自动补货</p></div>
-              <div className="market-wallet"><small>持有灵石</small><strong><i>◉</i>{gold.toLocaleString()}</strong></div>
-              <button className="market-close" onClick={() => setShowMarket(false)} aria-label="关闭集市">×</button>
-            </header>
-            <div className="market-odds" aria-label="品质出现概率">
-              {marketTab === "goods" ? (Object.entries(MARKET_QUALITY_WEIGHTS) as [string, number][]).map(([quality, weight]) => <span key={quality} className={`quality-text quality-${quality}`}><i />{quality} {weight}%</span>) : <><span>指定委托 5 条</span><span>模糊委托 2 条</span><span>低品质需求更常见</span><span>收购价高于市价</span></>}
-            </div>
-            <nav className="market-tabs" aria-label="集市功能"><button className={marketTab === "goods" ? "active" : ""} onClick={() => setMarketTab("goods")}>灵材摊位</button><button className={marketTab === "commissions" ? "active" : ""} onClick={() => setMarketTab("commissions")}>仙门委托 <b>{commissions.length}</b></button></nav>
-            {marketTab === "goods" ? <>
-              <div className="market-grid">
-                {marketItems.map(({ offer, item }, index) => (
-                  <article key={offer.id} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"shop.productTitle",bodyKey:"world.changeBody",params:{message:item.trait},icon:"市",imageSrc:item.image,details:[{labelKey:"items.nameLabel",value:item.name,emphasis:true},{labelKey:"items.rarityLabel",value:item.quality},{labelKey:"items.effectLabel",value:`${item.attribute} · ${item.trait}`},{labelKey:"shop.priceLabel",value:getMarketPrice(item)},{labelKey:"system.source",value:"云游集市"}],dedupeKey:`alchemy-market:${offer.id}`})} className={`market-card quality-${item.quality} ${offer.sold ? "sold" : ""}`} style={{ "--item-color": item.color } as CSSProperties}>
-                    <span className="market-stock">货位 {String(index + 1).padStart(2, "0")}</span>
-                    <span className="market-quality">{item.quality}</span>
-                    <div className="market-item-art"><img src={item.image} alt="" /></div>
-                    <div className="market-item-copy"><strong>{item.name}</strong><small>{item.attribute} · {item.trait}</small></div>
-                    <div className="market-price"><span><i>◉</i>{getMarketPrice(item).toLocaleString()}</span><button onClick={(event) => {event.stopPropagation();buyMarketItem(offer.id);}} disabled={offer.sold}>{offer.sold ? "已售罄" : "购 入"}</button></div>
-                    {offer.sold && <div className="sold-seal">售罄</div>}
-                  </article>
-                ))}
-                {!marketReady && <div className="market-loading">云商正在布置货架……</div>}
-              </div>
-              <footer className="market-footer">
-                <div className="market-rule-copy"><strong>{marketSoldOut ? `全场售罄 · ${formatGameTicks(soldOutRemaining)} 后自动补货` : "货品一经购入，将直接进入乾坤灵囊"}</strong><small>{manualRefreshCount > 0 ? `${formatGameTicks(manualResetRemaining)} 后刷新费用恢复免费` : "当前拥有一次免费刷新机会"}</small></div>
-                <button className="market-refresh" onClick={refreshMarketManually} disabled={!marketReady}><span>↻</span><b>刷新货架</b><small>{manualRefreshPrice === 0 ? "本次免费" : `${manualRefreshPrice.toLocaleString()} 灵石`}</small></button>
-              </footer>
-            </> : <>
-              <div className="commission-workspace">
-                <section className="commission-list" aria-label="仙门售卖委托">
-                  {commissions.map((commission, index) => {
-                    const item = commission.kind === "specific" ? ITEM_TABLE.find((candidate) => candidate.id === commission.itemId) : null;
-                    const stock = commissionStock(commission);
-                    const name = commission.kind === "specific" ? item?.name ?? "未知货品" : commission.title;
-                    const selectedEntries = commission.kind === "fuzzy" ? fuzzySelectedEntries(commission.id) : [];
-                    const reward = commission.kind === "fuzzy" ? fuzzyCommissionReward(commission) : commission.reward;
-                    return <article key={commission.id} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"alchemy.commissionTitle",bodyKey:"alchemy.commissionBody",params:{name,quantity:commission.quantity},icon:"榜",details:[{labelKey:"alchemy.commissionLabel",value:commission.kind==="specific"&&item?.itemType==="material"?feedbackText("alchemy.commissionEmergency"):feedbackText("alchemy.commissionProcessed")},{labelKey:"alchemy.referencePrice",value:reward},{labelKey:"items.countLabel",value:`${stock}/${commission.quantity}`},{labelKey:"system.reward",value:`${reward} 灵石`}],dedupeKey:`commission:${commission.id}`})} className={`commission-card ${commission.kind}`}>
-                      <span className="commission-index">{String(index + 1).padStart(2, "0")}</span>
-                      <div className="commission-icon">{item ? <img src={item.image} alt="" /> : <span>{commission.kind === "fuzzy" && commission.requirement === "element" ? commission.element : "品"}</span>}</div>
-                      <div className="commission-copy"><small>{commission.kind === "specific" ? `${item?.itemType === "material" ? "材料救急回收" : "丹药加工委托"}` : `模糊丹药委托 · ${commission.pricingMode === "dynamic" ? "动态价格" : "仙门定价"}`}</small><strong>{name} ×{commission.quantity}</strong><em>{commission.kind === "fuzzy" ? `已装填 ${stock}/${commission.quantity}` : `持有 ${stock}/${commission.quantity}`}</em></div>
-                      {commission.kind === "fuzzy" && <div className="fuzzy-item-slots" aria-label={`${commission.title}物品框`}>
-                        {Array.from({ length: commission.quantity }).map((_, slotIndex) => {
-                          const entry = selectedEntries[slotIndex];
-                          return <button key={slotIndex} className={entry ? "filled" : ""} onClick={() => entry ? removeFuzzySelection(commission.id, slotIndex) : setPickerCommissionId(commission.id)} aria-label={entry ? `移除${mutationDisplayName(entry.item, entry.stack.mutation)}` : `选择第${slotIndex + 1}件丹药`}>
-                            {entry ? <><img src={entry.item.image} alt="" /><span>{MUTATIONS[entry.stack.mutation].prefix || entry.item.element}</span></> : <><b>＋</b><span>选丹</span></>}
-                          </button>;
-                        })}
-                      </div>}
-                      <div className="commission-reward"><small>{commission.kind === "specific"&&item?.itemType==="material"?"救急档回收":commission.kind === "fuzzy" && commission.pricingMode === "dynamic" ? "总估值 ×1.5" : "完整劳作奖励"}</small><strong>◉ {reward.toLocaleString()}</strong></div>
-                      <button onClick={(event) => {event.stopPropagation();deliverCommission(commission);}} disabled={stock < commission.quantity}>交 付</button>
-                    </article>;
-                  })}
-                  {commissions.length === 0 && <div className="commission-empty">{commissionRefreshAt <= 0 ? alchemyUi.commissionLoading : alchemyUi.commissionEmpty}</div>}
-                </section>
-                <aside className="product-vault">
-                  <header><span>炼 成 物</span><h3>成品库</h3><small>{productStackList.length} 个独立格</small></header>
-                  <div>{productStackList.map(({ stack, item }) => <article key={productStackKey(stack.productId, stack.mutation)} className={`mutation-${stack.mutation}`}><img src={item.image} alt="" /><span><strong>{mutationDisplayName(item, stack.mutation)}</strong><small>{MUTATIONS[stack.mutation].note} · 估值 {getMutationValue(item, stack.mutation).toLocaleString()}</small></span><b>×{stack.count}</b></article>)}</div>
-                  {productStackList.length === 0 && <p>尚无成品，先去丹炉炼制一炉。</p>}
-                </aside>
-              </div>
-              <footer className="market-footer commission-footer"><div className="market-rule-copy"><strong>委托榜将在 {formatGameTicks(commissionRemaining)} 后刷新</strong><small>纯采购仅按救急价回收；炼制、品质与调查委托才提供完整奖励</small></div><span className="commission-seal">劳动留痕 · 价格锁定</span></footer>
-            </>}
-          </div>
-        </div>
-      )}
-
-      {pickerCommission && pickerCommission.kind === "fuzzy" && (
-        <div className="fuzzy-picker-overlay" role="dialog" aria-modal="true" aria-label="选择符合委托的丹药">
-          <button className="fuzzy-picker-backdrop" onClick={() => setPickerCommissionId(null)} aria-label="关闭配货" />
-          <section className="fuzzy-picker">
-            <header><div><span>乾 坤 灵 囊 · 成 品 库</span><h2>为「{pickerCommission.title}」配货</h2><p>已选 {(fuzzySelections[pickerCommission.id] ?? []).length}/{pickerCommission.quantity} · 点击丹药放入空物品框</p></div><button onClick={() => setPickerCommissionId(null)} aria-label="关闭">×</button></header>
-            <div className="fuzzy-picker-summary"><span className={pickerCommission.pricingMode === "dynamic" ? "dynamic" : "fixed"}>{pickerCommission.pricingMode === "dynamic" ? "动态价格" : "仙门定价"}</span><strong>{pickerCommission.pricingMode === "dynamic" ? `当前结算 ◉ ${fuzzyCommissionReward(pickerCommission).toLocaleString()}` : `固定酬金 ◉ ${pickerCommission.reward.toLocaleString()}`}</strong><small>{pickerCommission.pricingMode === "dynamic" ? "所选物品总估值 ×1.5" : "物品成色不会改变本单酬金"}</small></div>
-            <div className="fuzzy-picker-grid">
-              {productStackList.filter(({ item }) => matchesFuzzyCommission(item, pickerCommission)).map(({ stack, item }) => {
-                const key = productStackKey(stack.productId, stack.mutation);
-                const selectedCount = (fuzzySelections[pickerCommission.id] ?? []).filter((selectedKey) => selectedKey === key).length;
-                const unavailable = selectedCount >= stack.count || (fuzzySelections[pickerCommission.id] ?? []).length >= pickerCommission.quantity;
-                return <button key={key} className={`fuzzy-picker-item mutation-${stack.mutation}`} onClick={() => addFuzzySelection(pickerCommission.id, key)} disabled={unavailable}>
-                  <span className="fuzzy-picker-art"><img src={item.image} alt="" /></span>
-                  <span><strong>{mutationDisplayName(item, stack.mutation)}</strong><small>{item.element} · {item.quality} · 估值 {getMutationValue(item, stack.mutation).toLocaleString()}</small></span>
-                  <b>{selectedCount > 0 ? `已选 ${selectedCount}/` : "持有 "}{stack.count}</b>
-                </button>;
-              })}
-              {productStackList.filter(({ item }) => matchesFuzzyCommission(item, pickerCommission)).length === 0 && <p className="fuzzy-picker-empty">成品库中暂时没有符合条件的丹药。</p>}
-            </div>
-            <footer><button onClick={() => setPickerCommissionId(null)}>完成配货</button></footer>
-          </section>
-        </div>
-      )}
-
-      {showCodex && (
-        <div className="codex-overlay" role="dialog" aria-modal="true" aria-label="万物图鉴属性表">
-          <div className="codex-window">
-            <header className="codex-heading">
-              <div><span>太虚万物志 · 数据总览</span><h2>{ITEM_TABLE.length} 项材料与成品</h2></div>
-              <button onClick={() => setShowCodex(false)} aria-label="关闭万物图鉴">×</button>
-            </header>
-            <div className="codex-summary">
-              <div><strong>{ITEM_TABLE.length}</strong><span>图鉴总数</span></div><div><strong>{MATERIALS.length}</strong><span>可炼制材料</span></div><div><strong>{PRODUCTS.length}</strong><span>不可炼制成品</span></div><div><strong>{ITEM_GROUP_COUNT}</strong><span>素材系列</span></div>
-            </div>
-            <div className="codex-toolbar">
-              <label><span>⌕</span><input value={codexSearch} onChange={(event) => setCodexSearch(event.target.value)} placeholder="搜索名称、五行或效果" aria-label="搜索图鉴" /></label>
-              <div>{CODEX_FILTERS.map((name) => <button key={name} className={codexFilter === name ? "active" : ""} onClick={() => setCodexFilter(name)}>{name}</button>)}</div>
-              <button className="export-button" onClick={exportCodex}>导出属性表</button>
-            </div>
-            <div className="codex-table-wrap">
-              <table>
-                <thead><tr><th>序</th><th>图鉴</th><th>名称</th><th>类型</th><th>归属</th><th>属性</th><th>品质</th><th>特性</th><th>价格</th><th>人物缘契</th><th>玩法效果</th></tr></thead>
-                <tbody>
-                  {codexRows.map((item) => (
-                    <tr key={item.id} className={item.characterTrigger ? "fated-row" : ""}>
-                      <td>{String(item.index).padStart(3, "0")}</td><td><img src={item.image} alt="" loading="lazy" /></td><td><strong>{item.name}</strong><small>{item.short}</small></td><td><span className={`kind-pill kind-${item.itemType}`}>{item.itemType === "material" ? "材料" : "成品"}</span><small>{item.canBeIngredient ? "可投入" : "不可炼制"}</small></td><td>{item.group ?? item.kind}·{item.category}</td><td><i style={{ background: item.color }} />{item.attribute}</td><td className={`quality-text quality-${item.quality}`}>{item.quality}<small>{"◆".repeat(item.rarity)}</small></td><td>{item.trait}</td><td>{item.price.toLocaleString()}<small>灵石</small></td><td>{item.character ? <><strong>{item.character.title}</strong><small>{item.character.relation} · 权重+{item.character.affinity}</small></> : <small>—</small>}</td><td>{item.effect}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <footer>当前显示 {codexRows.length} 项 · 属性数据由统一表格驱动，可搜索、筛选与导出</footer>
-          </div>
-        </div>
-      )}
-
-      {characterCard && (
-        <div className="character-overlay" role="dialog" aria-modal="true" aria-label="命定炉灵人物卡">
-          <div className="character-portal" aria-hidden="true" />
-          <div className="xian-cloud-curtain fated-curtain" aria-hidden="true"><i /><i /></div>
-          <div className="xian-reveal-mist mist-back" aria-hidden="true"><i /><i /><i /><i /></div>
-          <div className="character-card xian-card-frame xian-card-fated">
-            <div className="character-halo" aria-hidden="true" />
-            <div className="character-runes" aria-hidden="true">乾 · 坎 · 艮 · 震 · 巽 · 离 · 坤 · 兑</div>
-            <div className="character-image xian-portrait-mask"><img src={characterCard.image} alt={characterCard.title} /><span /></div>
-            <div className="character-copy">
-              <span className="character-kicker">{cardQualityName(6)} · 灵 契 人 物 卡 · {characterCard.targeted ? `缘物定向 ${characterCard.chance}%` : "星命随机"}</span>
-              <h2>灵契·{characterCard.name}</h2>
-              <p>{characterCard.targeted ? "人物缘物在十息丹火中显化，星命神花循着熟悉气息找到了她。" : "未有缘物指引，星命神花自万千命轨中随机照见了她。"}</p>
-              <div className="character-stats"><span>人物关系<strong>{characterCard.relation}</strong></span><span>本炉概率<strong>{characterCard.chance}%</strong></span><span>命格特性<strong>{characterCard.trait}</strong></span></div>
-              <button onClick={collectCharacter}>{characterCardFromCodex ? "返 回 太 虚 名 册" : "收 入 太 虚 名 册"}</button>
-            </div>
-            {Array.from({ length: 12 }).map((_, index) => <i key={index} className={`card-particle particle-${index + 1}`} aria-hidden="true" />)}
-          </div>
-          <div className="xian-reveal-mist mist-front" aria-hidden="true"><i /><i /><i /><i /><i /></div>
-        </div>
-      )}
-
-      {showResult && (
-        <div className="result-overlay" role="dialog" aria-modal="true" aria-label="炼丹结果">
-          <div className="result-rays" aria-hidden="true" />
-          <div className="result-card">
-            <div className="card-art product-card-art">
-              <span className="result-item-aura" aria-hidden="true" />
-              <img className="result-item-icon" src={resultItem.image} alt={mutationDisplayName(resultItem, resultMutation)} />
-              <span className="legendary-tag">{resultMutation === "normal" ? `${resultItem.quality}·${resultItem.category}` : `${MUTATIONS[resultMutation].prefix}·异变词缀`}</span>
-            </div>
-            <div className="card-copy">
-              <span className="first-acquired">◈ 炼成物 · 成品库独立记录</span>
-              <h2 className={`mutation-name mutation-${resultMutation}`}>{mutationDisplayName(resultItem, resultMutation)}</h2>
-              <p>{MUTATIONS[resultMutation].note}。{resultItem.effect}。五行属 <b>{resultItem.element}</b>，实际估值 <b>{getMutationValue(resultItem, resultMutation).toLocaleString()}</b> 灵石。</p>
-              {resultMutation !== "normal" && <div className={`mutation-banner mutation-${resultMutation}`}><span>炼丹异变</span><strong>{MUTATIONS[resultMutation].prefix}</strong><small>价值倍率 ×{MUTATIONS[resultMutation].valueMultiplier}</small></div>}
-              <div className="result-value"><span>灵韵稀有</span><strong>{"◆".repeat(resultItem.rarity)}</strong></div>
-              <div className="card-actions"><button onClick={collectResult}>收 下</button><button onClick={resetBrew}>再炼一炉</button></div>
-            </div>
-          </div>
-          <div className="result-title"><span>天地同贺</span><strong>灵 变 成 丹</strong></div>
-        </div>
-      )}
+      <FatedCharacterOverlay character={characterCard} fromCodex={characterCardFromCodex} onCollect={collectCharacter} />
+      <AlchemyResultOverlay open={showResult} item={resultItem} mutation={resultMutation} onCollect={collectResult} onReset={resetBrew} />
     </main>
   );
 }

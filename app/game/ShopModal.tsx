@@ -13,6 +13,7 @@ import WeaponMerchantPanel from "./WeaponMerchantPanel";
 import { fishById } from "./fishing/fishing";
 import { livestockProductById } from "./farm/livestock";
 import { useFeedback } from "./feedback/FeedbackProvider";
+import { manualItemById, SHOP_MANUAL } from "./skills/manual-items";
 
 type ShopModalProps = {
   gifts: GiftDefinition[];
@@ -24,7 +25,7 @@ type ShopModalProps = {
 };
 
 const TYPE_LABELS: Record<UnifiedItemStack["itemType"], string> = {
-  gift: "礼物", material: "灵材", pill: "丹药", equipment: "法器", card: "人物卡", treasure: "宝物", quest: "剧情物品", fish: "灵鱼",
+  gift: "礼物", material: "灵材", pill: "丹药", equipment: "法器", card: "人物卡", treasure: "宝物", quest: "剧情物品", fish: "灵鱼", manual: "功法玉简",
 };
 const RARITY_COLORS = ["#aab5ad", "#7ebf8b", "#5faed0", "#a889ce", "#d59b54", "#e8c56c", "#f2df9b"];
 
@@ -50,15 +51,17 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
     return { backgroundImage: `url(${gift.image})`, backgroundPosition: gift.imagePosition ?? "center", backgroundSize: gift.image.includes("ning-shop-goods") ? "300% 200%" : gift.image.includes("gift-atlas") ? "500% 100%" : "cover" };
   }
 
-  function buy(itemId: string, basePrice: number) {
+  function buy(itemId: string, basePrice: number, itemType: "gift" | "manual" = "gift") {
     const gift = shopGiftMap[itemId];
+    const manual = manualItemById(itemId);
+    const definition = itemType === "manual" ? manual : gift;
     const price = Math.max(1, Math.round(basePrice * discount));
-    if (!gift || state.shared.spiritStones < price) { setMessage(`灵石不足，还差 ${Math.max(0, price - state.shared.spiritStones)} 枚。`); return; }
+    if (!definition || state.shared.spiritStones < price) { setMessage(`灵石不足，还差 ${Math.max(0, price - state.shared.spiritStones)} 枚。`); return; }
     applyEffects([
       { type: "add_currency", amount: -price },
-      { type: "add_item", item: { itemId, itemType: "gift", rarity: itemId === "jadeAbacusCharm" ? 4 : 2, amount: 1, sourceTags: ["栖珍阁", "购入"] } },
+      { type: "add_item", item: { itemId, itemType, rarity: itemType === "manual" ? SHOP_MANUAL.rarity : itemId === "jadeAbacusCharm" ? 4 : 2, amount: 1, sourceTags: ["栖珍阁", itemType === "manual" ? "功法玉简" : "购入"] } },
     ]);
-    const copy = `购得「${gift.name}」· ${price} 灵石`;
+    const copy = `购得「${definition.name}」· ${price} 灵石`;
     setMessage(relationship >= 15 ? `${copy}。宁砚书悄悄抹去了账尾的零头。` : `${copy}。宁砚书将物件仔细包好。`);
     onNotice(copy);
   }
@@ -71,10 +74,11 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
     const quest = questMap[stack.itemId];
     const fish = stack.itemType === "fish" ? fishById(stack.itemId) : null;
     const livestock = livestockProductById(stack.itemId);
-    const name = gift?.name ?? alchemy?.name ?? treasure?.name ?? quest?.name ?? fish?.name ?? livestock?.productName ?? stack.itemId;
-    const image = gift?.image ?? alchemy?.image ?? treasure?.art ?? quest?.image ?? fish?.art ?? livestock?.productArt ?? "/assets/shop/ning-shop-goods.jpg";
+    const manual = manualItemById(stack.itemId);
+    const name = gift?.name ?? alchemy?.name ?? treasure?.name ?? quest?.name ?? fish?.name ?? livestock?.productName ?? manual?.name ?? stack.itemId;
+    const image = gift?.image ?? alchemy?.image ?? treasure?.art ?? quest?.image ?? fish?.art ?? livestock?.productArt ?? manual?.art ?? "/assets/shop/ning-shop-goods.jpg";
     const position = gift?.imagePosition;
-    const baseValue = alchemy?.value ?? alchemy?.price ?? treasure?.value ?? fish?.value ?? livestock?.productValue ?? (stack.rarity * stack.rarity * 45);
+    const baseValue = alchemy?.value ?? alchemy?.price ?? treasure?.value ?? fish?.value ?? livestock?.productValue ?? manual?.price ?? (stack.rarity * stack.rarity * 45);
     return { name, image, position, value: Math.max(1, Math.floor(baseValue * .58)) };
   }
 
@@ -124,9 +128,9 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
         {department === "weapons" ? <main className="shop-counter weapon-shop-counter"><WeaponMerchantPanel onNotice={onNotice} /></main> : <main className="shop-counter">
           {supplyRestored&&<div className="medicine-supply-banner"><i>药</i><span><small>主线任务结果 · 已生效</small><strong>医馆药路重开，基础补给额外减免</strong></span><b>供给恢复</b></div>}
           <nav className="shop-tabs"><button className={tab === "buy" ? "active" : ""} onClick={() => setTab("buy")}><i>买</i><span><strong>购入常货</strong><small>行旅所需 · 明码标价</small></span></button><button className={tab === "sell" ? "active" : ""} onClick={() => setTab("sell")}><i>卖</i><span><strong>出售所有物品</strong><small>行囊、宝物与法器统一估价</small></span></button></nav>
-          {tab === "buy" ? <div className="shop-goods-grid">{SHOP_OFFERS.map((offer) => { const gift = shopGiftMap[offer.itemId]!; const price = Math.max(1, Math.round(offer.price * discount)); return <article key={offer.itemId} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"shop.productTitle",bodyKey:"world.changeBody",params:{message:gift.description},icon:gift.icon,imageSrc:gift.image,details:[{labelKey:"items.nameLabel",value:gift.name,emphasis:true},{labelKey:"shop.stockLabel",value:offer.stock},{labelKey:"shop.priceLabel",value:price},{labelKey:"items.tagsLabel",value:gift.tags.join(" · ")},{labelKey:"shop.discountLabel",value:discount<1?`${Math.round(discount*100)} 折`:"无"}],dedupeKey:`shop-product:${offer.itemId}`})}>
-            <div className="shop-goods-art" style={artStyle(gift)}><span>{gift.icon}</span><b>{offer.stock}</b></div>
-            <small>{gift.tags.join(" · ")}</small><h3>{gift.name}</h3><p>{gift.description}</p><div><span><del>{discount < 1 ? offer.price : ""}</del><strong>◉ {price}</strong></span><button onClick={(event) => {event.stopPropagation();buy(offer.itemId, offer.price);}} disabled={state.shared.spiritStones < price}>购入</button></div>
+          {tab === "buy" ? <div className="shop-goods-grid">{[...SHOP_OFFERS.map((offer) => ({ ...offer, itemType: "gift" as const, definition: shopGiftMap[offer.itemId]! })), { itemId: SHOP_MANUAL.itemId, price: SHOP_MANUAL.price, stock: "秘藏", note: "研读后习得功法", itemType: "manual" as const, definition: SHOP_MANUAL }].map((offer) => { const item = offer.definition; const price = Math.max(1, Math.round(offer.price * discount)); const style = offer.itemType === "gift" ? artStyle(item as GiftDefinition) : undefined; const imageSrc = "image" in item ? item.image : item.art; return <article key={offer.itemId} className={offer.itemType === "manual" ? "manual-shop-offer" : ""} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"shop.productTitle",bodyKey:"world.changeBody",params:{message:item.description},icon:item.icon,imageSrc,details:[{labelKey:"items.nameLabel",value:item.name,emphasis:true},{labelKey:"shop.stockLabel",value:offer.stock},{labelKey:"shop.priceLabel",value:price},{labelKey:"items.tagsLabel",value:item.tags.join(" · ")},{labelKey:"shop.discountLabel",value:discount<1?`${Math.round(discount*100)} 折`:"无"}],dedupeKey:`shop-product:${offer.itemId}`})}>
+            <div className="shop-goods-art" style={style}>{offer.itemType === "manual" && <img src={SHOP_MANUAL.art} alt="" />}<span>{item.icon}</span><b>{offer.stock}</b></div>
+            <small>{item.tags.join(" · ")}</small><h3>{item.name}</h3><p>{item.description}</p><div><span><del>{discount < 1 ? offer.price : ""}</del><strong>◉ {price}</strong></span><button onClick={(event) => {event.stopPropagation();buy(offer.itemId, offer.price, offer.itemType);}} disabled={state.shared.spiritStones < price}>购入</button></div>
           </article>; })}</div> : <div className="shop-sell-area">
             <section><header><div><small>TRAVEL PACK · 可出售</small><h3>乾坤行囊</h3></div><span>{sellableStacks.length} 类物品</span></header><div className="shop-sell-list">{sellableStacks.map((stack) => { const definition = stackDefinition(stack); const isAtlas = definition.image.includes("atlas") || definition.image.includes("ning-shop-goods"); return <article key={stack.itemId}>
               <div className="shop-sell-art" style={isAtlas ? { backgroundImage: `url(${definition.image})`, backgroundPosition: definition.position ?? "center", backgroundSize: definition.image.includes("ning-shop-goods") ? "300% 200%" : "500% 100%" } : undefined}>{!isAtlas && <img src={definition.image} alt="" />}</div>

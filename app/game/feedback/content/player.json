@@ -14,7 +14,7 @@
   "player.proficiencyLabel": "酒艺",
   "player.proficiencyBody": "酒艺会影响共饮事件的容错、特殊对话与部分关系结果。",
   "player.skillLearned": "术法领悟",
-  "player.skillLearnedBody": "已领悟术法编号 {id}，可在人物修行与秘境配置中查看。",
+  "player.skillLearnedBody": "已领悟功法「{name}」，可在万法谱与秘境配置中查看。",
   "player.profileTitle": "修士总览",
   "player.profileBody": "人物等级、永久修为、体力与战斗属性共用同一份主角数据。",
   "player.attributeSummary": "核心属性",

@@ -54,7 +54,7 @@ export type Condition =
   | { type: "alchemy_result"; itemId: string };
 
 export type ProjectedInventoryItem = {
-  itemType: "gift" | "material" | "pill" | "equipment" | "card" | "treasure" | "quest" | "fish";
+  itemType: "gift" | "material" | "pill" | "equipment" | "card" | "treasure" | "quest" | "fish" | "manual";
   templateId: string;
   rarity: number;
   amount: number;
@@ -119,6 +119,10 @@ export type EventDefinition = {
   clue: string;
   start: string;
   nodes: Record<string, EventNode>;
+  /** Authoring-only metadata used by the removable local story verifier. */
+  storyPhase?: string;
+  debugOrder?: number;
+  authoredRoundCount?: number;
 };
 
 export type InspectionEventConfig = {

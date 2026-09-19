@@ -8,6 +8,8 @@ import type { UnifiedGameState } from "../core/types";
 import { useFeedback } from "./FeedbackProvider";
 import { feedbackText } from "./texts";
 import { MEDICINE_SHORTAGE_ROUTES } from "../projects/medicine-shortage-service";
+import { manualItemById } from "../skills/manual-items";
+import { manualById } from "../skills/manual-service";
 
 const RELATIONSHIP_STAGES = [
   { min: 70, textKey: "relationship.stageDevoted" },
@@ -102,12 +104,22 @@ export function UnifiedFeedbackBridge({ children }: { children: React.ReactNode 
     announceSpotChanges("mining", state.mining.randomSpots, previous.mining.randomSpots);
 
     if (state.romance.receivedMessages.length > previous.romance.receivedMessages.length) feedback.toast({ priority: 1, tone: "cinnabar", titleKey: "relationship.messageTitle", bodyKey: "relationship.messageBody", icon: "笺", dedupeKey: `message:${state.romance.receivedMessages.at(-1)}` });
-    if (state.romance.activeEvent?.eventId !== previous.romance.activeEvent?.eventId && state.romance.activeEvent) {
+    // Transient events are already shown in the dialogue layer. Announcing
+    // them here would mislabel daily conversations and effect-free story
+    // previews as a new, unnamed canonical relationship event.
+    if (state.romance.activeEvent?.eventId !== previous.romance.activeEvent?.eventId && state.romance.activeEvent && !state.romance.activeEvent.transient) {
       const event = EVENTS.find((entry) => entry.id === state.romance.activeEvent?.eventId);
-      feedback.toast({ priority: 1, titleKey: "relationship.storyTitle", bodyKey: "relationship.storyBody", params: { name: event?.title ?? "未名因缘" }, icon: "缘", dedupeKey: `story:${state.romance.activeEvent.eventId}` });
+      if (event) feedback.toast({ priority: 1, titleKey: "relationship.storyTitle", bodyKey: "relationship.storyBody", params: { name: event.title }, icon: "缘", dedupeKey: `story:${state.romance.activeEvent.eventId}` });
     }
 
-    for (const skillId of state.shared.learnedSkills.filter((id) => !previous.shared.learnedSkills.includes(id))) feedback.publish({ variant: "progression-milestone", priority: 1, tone: "gold", titleKey: "player.skillLearned", bodyKey: "player.skillLearnedBody", params: { id: skillId }, icon: "悟", dedupeKey: `skill:${skillId}` });
+    const newlyLearnedSkills = state.shared.learnedSkills
+      .filter((id) => !previous.shared.learnedSkills.includes(id))
+      // The battle mastery projection contains the built-in starter manuals.
+      // They may enter the shared projection together with the first genuinely
+      // learned manual, but should not masquerade as the newly studied reward.
+      .map((id) => manualById(id))
+      .filter((manual) => !manual.starter);
+    for (const manual of newlyLearnedSkills) feedback.publish({ variant: "progression-milestone", priority: 1, tone: "gold", titleKey: "player.skillLearned", bodyKey: "player.skillLearnedBody", params: { name: manual.name }, icon: "悟", dedupeKey: `skill:${manual.baseId}` });
 
     if (state.fishing.dailyAttempts >= 6 && previous.fishing.dailyAttempts < 6) feedback.toast({ priority: 2, titleKey: "system.toastWarning", bodyKey: "fishing.limit", icon: "竿", dedupeKey: `fishing-limit:${state.romance.day}` });
     for (const slot of state.fishing.aging.filter((entry) => !previous.fishing.aging.some((old) => old.id === entry.id))) feedback.toast({ priority: 2, titleKey: "fishing.agingTitle", bodyKey: "fishing.agingBody", icon: "藏", dedupeKey: `fish-aging:${slot.id}` });
@@ -175,7 +187,7 @@ export function UnifiedFeedbackBridge({ children }: { children: React.ReactNode 
         tone: item.rarity >= 5 ? "gold" : "jade",
         titleKey: item.rarity >= 5 ? "items.rareTitle" : "items.gainedTitle",
         bodyKey: item.rarity >= 5 ? "items.rareBody" : "items.gainedBody",
-        params: { name: item.itemId, amount },
+        params: { name: manualItemById(item.itemId)?.name ?? item.displayName ?? item.itemId, amount },
         icon: feedbackText(item.rarity >= 5 ? "items.rareIcon" : "items.gainedIcon"),
         dedupeKey: `item:${item.itemId}:${item.amount}`,
       });

@@ -1,0 +1,9 @@
+{
+  "enemies": [
+    { "id": "swift-raider", "name": "迅影客", "title": "先手扰阵", "art": "/game-assets/turn-combat/swift-raider-v1.png", "ai": "aggressive", "stats": { "health": 560, "mana": 0, "defense": 72, "physicalPower": 118, "spiritualPower": 78, "speed": 128, "hitChance": 0.9, "dodge": 0.1, "critChance": 0.08, "critMultiplier": 1.6, "posture": 118, "level": 4 }, "skills": ["enemy-quick-cut", "basic-attack"] },
+    { "id": "ward-raider", "name": "镇山客", "title": "高防守势", "art": "/game-assets/turn-combat/ward-raider-v1.png", "ai": "guardian", "stats": { "health": 880, "mana": 0, "defense": 188, "physicalPower": 132, "spiritualPower": 62, "speed": 72, "hitChance": 0.86, "dodge": 0.02, "critChance": 0.04, "critMultiplier": 1.5, "posture": 210, "level": 4 }, "skills": ["enemy-ward-bash", "enemy-brace", "basic-attack"] },
+    { "id": "raid-leader", "name": "断岳魁", "title": "蓄力重斩", "art": "/game-assets/turn-combat/raid-leader-v1.png", "ai": "commander", "stats": { "health": 1260, "mana": 0, "defense": 128, "physicalPower": 168, "spiritualPower": 110, "speed": 92, "hitChance": 0.9, "dodge": 0.05, "critChance": 0.1, "critMultiplier": 1.75, "posture": 176, "level": 5 }, "skills": ["enemy-heavy-cleave", "enemy-command", "basic-attack"] },
+    { "id": "wooden-dummy", "name": "听云木人", "title": "基础演武", "art": "", "ai": "dummy", "stats": { "health": 1200, "mana": 0, "defense": 90, "physicalPower": 72, "spiritualPower": 40, "speed": 66, "hitChance": 0.9, "dodge": 0, "critChance": 0, "critMultiplier": 1.5, "posture": 150, "level": 1 }, "skills": ["dummy-tap"] },
+    { "id": "iron-dummy", "name": "铁骨重桩", "title": "破势演武", "art": "", "ai": "guardian", "stats": { "health": 1800, "mana": 0, "defense": 240, "physicalPower": 82, "spiritualPower": 40, "speed": 55, "hitChance": 0.9, "dodge": 0, "critChance": 0, "critMultiplier": 1.5, "posture": 280, "level": 3 }, "skills": ["enemy-brace", "dummy-tap"] }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "aria": "山门捷径与时辰操作",
+  "timeLabel": "推延时辰",
+  "destinations": [
+    { "id": "lingxiao", "label": "凌霄殿", "short": "殿", "kind": "scene", "sceneId": "lingxiao" },
+    { "id": "bedroom", "label": "听云居", "short": "居", "kind": "scene", "sceneId": "bedroom" },
+    { "id": "alchemy", "label": "丹炉", "short": "丹", "kind": "alchemy" },
+    { "id": "farm", "label": "灵田", "short": "田", "kind": "farm", "module": "field" },
+    { "id": "livestock", "label": "畜牧", "short": "兽", "kind": "farm", "module": "livestock" }
+  ]
+}

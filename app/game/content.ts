@@ -1,15 +1,9 @@
 import type { CharacterDefinition, CharacterMessageDefinition, DialogueProfileDefinition, EventDefinition, GiftDefinition, GlobalKeyDefinition, SceneDefinition } from "./types";
 import { SHOP_CHARACTERS, SHOP_EVENTS, SHOP_GIFTS, SHOP_MESSAGES, SHOP_SCENES } from "./shop-content";
 import transparentNpcContent from "./content/transparent-npcs.json";
-import shenQingshuangContent from "./content/shen-qingshuang-story.json";
+import { SHEN_QINGSHUANG_CHARACTER, SHEN_QINGSHUANG_DIALOGUE, SHEN_QINGSHUANG_EVENTS } from "./content/shen-qingshuang-content";
 
-const SHEN_QINGSHUANG_CONTENT = shenQingshuangContent as {
-  character: { bio: string; ambientLines: string[] };
-  dialogueProfile: DialogueProfileDefinition;
-  events: EventDefinition[];
-};
-
-export const DIALOGUE_PROFILES: DialogueProfileDefinition[] = [SHEN_QINGSHUANG_CONTENT.dialogueProfile];
+export const DIALOGUE_PROFILES: DialogueProfileDefinition[] = [SHEN_QINGSHUANG_DIALOGUE];
 
 export const GLOBAL_KEYS: GlobalKeyDefinition[] = [
   { id: "memory.shen.hid_injury", name: "曾向沈清霜隐瞒伤势", category: "人物记忆", description: "示范由事件选项写入、并在后续对话中被人物提起的长期记忆。", initialValue: false, triggerMode: "manual", autoRules: [] },
@@ -130,15 +124,15 @@ export const CHARACTERS: CharacterDefinition[] = [
     name: "沈清霜",
     role: "问剑峰主 · 师尊",
     courtesy: "清衡真人",
-    bio: SHEN_QINGSHUANG_CONTENT.character.bio,
+    bio: SHEN_QINGSHUANG_CHARACTER.bio,
     sceneId: "lingxiao",
     image: "/assets/characters/shen-qingshuang.webp",
     accent: "#9bb7c9",
     lovedGift: "snowTea",
     relationshipStages: relationshipStages(["弟子", "你", "名字", "心上人"]),
     giftPreferences: [{ giftId:"snowTea",tier:"loved",reaction:"她用指腹轻轻摩挲茶罐，眼神比往常柔和。" },{ giftId:"osmanthusCake",tier:"liked",reaction:"她说甜了些，却仍将糕点收在手边。" },{ giftId:"peachWine",tier:"disliked",reaction:"她不喜酒气，只礼貌地收下了。" }],
-    seekingRules: [{ id:"shen-seeks-player",label:"月下前来寻你",periods:["夜晚"],probability:45,cooldownDays:3,priority:90,conditions:[{type:"event_completed",eventId:"shen.gift.snow-tea"},{type:"relationship",characterId:"shen",min:16}],triggerEventId:"shen.heart.moon-sword",intro:"夜色将沉，沈清霜却踏着剑光来到你面前。" }],
-    ambientLines: SHEN_QINGSHUANG_CONTENT.character.ambientLines,
+    seekingRules: [{ id:"shen-seeks-player",label:"月下前来寻你",periods:["夜晚"],probability:45,cooldownDays:3,priority:90,conditions:[{type:"event_completed",eventId:"shen.arc.11.unfinished-chess"},{type:"relationship",characterId:"shen",min:25}],triggerEventId:"shen.arc.12.moon-tea",intro:"夜色将沉，沈清霜却没有派纸鹤，只亲自来问你今日过得怎么样。" }],
+    ambientLines: SHEN_QINGSHUANG_CHARACTER.ambientLines,
   },
   {
     id: "su",
@@ -218,14 +212,14 @@ export const CHARACTERS: CharacterDefinition[] = [
 ];
 
 export const CHARACTER_MESSAGES: CharacterMessageDefinition[] = [
-  { id:"letter.shen.medicine",senderCharacterId:"shen",title:"问剑峰的药",body:"袖伤若还疼，夜里便来取药。不要又说只是小伤——你说谎时，总不敢看我。",signature:"沈清霜",conditions:[{type:"event_completed",eventId:"shen.first.snow-in-hall"}],relationshipAmount:1,giftId:"snowTea",giftAmount:1 },
+  { id:"letter.shen.medicine",senderCharacterId:"shen",title:"问剑峰的药",body:"袖伤若还疼，夜里便来取药。不要又说只是小伤——你说谎时，总不敢看我。",signature:"沈清霜",conditions:[{type:"event_completed",eventId:"shen.arc.01.sleeve-at-dawn"}],relationshipAmount:1,giftId:"snowTea",giftAmount:1 },
   { id:"letter.su.wine",senderCharacterId:"su",title:"留一只空杯",body:"好酒要等值得的人。明日若得闲，来殿后寻我，我替你留一只杯子。",signature:"苏晚棠",conditions:[{type:"day_reached",min:2},{type:"relationship",characterId:"su",min:8}],relationshipAmount:1 },
   { id:"letter.liu.followup",senderCharacterId:"liu",title:"复诊",body:"旧伤不可只看表面。若你经过醉月楼，请让我再诊一次脉。药不苦，我备了糖。",signature:"柳知意",conditions:[{type:"event_completed",eventId:"liu.first.herb-basket"}],giftId:"osmanthusCake",giftAmount:1 },
   { id:"letter.hua.lamp",senderCharacterId:"hua",title:"临窗的位置",body:"今日临窗那张桌子仍替你留着。不是没人订，只是我觉得旁人坐着不好看。",signature:"花照影",conditions:[{type:"event_completed",eventId:"hua.first.welcome"}],relationshipAmount:1 },
 ];
 
 export const EVENTS: EventDefinition[] = [
-  ...SHEN_QINGSHUANG_CONTENT.events,
+  ...SHEN_QINGSHUANG_EVENTS,
   {
     id: "shen.first.snow-in-hall",
     title: "殿上初雪",
@@ -619,6 +613,11 @@ GIFTS.push(...SHOP_GIFTS);
 CHARACTERS.push(...SHOP_CHARACTERS);
 CHARACTER_MESSAGES.push(...SHOP_MESSAGES);
 EVENTS.push(...SHOP_EVENTS);
+// Redesigned Shen Qingshuang content is authored in one staged source. Remove the
+// superseded short prototypes so runtime triggers, journal counts and debug QA all
+// refer to the same 32-event relationship arc.
+const activeEvents = EVENTS.filter((event) => event.characterId !== "shen" || event.id.startsWith("shen.arc."));
+EVENTS.splice(0, EVENTS.length, ...activeEvents);
 
 export const CHARACTER_MAP = Object.fromEntries(CHARACTERS.map((character) => [character.id, character])) as Record<(typeof CHARACTERS)[number]["id"], CharacterDefinition>;
 export const SCENE_MAP = Object.fromEntries(SCENES.map((scene) => [scene.id, scene])) as Record<(typeof SCENES)[number]["id"], SceneDefinition>;

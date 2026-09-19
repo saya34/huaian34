@@ -1,0 +1,17 @@
+{
+  "statuses": [
+    { "id": "guarded", "name": "守势", "icon": "守", "tone": "jade", "description": "承受伤害降低40%，持续到下次行动。", "modifiers": { "incomingDamageMultiplier": -0.4 } },
+    { "id": "fortified", "name": "护体", "icon": "护", "tone": "jade", "description": "防御提高25%。", "modifiers": { "defenseMultiplier": 0.25 } },
+    { "id": "haste", "name": "轻身", "icon": "迅", "tone": "gold", "description": "速度提高20%。", "modifiers": { "speedMultiplier": 0.2 } },
+    { "id": "focus", "name": "剑意", "icon": "意", "tone": "gold", "description": "造成的伤害提高18%。", "modifiers": { "damageMultiplier": 0.18 } },
+    { "id": "armor-break", "name": "破甲", "icon": "裂", "tone": "danger", "description": "防御降低25%。", "modifiers": { "defenseMultiplier": -0.25 } },
+    { "id": "slow", "name": "迟滞", "icon": "滞", "tone": "danger", "description": "速度降低20%。", "modifiers": { "speedMultiplier": -0.2 } },
+    { "id": "sealed", "name": "封脉", "icon": "封", "tone": "danger", "description": "功法内力消耗提高30%。", "modifiers": { "manaCostMultiplier": 0.3 } },
+    { "id": "vulnerable", "name": "气乱", "icon": "乱", "tone": "danger", "description": "受到的伤害提高20%。", "modifiers": { "incomingDamageMultiplier": 0.2 } },
+    { "id": "poison", "name": "中毒", "icon": "毒", "tone": "danger", "description": "行动前损失4%最大生命。", "tick": { "kind": "damage", "maxHealthRatio": 0.04 } },
+    { "id": "burn", "name": "灼烧", "icon": "灼", "tone": "danger", "description": "行动前损失3%最大生命并损失12点架势。", "tick": { "kind": "damage", "maxHealthRatio": 0.03, "posture": 12 } },
+    { "id": "bleed", "name": "流血", "icon": "血", "tone": "danger", "description": "行动前损失2.5%最大生命。", "tick": { "kind": "damage", "maxHealthRatio": 0.025 } },
+    { "id": "regen", "name": "回春", "icon": "生", "tone": "jade", "description": "行动前回复4%最大生命。", "tick": { "kind": "heal", "maxHealthRatio": 0.04 } },
+    { "id": "broken", "name": "破绽", "icon": "破", "tone": "danger", "description": "防御降低35%、无法闪避，直到下次行动。", "modifiers": { "defenseMultiplier": -0.35, "dodgeDelta": -1 } }
+  ]
+}

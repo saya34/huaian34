@@ -12,8 +12,11 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "check:feedback": "node scripts/check-feedback-texts.mjs",
+    "check:architecture": "node scripts/check-component-boundaries.mjs",
     "test:feedback-stress": "node scripts/stress-feedback.mjs",
-    "check:quests": "node scripts/check-quests.mjs"
+    "check:quests": "node scripts/check-quests.mjs",
+    "check:shen-story": "node scripts/check-shen-content.mjs",
+    "check:turn-combat": "node scripts/check-turn-combat.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

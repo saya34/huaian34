@@ -1,0 +1,37 @@
+{
+  "items": [
+    {
+      "itemId": "manual-snow-child",
+      "skillId": 10020,
+      "name": "《雪童子御灵篇》",
+      "description": "以寒息凝作雪灵，御敌时可迟滞妖群。研读后习得功法「雪童子」。",
+      "rarity": 4,
+      "price": 680,
+      "icon": "雪",
+      "tags": ["功法玉简", "御灵", "冰"],
+      "source": "栖珍阁常设功法"
+    },
+    {
+      "itemId": "manual-thunder-incantation",
+      "skillId": 10031,
+      "name": "《听澜引雷真诀》",
+      "description": "玉简曾沉于天池雷眼，展开时仍有水光与电芒相逐。研读后习得功法「天雷咒」。",
+      "rarity": 5,
+      "price": 1880,
+      "icon": "雷",
+      "tags": ["功法玉简", "灵咒", "雷", "钓鱼奇遇"],
+      "source": "第二次成功垂钓奇遇"
+    },
+    {
+      "itemId": "manual-eight-wastes",
+      "skillId": 10008,
+      "name": "《弑神八荒残卷》",
+      "description": "断岳魁贴身秘藏的刀道残卷。研读后习得功法「弑神八荒」。",
+      "rarity": 6,
+      "price": 5200,
+      "icon": "荒",
+      "tags": ["功法残卷", "刀道", "偷窃奇珍"],
+      "source": "断岳魁极低概率特殊偷窃"
+    }
+  ]
+}
