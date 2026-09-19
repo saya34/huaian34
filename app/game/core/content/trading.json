@@ -1,0 +1,6 @@
+{
+  "minimumDiscount": 0.78,
+  "resaleRatio": 0.58,
+  "dailyStock": { "常备": 8, "少量": 3, "限购": 1, "manual": 1 },
+  "monthlyMarketPrices": { "osmanthusCake": 12, "peachWine": 16, "snowTea": 20 }
+}

@@ -38,6 +38,7 @@ export const INITIAL_STATE: GameState = {
   appearanceTriggersUsed: [],
   sceneVisits: {},
   sceneInspectionDays: {},
+  sceneInspectionSlots: {},
   interactionCounts: {},
   proficiencyExperience: {},
   shortRestDay: 1,
@@ -102,7 +103,8 @@ export function getEligibleEvents(
       const isWorldTrigger = context.trigger === "scene_enter" || context.trigger === "time_change" || context.trigger === "inspection";
       const requiresPresence = context.trigger === "scene_enter" || context.trigger === "time_change";
       const present = state.presentCharacters[context.sceneId];
-      if (requiresPresence && !isExplorationEvent(event) && present?.length && !present.includes(event.characterId)) return false;
+      const storyVisit = event.presenceMode === "visit" && event.sceneId === context.sceneId;
+      if (requiresPresence && !storyVisit && !isExplorationEvent(event) && present && !present.includes(event.characterId)) return false;
       const scopedContext = isWorldTrigger ? { ...context, characterId: event.characterId } : context;
       return event.conditions.every((condition) => checkCondition(condition, state, scopedContext));
     })
@@ -153,8 +155,10 @@ export function applyEffects(state: GameState, effects: Effect[] = []): GameStat
 }
 
 export function startDefinition(state: GameState, event: EventDefinition, context: TriggerContext): GameState {
+  if (event.once && state.completedEvents.includes(event.id)) return state;
   return {
     ...state,
+    ...(event.presenceMode === "visit" ? { selectedCharacterId: event.characterId } : {}),
     activeEvent: { eventId: event.id, nodeId: event.start },
     lastContext: context,
     eventRuns: { ...state.eventRuns, [event.id]: (state.eventRuns[event.id] ?? 0) + 1 },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   INITIAL_STATE,
   advanceEvent,
@@ -30,7 +30,7 @@ import InspectionModal from "./InspectionModal";
 import DrinkingModal from "./DrinkingModal";
 import ShopModal from "./ShopModal";
 import { getProficiencyProfile } from "./proficiency-engine";
-import { getInspectionHints, rollInspectionEvent } from "./inspection-engine";
+import { canInspectPeriod, getInspectionHints, hasInspectedScene, inspectionSlot, rollInspectionEvent } from "./inspection-engine";
 import type { CultivationEntry } from "./cultivation-engine";
 import { getAvailableActivities, isMarketReminderDay, marketReminderKey, type PeriodicActivityId } from "./periodic-activities";
 import { drawDailyFortune, FORTUNE_STORAGE_KEY, fortuneBoosts, fortuneEffectLabel, getFortuneSign, getLocalDateKey, type FortuneDrawRecord } from "./fortune-engine";
@@ -261,6 +261,7 @@ export default function GameDemo() {
     if (!hydrated || !definitionsReady || !contentReady || booted.current) return;
     booted.current = true;
     setGame((state) => {
+      if (state.activeEvent) return state;
       const automatic=applyAutomaticGlobalKeys(state,globalKeys);
       const resolved=resolveScenePresence(automatic,automatic.sceneId,characters,eventDefinitions,true);
       const selected=resolved.present[0]??state.selectedCharacterId;
@@ -491,7 +492,7 @@ export default function GameDemo() {
   function currentInitialState(): GameState {
     const firstScene = playableScenes.find((item) => item.id === "lingxiao") ?? playableScenes[0] ?? scenes[0];
     const firstCharacter = firstScene?.characters[0] ?? characters[0]?.id ?? "shen";
-    return { ...INITIAL_STATE, sceneId: firstScene?.id ?? "lingxiao", selectedCharacterId: firstCharacter, spiritStones: 600, stamina:10, experience:0, marketTreasures: {}, activityNotices: [], relationships: Object.fromEntries(characters.map((item) => [item.id, 4])), inventory: Object.fromEntries(gifts.map((item) => [item.id, item.initialCount])), flags: Object.fromEntries(globalKeys.map((item)=>[item.id,item.initialValue])), announcedGlobalKeys: [], receivedMessages: [], claimedMessages: [], discoveredGiftPreferences: {}, seekingEncounterDays: {}, mapEventSchedules: {}, calendarEventRuns: {}, completedEvents: [], eventRuns: {}, talkCounts: {}, presentCharacters: {}, appearanceTriggersUsed: [], sceneVisits: {}, sceneInspectionDays:{}, interactionCounts:{}, proficiencyExperience:{}, activeEvent: null, lastContext: null };
+    return { ...INITIAL_STATE, sceneId: firstScene?.id ?? "lingxiao", selectedCharacterId: firstCharacter, spiritStones: 600, stamina:10, experience:0, marketTreasures: {}, activityNotices: [], relationships: Object.fromEntries(characters.map((item) => [item.id, 4])), inventory: Object.fromEntries(gifts.map((item) => [item.id, item.initialCount])), flags: Object.fromEntries(globalKeys.map((item)=>[item.id,item.initialValue])), announcedGlobalKeys: [], receivedMessages: [], claimedMessages: [], discoveredGiftPreferences: {}, seekingEncounterDays: {}, mapEventSchedules: {}, calendarEventRuns: {}, completedEvents: [], eventRuns: {}, talkCounts: {}, presentCharacters: {}, appearanceTriggersUsed: [], sceneVisits: {}, sceneInspectionDays:{}, sceneInspectionSlots:{}, interactionCounts:{}, proficiencyExperience:{}, activeEvent: null, lastContext: null };
   }
 
   function recoverGifts() {
@@ -620,11 +621,11 @@ export default function GameDemo() {
   }
 
   function inspectScene(sceneId:SceneId){
-    if(game.period!=="夜晚"){setNotice("检视只能在夜晚进行");return}
-    if(game.sceneInspectionDays?.[sceneId]===game.day){setNotice("这个场景今日已经检视过了");return}
+    if(!canInspectPeriod(game.period)){setNotice("检视可在夜晚或深夜进行");return}
+    if(hasInspectedScene(game,sceneId)){setNotice("这个场景本时辰已经检视过了");return}
     const target=sceneMap[sceneId];if(!target)return;
     const event=rollInspectionEvent(game,eventDefinitions,sceneId);
-    setGame((state)=>({...state,sceneInspectionDays:{...state.sceneInspectionDays,[sceneId]:state.day}}));
+    setGame((state)=>({...state,sceneInspectionDays:{...state.sceneInspectionDays,[sceneId]:state.day},sceneInspectionSlots:{...state.sceneInspectionSlots,[sceneId]:inspectionSlot(state.day,state.period)}}));
     setInspectionReveal({scene:resolveSceneVariant(target,{...game,sceneId}),event});setNotice(`夜间检视 · ${target.name}`);
   }
 
@@ -890,7 +891,22 @@ export default function GameDemo() {
         )}
 
         {game.activeEvent && node && activeDefinition && activeDefinition.cardStyle !== "audio" && (
-          <div className={`dialogue-box dialogue-${node.type}`} role="dialog" aria-modal="true" aria-label={activeDefinition.title}>
+          <div
+            className={`dialogue-box dialogue-${node.type}`}
+            data-speaker={node.type === "line" ? node.speaker : "choice"}
+            style={{
+              "--dialogue-speaker-color": node.type === "line"
+                ? node.speaker === "player"
+                  ? "#d7ad62"
+                  : node.speaker === "narrator"
+                    ? "#9eaaa4"
+                    : characterMap[node.speaker]?.accent ?? "#c8ad7a"
+                : "#c8ad7a",
+            } as CSSProperties}
+            role="dialog"
+            aria-modal="true"
+            aria-label={activeDefinition.title}
+          >
             <div className="event-kicker"><span>{activeDefinition.chapter}</span><i /><span>{activeDefinition.type}</span></div>
             {node.type === "choice" ? (
               <div className="choice-content">
@@ -936,7 +952,7 @@ export default function GameDemo() {
         else if (id === "sleep") advanceTime("sleep");
       }} />
 
-      {mapOpen && <WorldMapModal sceneId={game.sceneId} sceneEventHints={sceneEventHints} mapEvents={visibleMapEvents} period={game.period} day={game.day} inspectionHints={inspectionHints} inspectionDays={game.sceneInspectionDays} onClose={() => setMapOpen(false)} onEnterScene={enterScene} onTriggerMapEvent={triggerMapEvent} onInspectScene={inspectScene} onOpenBattlePreparation={(panel) => setSystemPanel(panel)} onEnterDungeon={(dungeon) => { setActiveModule({ kind: "battle", dungeon, prepared: true }); setMapOpen(false); }} onEnterAlchemy={() => { setActiveModule({ kind: "alchemy" }); setMapOpen(false); }} onEnterFishing={(locationId, randomSpotId) => { setFishingTarget({ locationId, randomSpotId }); setMapOpen(false); }} onEnterMining={(locationId, randomSpotId) => { setMiningTarget({ locationId, randomSpotId }); setMapOpen(false); }} />}
+      {mapOpen && <WorldMapModal sceneId={game.sceneId} sceneEventHints={sceneEventHints} mapEvents={visibleMapEvents} period={game.period} day={game.day} inspectionHints={inspectionHints} inspectionSlots={game.sceneInspectionSlots ?? {}} onClose={() => setMapOpen(false)} onEnterScene={enterScene} onTriggerMapEvent={triggerMapEvent} onInspectScene={inspectScene} onOpenBattlePreparation={(panel) => setSystemPanel(panel)} onEnterDungeon={(dungeon) => { setActiveModule({ kind: "battle", dungeon, prepared: true }); setMapOpen(false); }} onEnterAlchemy={() => { setActiveModule({ kind: "alchemy" }); setMapOpen(false); }} onEnterFishing={(locationId, randomSpotId) => { setFishingTarget({ locationId, randomSpotId }); setMapOpen(false); }} onEnterMining={(locationId, randomSpotId) => { setMiningTarget({ locationId, randomSpotId }); setMapOpen(false); }} />}
       {questOpen&&<QuestPanel onClose={()=>setQuestOpen(false)} onNavigate={navigateToQuest}/>}
       {questOffer&&<QuestOfferDialogue definition={questOffer} onClose={()=>setQuestOffer(null)}/>}
       {projectOpen&&<PathProjectPanel onClose={()=>setProjectOpen(false)} onNotice={setNotice} onNavigate={navigateFromProject}/>}

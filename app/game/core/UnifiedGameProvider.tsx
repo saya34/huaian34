@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MATERIALS } from "../alchemy/item-data";
 import { learnMetaSkill } from "../battle/meta";
 import type { FarmProgress } from "../farm/farm";
@@ -11,10 +11,11 @@ import type { QuestProgress } from "../quests/types";
 import { keyFor, LocalPlayerStateRepository } from "./player-state-repository";
 import type { AlchemyProgress, GameEffect, StateSetter, UnifiedGameState } from "./types";
 import { grantPlayerExperience, normalizePlayerGrowth, type PlayerGrowth } from "./progression-service";
-import { inventoryProjection, syncAlchemyProductInventory } from "./inventory-service";
+import { inventoryProjection } from "./inventory-service";
 import { upsertCard } from "./card-service";
-import { projectGrowth, reduceGameEffects } from "./game-state-reducer";
+import { reduceGameEffects } from "./game-state-reducer";
 import { cloneInitial, mergeSave } from "./save-migration";
+import { withAlchemyState } from "./alchemy-projection";
 
 const repository = new LocalPlayerStateRepository();
 
@@ -30,6 +31,7 @@ type UnifiedContextValue = {
   setGathering: StateSetter<GatheringProgress>;
   setQuests: StateSetter<QuestProgress>;
   applyEffects: (effects: GameEffect[]) => void;
+  transact: (update: (current: UnifiedGameState) => UnifiedGameState) => void;
   resetGame: () => void;
 };
 
@@ -49,7 +51,7 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     window.addEventListener("storage", syncOtherGameWindow);
     return () => window.removeEventListener("storage", syncOtherGameWindow);
   }, []);
-  useEffect(() => { if (!hydrated) return; if (externallySyncedState.current === state) { externallySyncedState.current = null; return; } const timer = window.setTimeout(() => repository.save({ ...state, updatedAt: Date.now() }), 120); return () => window.clearTimeout(timer); }, [hydrated, state]);
+  useLayoutEffect(() => { if (!hydrated) return; if (externallySyncedState.current === state) { externallySyncedState.current = null; return; } void repository.save({ ...state, updatedAt: Date.now() }); }, [hydrated, state]);
 
   const setRomance = useCallback<StateSetter<UnifiedGameState["romance"]>>((action) => setState((current) => {
     const requested = typeof action === "function" ? action(current.romance) : action;
@@ -97,10 +99,7 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
   const setAlchemy = useCallback<StateSetter<AlchemyProgress>>((action) => setState((current) => {
     const alchemy = typeof action === "function" ? action(current.alchemy) : action;
     if (alchemy === current.alchemy) return current;
-    const materialItems = Object.fromEntries(MATERIALS.map((item) => [item.id, { ...(current.shared.items[item.id] ?? { itemId: item.id, itemType: "material" as const, rarity: Math.max(1, Math.min(7, item.rarity)) as 1|2|3|4|5|6|7, sourceTags: ["alchemy"] }), amount: alchemy.materialCounts[item.id] ?? 0 }]));
-    const items = syncAlchemyProductInventory({ ...current.shared.items, ...materialItems }, alchemy.productStacks);
-    const alchemyResults = Object.values(alchemy.productStacks).filter((stack) => stack.count > 0).map((stack) => stack.productId);
-    return { ...current, alchemy, shared: { ...current.shared, items }, romance: { ...current.romance, alchemyResults, inventoryRarities: Object.fromEntries(Object.entries(items).map(([id, item]) => [id, item.rarity])), inventoryItems: inventoryProjection(items) } };
+    return withAlchemyState(current, alchemy);
   }), []);
 
   const setFarm = useCallback<StateSetter<FarmProgress>>((action) => setState((current) => {
@@ -130,7 +129,9 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
 
   const applyEffects = useCallback((effects: GameEffect[]) => setState((current) => reduceGameEffects(current, effects)), []);
 
-  const value = useMemo(() => ({ state, hydrated, setRomance, setBattle, setAlchemy, setFarm, setFishing, setMining, setGathering, setQuests, applyEffects, resetGame: () => setState(cloneInitial()) }), [applyEffects, hydrated, setAlchemy, setBattle, setFarm, setFishing, setMining, setGathering, setQuests, setRomance, state]);
+  const transact = useCallback((update: (current: UnifiedGameState) => UnifiedGameState) => setState(update), []);
+
+  const value = useMemo(() => ({ state, hydrated, transact, setRomance, setBattle, setAlchemy, setFarm, setFishing, setMining, setGathering, setQuests, applyEffects, resetGame: () => setState(cloneInitial()) }), [transact, applyEffects, hydrated, setAlchemy, setBattle, setFarm, setFishing, setMining, setGathering, setQuests, setRomance, state]);
   return <UnifiedGameContext.Provider value={value}>{children}</UnifiedGameContext.Provider>;
 }
 

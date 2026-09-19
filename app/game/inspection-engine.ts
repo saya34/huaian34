@@ -1,7 +1,12 @@
 import { chooseEvent, getEligibleEvents } from "./event-engine";
-import type { EventDefinition, GameState, SceneId, TriggerContext } from "./types";
+import type { EventDefinition, GameState, Period, SceneId, TriggerContext } from "./types";
+
+export const canInspectPeriod = (period: Period) => period === "夜晚" || period === "深夜";
+export const inspectionSlot = (day: number, period: Period) => `${day}:${period}`;
+export const hasInspectedScene = (state: GameState, sceneId: SceneId) => state.sceneInspectionSlots?.[sceneId] === inspectionSlot(state.day, state.period);
 
 export function eligibleInspectionEvents(state: GameState, events: EventDefinition[], sceneId: SceneId) {
+  if (!canInspectPeriod(state.period) || hasInspectedScene(state, sceneId)) return [];
   const preview = { ...state, sceneId };
   const context: TriggerContext = { trigger: "inspection", sceneId };
   return getEligibleEvents(events, preview, context);
@@ -9,9 +14,9 @@ export function eligibleInspectionEvents(state: GameState, events: EventDefiniti
 
 export function getInspectionHints(state: GameState, events: EventDefinition[], sceneIds: SceneId[]) {
   const hints = new Set<SceneId>();
-  if (state.period !== "夜晚") return hints;
+  if (!canInspectPeriod(state.period)) return hints;
   for (const sceneId of sceneIds) {
-    if (state.sceneInspectionDays?.[sceneId] === state.day) continue;
+    if (hasInspectedScene(state, sceneId)) continue;
     if (eligibleInspectionEvents(state, events, sceneId).length > 0) hints.add(sceneId);
   }
   return hints;

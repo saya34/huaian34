@@ -14,6 +14,7 @@ import { fishById } from "./fishing/fishing";
 import { livestockProductById } from "./farm/livestock";
 import { useFeedback } from "./feedback/FeedbackProvider";
 import { manualItemById, SHOP_MANUAL } from "./skills/manual-items";
+import { buyShopItem, itemSellValue, sellShopItem, shopBuyPrice, shopDiscount, shopStockRemaining } from "./core/trading-service";
 
 type ShopModalProps = {
   gifts: GiftDefinition[];
@@ -30,7 +31,7 @@ const TYPE_LABELS: Record<UnifiedItemStack["itemType"], string> = {
 const RARITY_COLORS = ["#aab5ad", "#7ebf8b", "#5faed0", "#a889ce", "#d59b54", "#e8c56c", "#f2df9b"];
 
 export default function ShopModal({ gifts, events, relationship, initialDepartment = "treasure", onClose, onNotice }: ShopModalProps) {
-  const { state, applyEffects, setBattle } = useUnifiedGame();
+  const { state, transact, setBattle } = useUnifiedGame();
   const feedback = useFeedback();
   const [department, setDepartment] = useState<"treasure" | "weapons">(initialDepartment);
   const [tab, setTab] = useState<"buy" | "sell">("buy");
@@ -40,10 +41,9 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
   const questMap = useMemo(() => Object.fromEntries(events.flatMap((event) => event.exploration?.rewardItem ? [[event.exploration.rewardItem.id, event.exploration.rewardItem]] : [])), [events]);
   const shopGiftMap = useMemo(() => Object.fromEntries(SHOP_GIFTS.map((item) => [item.id, item])), []);
   const supplyRestored=Boolean(state.shared.globalKeys.medicine_supply_restored);
-  const bondDiscount = relationship >= 65 ? .82 : relationship >= 35 ? .88 : relationship >= 15 ? .94 : 1;
-  const discount = Math.max(.78,bondDiscount*(supplyRestored ? .92 : 1));
+  const discount = shopDiscount(state);
 
-  const sellableStacks = Object.values(state.shared.items).filter((item) => item.amount > 0 && !item.locked && item.itemType !== "card");
+  const sellableStacks = Object.values(state.shared.items).filter((item) => item.amount > 0 && !item.locked && !["card", "quest", "equipment"].includes(item.itemType));
   const equippedIds = new Set(Object.values(state.battle.equipped));
   const sellableEquipment = state.battle.equipmentBag.filter((item) => !equippedIds.has(item.uid) && equipmentById(item.equipmentId).slot !== "weapon");
 
@@ -55,12 +55,10 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
     const gift = shopGiftMap[itemId];
     const manual = manualItemById(itemId);
     const definition = itemType === "manual" ? manual : gift;
-    const price = Math.max(1, Math.round(basePrice * discount));
+    const price = shopBuyPrice(state, itemId);
+    if (shopStockRemaining(state, itemId) <= 0) { setMessage("本日已售罄，明日补货。"); return; }
     if (!definition || state.shared.spiritStones < price) { setMessage(`灵石不足，还差 ${Math.max(0, price - state.shared.spiritStones)} 枚。`); return; }
-    applyEffects([
-      { type: "add_currency", amount: -price },
-      { type: "add_item", item: { itemId, itemType, rarity: itemType === "manual" ? SHOP_MANUAL.rarity : itemId === "jadeAbacusCharm" ? 4 : 2, amount: 1, sourceTags: ["栖珍阁", itemType === "manual" ? "功法玉简" : "购入"] } },
-    ]);
+    transact((current) => buyShopItem(current, itemId));
     const copy = `购得「${definition.name}」· ${price} 灵石`;
     setMessage(relationship >= 15 ? `${copy}。宁砚书悄悄抹去了账尾的零头。` : `${copy}。宁砚书将物件仔细包好。`);
     onNotice(copy);
@@ -68,7 +66,7 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
 
   function stackDefinition(stack: UnifiedItemStack) {
     const gift = giftMap[stack.itemId];
-    const alchemy = itemMap[stack.itemId];
+    const alchemy = itemMap[stack.templateId ?? stack.itemId];
     const treasureId = stack.itemId.startsWith("treasure:") ? stack.itemId.slice(9) : stack.itemId;
     const treasure = stack.itemType === "treasure" ? treasureById(treasureId) : null;
     const quest = questMap[stack.itemId];
@@ -78,8 +76,7 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
     const name = gift?.name ?? alchemy?.name ?? treasure?.name ?? quest?.name ?? fish?.name ?? livestock?.productName ?? manual?.name ?? stack.itemId;
     const image = gift?.image ?? alchemy?.image ?? treasure?.art ?? quest?.image ?? fish?.art ?? livestock?.productArt ?? manual?.art ?? "/assets/shop/ning-shop-goods.jpg";
     const position = gift?.imagePosition;
-    const baseValue = alchemy?.value ?? alchemy?.price ?? treasure?.value ?? fish?.value ?? livestock?.productValue ?? manual?.price ?? (stack.rarity * stack.rarity * 45);
-    return { name, image, position, value: Math.max(1, Math.floor(baseValue * .58)) };
+    return { name: stack.displayName ?? name, image, position, value: itemSellValue(stack) };
   }
 
   async function sellStack(stack: UnifiedItemStack, amount: number) {
@@ -87,15 +84,7 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
     const definition = stackDefinition(stack);
     if (quantity > 1 && !(await feedback.confirm({titleKey:"shop.bulkSellTitle",bodyKey:"shop.bulkSellBody",params:{count:quantity,value:definition.value*quantity},icon:"售",tone:"cinnabar",dedupeKey:`shop-bulk:${stack.itemId}:${quantity}`}))) return;
     const gain = definition.value * quantity;
-    if (stack.itemType === "treasure") {
-      const treasureId = stack.itemId.startsWith("treasure:") ? stack.itemId.slice(9) : stack.itemId;
-      setBattle((current) => {
-        let remaining = quantity;
-        const filter = <T extends { treasureId: string }>(items: T[]) => items.filter((item) => item.treasureId !== treasureId || remaining-- <= 0);
-        return { ...current, personalBackpack: filter(current.personalBackpack), warehouse: filter(current.warehouse) };
-      });
-    }
-    applyEffects([{ type: "remove_item", itemId: stack.itemId, amount: quantity }, { type: "add_currency", amount: gain }]);
+    transact((current) => sellShopItem(current, stack.itemId, quantity));
     const copy = `售出「${definition.name}」×${quantity} · 获得 ${gain.toLocaleString()} 灵石`;
     setMessage(`${copy}。旧物离柜，也算有了新的缘法。`); onNotice(copy);
   }
@@ -128,9 +117,9 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
         {department === "weapons" ? <main className="shop-counter weapon-shop-counter"><WeaponMerchantPanel onNotice={onNotice} /></main> : <main className="shop-counter">
           {supplyRestored&&<div className="medicine-supply-banner"><i>药</i><span><small>主线任务结果 · 已生效</small><strong>医馆药路重开，基础补给额外减免</strong></span><b>供给恢复</b></div>}
           <nav className="shop-tabs"><button className={tab === "buy" ? "active" : ""} onClick={() => setTab("buy")}><i>买</i><span><strong>购入常货</strong><small>行旅所需 · 明码标价</small></span></button><button className={tab === "sell" ? "active" : ""} onClick={() => setTab("sell")}><i>卖</i><span><strong>出售所有物品</strong><small>行囊、宝物与法器统一估价</small></span></button></nav>
-          {tab === "buy" ? <div className="shop-goods-grid">{[...SHOP_OFFERS.map((offer) => ({ ...offer, itemType: "gift" as const, definition: shopGiftMap[offer.itemId]! })), { itemId: SHOP_MANUAL.itemId, price: SHOP_MANUAL.price, stock: "秘藏", note: "研读后习得功法", itemType: "manual" as const, definition: SHOP_MANUAL }].map((offer) => { const item = offer.definition; const price = Math.max(1, Math.round(offer.price * discount)); const style = offer.itemType === "gift" ? artStyle(item as GiftDefinition) : undefined; const imageSrc = "image" in item ? item.image : item.art; return <article key={offer.itemId} className={offer.itemType === "manual" ? "manual-shop-offer" : ""} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"shop.productTitle",bodyKey:"world.changeBody",params:{message:item.description},icon:item.icon,imageSrc,details:[{labelKey:"items.nameLabel",value:item.name,emphasis:true},{labelKey:"shop.stockLabel",value:offer.stock},{labelKey:"shop.priceLabel",value:price},{labelKey:"items.tagsLabel",value:item.tags.join(" · ")},{labelKey:"shop.discountLabel",value:discount<1?`${Math.round(discount*100)} 折`:"无"}],dedupeKey:`shop-product:${offer.itemId}`})}>
-            <div className="shop-goods-art" style={style}>{offer.itemType === "manual" && <img src={SHOP_MANUAL.art} alt="" />}<span>{item.icon}</span><b>{offer.stock}</b></div>
-            <small>{item.tags.join(" · ")}</small><h3>{item.name}</h3><p>{item.description}</p><div><span><del>{discount < 1 ? offer.price : ""}</del><strong>◉ {price}</strong></span><button onClick={(event) => {event.stopPropagation();buy(offer.itemId, offer.price, offer.itemType);}} disabled={state.shared.spiritStones < price}>购入</button></div>
+          {tab === "buy" ? <div className="shop-goods-grid">{[...SHOP_OFFERS.map((offer) => ({ ...offer, itemType: "gift" as const, definition: shopGiftMap[offer.itemId]! })), { itemId: SHOP_MANUAL.itemId, price: SHOP_MANUAL.price, stock: "秘藏", note: "研读后习得功法", itemType: "manual" as const, definition: SHOP_MANUAL }].map((offer) => { const item = offer.definition; const price = shopBuyPrice(state, offer.itemId); const remaining = shopStockRemaining(state, offer.itemId); const style = offer.itemType === "gift" ? artStyle(item as GiftDefinition) : undefined; const imageSrc = "image" in item ? item.image : item.art; return <article key={offer.itemId} className={offer.itemType === "manual" ? "manual-shop-offer" : ""} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"shop.productTitle",bodyKey:"world.changeBody",params:{message:item.description},icon:item.icon,imageSrc,details:[{labelKey:"items.nameLabel",value:item.name,emphasis:true},{labelKey:"shop.stockLabel",value:`本日剩余 ${remaining}`},{labelKey:"shop.priceLabel",value:price},{labelKey:"items.tagsLabel",value:item.tags.join(" · ")},{labelKey:"shop.discountLabel",value:discount<1?`${Math.round(discount*100)} 折`:"无"}],dedupeKey:`shop-product:${offer.itemId}`})}>
+            <div className="shop-goods-art" style={style}>{offer.itemType === "manual" && <img src={SHOP_MANUAL.art} alt="" />}<span>{item.icon}</span><b>余 {remaining}</b></div>
+            <small>{item.tags.join(" · ")}</small><h3>{item.name}</h3><p>{item.description}</p><div><span><del>{discount < 1 ? offer.price : ""}</del><strong>◉ {price}</strong></span><button onClick={(event) => {event.stopPropagation();buy(offer.itemId, offer.price, offer.itemType);}} disabled={state.shared.spiritStones < price || remaining <= 0}>{remaining > 0 ? "购入" : "今日售罄"}</button></div>
           </article>; })}</div> : <div className="shop-sell-area">
             <section><header><div><small>TRAVEL PACK · 可出售</small><h3>乾坤行囊</h3></div><span>{sellableStacks.length} 类物品</span></header><div className="shop-sell-list">{sellableStacks.map((stack) => { const definition = stackDefinition(stack); const isAtlas = definition.image.includes("atlas") || definition.image.includes("ning-shop-goods"); return <article key={stack.itemId}>
               <div className="shop-sell-art" style={isAtlas ? { backgroundImage: `url(${definition.image})`, backgroundPosition: definition.position ?? "center", backgroundSize: definition.image.includes("ning-shop-goods") ? "300% 200%" : "500% 100%" } : undefined}>{!isAtlas && <img src={definition.image} alt="" />}</div>

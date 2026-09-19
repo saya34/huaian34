@@ -52,6 +52,7 @@ type StoryEventSource = {
   openingEffect?: OpeningEffect;
   cardStyle?: EventDefinition["cardStyle"];
   inspection?: InspectionEventConfig;
+  presenceMode?: EventDefinition["presenceMode"];
   mapEvent?: MapEventConfig;
   calendarEvent?: CalendarEventConfig;
   giftId?: string;
@@ -134,6 +135,7 @@ function compileEvent(source: StoryEventSource): EventDefinition {
     openingEffect: source.openingEffect ?? "flash_white",
     defaultPortrait: PORTRAIT,
     inspection: source.inspection,
+    presenceMode: source.presenceMode,
     mapEvent: source.mapEvent,
     calendarEvent: source.calendarEvent,
     sceneId: source.sceneId,

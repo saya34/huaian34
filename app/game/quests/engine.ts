@@ -34,7 +34,9 @@ export function normalizeQuestProgress(value?: Partial<QuestProgress> | null): Q
 }
 
 export function readObjectiveCurrent(objective: QuestObjectiveDefinition, state: UnifiedGameState) {
-  if (objective.target === "alchemy:any-product") return inventoryCount(state.shared.items, { itemType: "pill" });
+  if (objective.target === "alchemy:any-product") return objective.type === "play"
+    ? state.alchemy.completedBrews ?? 0
+    : inventoryCount(state.shared.items, { itemType: "pill" });
   if (objective.target === "dungeon:any-completed") return state.dungeons.completed.length;
   if (objective.target.startsWith("dungeon:wave-") && objective.target.endsWith("-completed")) {
     const waveId = Number(objective.target.slice("dungeon:wave-".length, -"-completed".length));
@@ -56,7 +58,8 @@ export function questView(definition: QuestDefinition, progress: QuestProgress, 
   });
   const stored = progress.statuses[definition.id] ?? definition.initialStatus;
   const complete = objectives.every((objective) => objective.done);
-  const status: QuestStatus = stored === "in_progress" && complete ? "claimable" : stored;
+  const status: QuestStatus = ["in_progress", "completed", "claimable"].includes(stored)
+    ? complete ? "claimable" : "in_progress" : stored;
   return { definition, status, objectives, complete, tracked: progress.trackedQuestId === definition.id };
 }
 
@@ -64,9 +67,9 @@ export function synchronizeQuestProgress(progress: QuestProgress, state: Unified
   let changed = false;
   const statuses = { ...progress.statuses };
   for (const definition of QUESTS) {
-    if (statuses[definition.id] !== "in_progress") continue;
-    if (!questView(definition, progress, state).complete) continue;
-    statuses[definition.id] = "claimable";
+    const status = questView(definition, progress, state).status;
+    if (statuses[definition.id] === status) continue;
+    statuses[definition.id] = status;
     changed = true;
   }
   return changed ? { ...progress, statuses } : progress;

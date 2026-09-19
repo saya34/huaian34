@@ -9,6 +9,7 @@ import type { FishingProgress } from "../fishing/fishing";
 import type { MiningProgress } from "../mining/mining";
 import type { QuestProgress } from "../quests/types";
 import type { GatheringProgress } from "../gathering/types";
+import type { AlchemyBatch } from "../alchemy/batch-service";
 
 export const SAVE_VERSION = 6 as const;
 
@@ -42,6 +43,9 @@ export type UnifiedCardInstance = {
 };
 
 export type AlchemyProgress = {
+  pendingBatch?: AlchemyBatch | null;
+  completedBrews?: number;
+  brewSequence?: number;
   materialCounts: Record<string, number>;
   productStacks: Record<string, ProductStack>;
   characterCards: CharacterCardRecord[];
@@ -76,6 +80,7 @@ export type ActivityReceipt = {
 };
 
 export type SharedPlayerState = {
+  shopPurchases?: { day: number; counts: Record<string, number> };
   spiritStones: number;
   stamina: number;
   playerLevel: number;

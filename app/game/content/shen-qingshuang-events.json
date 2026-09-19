@@ -467,7 +467,7 @@
       "summary": "第二天她坚持自己没有醉，却把你答应的小住之约记得一字不差。"
     },
     {
-      "id": "shen.arc.21.locked-gate-dream", "order": 21, "phase": "四·不再装作", "title": "锁门的梦", "subtitle": "她把最不体面的念头也告诉了你", "type": "心事", "trigger": "time_change", "priority": 140, "sceneId": "bedroom",
+      "id": "shen.arc.21.locked-gate-dream", "order": 21, "phase": "四·不再装作", "title": "锁门的梦", "subtitle": "她把最不体面的念头也告诉了你", "type": "心事", "trigger": "time_change", "priority": 140, "sceneId": "bedroom", "presenceMode": "visit",
       "conditions": [{ "type": "scene", "value": "bedroom" }, { "type": "period", "value": "深夜" }, { "type": "event_completed", "eventId": "shen.arc.20.one-cup-wine" }],
       "clue": "完成「一杯就够」后，在听云居进入深夜",
       "script": [
@@ -559,11 +559,11 @@
       "summary": "她做出了一道能保护你们、却不能束缚任何一方的印记。"
     },
     {
-      "id": "shen.arc.25.birthday-noodles", "order": 25, "phase": "四·不再装作", "title": "生辰面", "subtitle": "她说不重要，却从清晨等到了你来", "type": "情缘", "trigger": "calendar_event", "priority": 132, "sceneId": "lingxiao", "calendarEvent": { "mode": "fixed", "month": 1, "day": 8, "doodle": "birthday" },
+      "id": "shen.arc.25.birthday-noodles", "order": 25, "phase": "四·不再装作", "title": "生辰面", "subtitle": "她说不重要，却从清晨等到了你来", "type": "情缘", "trigger": "calendar_event", "priority": 132, "sceneId": "lingxiao", "calendarEvent": { "mode": "fixed", "month": 1, "day": 8, "doodle": "birthday", "catchUp": true },
       "conditions": [{ "type": "event_completed", "eventId": "shen.arc.24.heart-mark" }],
-      "clue": "完成「同心印」后，于正月初八前往凌霄殿",
+      "clue": "完成「同心印」后，于正月初八前往凌霄殿；错过生辰后可在云和历补过",
       "script": [
-        { "kind": "line", "speaker": "narrator", "text": "正月初八，殿中没有宴席，只有你端来的一碗面和一只歪得很明显的荷包蛋。" },
+        { "kind": "line", "speaker": "narrator", "text": "这份生辰心意终于送到她面前。殿中没有宴席，只有你端来的一碗面和一只歪得很明显的荷包蛋。" },
         { "kind": "line", "speaker": "shen", "text": "修行之人不过生辰。你怎么还做了这些？先别点蜡烛，我还没有想好该摆什么表情。", "mood": "惊喜得不知所措" },
         { "kind": "line", "speaker": "player", "text": "不过生辰的人会从清晨开始看门口吗？" },
         { "kind": "line", "speaker": "shen", "text": "我是在等巡山弟子回报。你不要随意推断。", "mood": "被说中" },
@@ -609,7 +609,7 @@
       "summary": "你们第一次争吵没有以冷战结束，而是留下了一套以后都能使用的和好方法。"
     },
     {
-      "id": "shen.arc.27.shared-breakfast", "order": 27, "phase": "五·往后日常", "title": "今天谁做早饭", "subtitle": "相恋之后也要面对烧糊的粥", "type": "闲谈", "trigger": "time_change", "priority": 128, "sceneId": "bedroom",
+      "id": "shen.arc.27.shared-breakfast", "order": 27, "phase": "五·往后日常", "title": "今天谁做早饭", "subtitle": "相恋之后也要面对烧糊的粥", "type": "闲谈", "trigger": "time_change", "priority": 128, "sceneId": "bedroom", "presenceMode": "visit",
       "conditions": [{ "type": "scene", "value": "bedroom" }, { "type": "period", "value": "清晨" }, { "type": "event_completed", "eventId": "shen.arc.26.dont-say-hate" }],
       "clue": "完成「别说不需要我」后，在听云居迎来清晨",
       "script": [
@@ -678,7 +678,7 @@
       "summary": "木匣里的信没有被烧掉；从此以后，其中一些会真正飞到你手里。"
     },
     {
-      "id": "shen.arc.30.quiet-night", "order": 30, "phase": "五·往后日常", "title": "什么都没发生的夜晚", "subtitle": "亲密并不总需要大事发生", "type": "闲谈", "trigger": "time_change", "priority": 122, "sceneId": "bedroom",
+      "id": "shen.arc.30.quiet-night", "order": 30, "phase": "五·往后日常", "title": "什么都没发生的夜晚", "subtitle": "亲密并不总需要大事发生", "type": "闲谈", "trigger": "time_change", "priority": 122, "sceneId": "bedroom", "presenceMode": "visit",
       "conditions": [{ "type": "scene", "value": "bedroom" }, { "type": "period", "value": "夜晚" }, { "type": "relationship", "characterId": "shen", "min": 72 }, { "type": "event_completed", "eventId": "shen.arc.29.unsent-letters" }],
       "clue": "缘分达到72并完成「没有寄出的信」后，在听云居进入夜晚",
       "script": [

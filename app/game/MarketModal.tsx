@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { GiftId } from "./types";
+import { MONTHLY_MARKET_PRICES } from "./core/trading-service";
 
 type MarketView = "home" | "auction" | "stones" | "sweets";
 type AtlasItem = { id: string; name: string; description: string; position: string };
@@ -36,9 +37,9 @@ const STONES: Stone[] = [
 ];
 
 const SWEETS: Array<AtlasItem & { cost: number; giftId: GiftId }> = [
-  { id: "osmanthus", name: "桂花云片糕", description: "软糯清甜，适合与人分食。", position: "0% 100%", cost: 12, giftId: "osmanthusCake" },
-  { id: "peach", name: "桃花酥", description: "花瓣酥皮一碰便碎。", position: "50% 100%", cost: 16, giftId: "peachWine" },
-  { id: "snow", name: "雪茶糖", description: "入口微凉，附一小罐雪芽灵茶。", position: "100% 100%", cost: 20, giftId: "snowTea" },
+  { id: "osmanthus", name: "桂花云片糕", description: "软糯清甜，适合与人分食。", position: "0% 100%", cost: MONTHLY_MARKET_PRICES.osmanthusCake, giftId: "osmanthusCake" },
+  { id: "peach", name: "桃花酥", description: "花瓣酥皮一碰便碎。", position: "50% 100%", cost: MONTHLY_MARKET_PRICES.peachWine, giftId: "peachWine" },
+  { id: "snow", name: "雪茶糖", description: "入口微凉，附一小罐雪芽灵茶。", position: "100% 100%", cost: MONTHLY_MARKET_PRICES.snowTea, giftId: "snowTea" },
 ];
 
 function weightedTreasure(weights: number[]) {

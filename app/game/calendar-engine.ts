@@ -71,7 +71,10 @@ export function getCalendarEventsForDay(definitions: EventDefinition[], absolute
 }
 
 export function getDueCalendarEvents(state: GameState, definitions: EventDefinition[]) {
-  return getCalendarEventsForDay(definitions, state.day).filter((event) => {
+  return definitions.filter((event) => calendarEventMatches(event, state.day) || (
+    event.trigger === "calendar_event" && event.once && event.calendarEvent?.catchUp && event.calendarEvent.mode === "fixed" &&
+    state.day >= toAbsoluteDay(1, event.calendarEvent.month ?? 1, event.calendarEvent.day ?? 1)
+  )).sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id)).filter((event) => {
     if (event.once && state.completedEvents.includes(event.id)) return false;
     const occurrence = calendarOccurrenceKey(event, state.day);
     if ((state.calendarEventRuns?.[event.id] ?? []).includes(occurrence)) return false;

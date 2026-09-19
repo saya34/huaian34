@@ -112,6 +112,7 @@ export type EventDefinition = {
   mapEvent?: MapEventConfig;
   calendarEvent?: CalendarEventConfig;
   inspection?: InspectionEventConfig;
+  presenceMode?: "resident" | "visit";
   interactionId?: string;
   sceneId: SceneId;
   characterId: CharacterId;
@@ -140,6 +141,7 @@ export type MapEventConfig = {
 export type CalendarDoodle = "birthday" | "auction" | "festival" | "meeting" | "story";
 
 export type CalendarEventConfig = {
+  catchUp?: boolean;
   mode: "fixed" | "weekly" | "interval";
   month?: number;
   day?: number;
@@ -215,6 +217,7 @@ export type GameState = {
   appearanceTriggersUsed: string[];
   sceneVisits: Record<SceneId, number>;
   sceneInspectionDays: Record<SceneId, number>;
+  sceneInspectionSlots?: Record<SceneId, string>;
   interactionCounts: Record<string, number>;
   proficiencyExperience: Record<string, number>;
   shortRestDay: number;

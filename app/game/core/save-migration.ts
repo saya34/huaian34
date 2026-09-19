@@ -2,6 +2,8 @@ import { MATERIALS, PRODUCTS } from "../alchemy/item-data";
 import { DEFAULT_META, normalizeMetaProgress } from "../battle/meta";
 import { EVENTS } from "../content";
 import { INITIAL_STATE } from "../event-engine";
+import { normalizeAlchemyBatch } from "../alchemy/batch-service";
+import { restoreDialogue } from "./dialogue-save";
 import { createInitialFarm, normalizeFarmProgress, type FarmProgress } from "../farm/farm";
 import { createInitialFishing, normalizeFishingProgress, type FishingProgress } from "../fishing/fishing";
 import { createInitialMining, normalizeMiningProgress, type MiningProgress } from "../mining/mining";
@@ -186,6 +188,9 @@ export function mergeSave(saved: unknown) {
   }) as AlchemyProgress["characterCards"] : [];
   const alchemy: AlchemyProgress = {
     ...base.alchemy,
+    pendingBatch: normalizeAlchemyBatch(savedAlchemy.pendingBatch),
+    completedBrews: integer(savedAlchemy.completedBrews, 0, 0),
+    brewSequence: integer(savedAlchemy.brewSequence, 0, 0),
     materialCounts: numberRecord(savedAlchemy.materialCounts, base.alchemy.materialCounts),
     productStacks,
     characterCards,
@@ -202,6 +207,7 @@ export function mergeSave(saved: unknown) {
   const items = syncAlchemyProductInventory(rawItems, alchemy.productStacks);
   const shared = {
     ...base.shared,
+    shopPurchases: { day: integer(asRecord(savedShared.shopPurchases).day, 0, 0), counts: numberRecord(asRecord(savedShared.shopPurchases).counts, {}, 0) },
     spiritStones: finiteNumber(savedShared.spiritStones, base.shared.spiritStones, 0),
     stamina: finiteNumber(savedShared.stamina, base.shared.stamina, 0, 10),
     playerLevel: integer(savedShared.playerLevel, base.shared.playerLevel, 1, 60),
@@ -242,6 +248,7 @@ export function mergeSave(saved: unknown) {
       talkCounts: numberRecord(savedRomance.talkCounts, base.romance.talkCounts, 0),
       sceneVisits: numberRecord(savedRomance.sceneVisits, base.romance.sceneVisits, 0) as typeof base.romance.sceneVisits,
       sceneInspectionDays: numberRecord(savedRomance.sceneInspectionDays, base.romance.sceneInspectionDays, 0) as typeof base.romance.sceneInspectionDays,
+      sceneInspectionSlots: Object.fromEntries(Object.entries(asRecord(savedRomance.sceneInspectionSlots)).filter(([, value]) => typeof value === "string" && /^\d+:(夜晚|深夜)$/.test(value))) as Record<string, string>,
       interactionCounts: numberRecord(savedRomance.interactionCounts, base.romance.interactionCounts, 0),
       seekingEncounterDays: numberRecord(savedRomance.seekingEncounterDays, base.romance.seekingEncounterDays, 0),
       mapEventSchedules: numberRecord(savedRomance.mapEventSchedules, base.romance.mapEventSchedules, 0),
@@ -272,8 +279,7 @@ export function mergeSave(saved: unknown) {
         };
       })(),
       inventoryItems: inventoryProjection(items),
-      activeEvent: null,
-      lastContext: null,
+      ...restoreDialogue(savedRomance.activeEvent, savedRomance.lastContext, stringArray(savedRomance.completedEvents), EVENTS),
       pendingUnifiedEffects: [],
     },
     alchemy,

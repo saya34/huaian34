@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { canInspectPeriod, inspectionSlot } from "./inspection-engine";
 import { WORLD_MAP_BY_ID, WORLD_MAPS, type WorldMapId } from "./world-maps";
 import type { EventDefinition, Period, SceneId } from "./types";
 import { DUNGEONS, type DungeonDefinition } from "./core/dungeons";
@@ -18,7 +19,7 @@ type Props = {
   period: Period;
   day: number;
   inspectionHints: Set<SceneId>;
-  inspectionDays: Record<SceneId, number>;
+  inspectionSlots: Record<SceneId, string>;
   onClose: () => void;
   onEnterScene: (sceneId: SceneId) => void;
   onTriggerMapEvent: (eventId: string) => void;
@@ -30,7 +31,7 @@ type Props = {
   onEnterMining?: (locationId: MiningLocationId, randomSpotId?: string) => void;
 };
 
-export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, period, day, inspectionHints, inspectionDays, onClose, onEnterScene, onTriggerMapEvent, onInspectScene, onEnterDungeon, onOpenBattlePreparation, onEnterAlchemy, onEnterFishing, onEnterMining }: Props) {
+export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, period, day, inspectionHints, inspectionSlots, onClose, onEnterScene, onTriggerMapEvent, onInspectScene, onEnterDungeon, onOpenBattlePreparation, onEnterAlchemy, onEnterFishing, onEnterMining }: Props) {
   const { state } = useUnifiedGame();
   const feedback=useFeedback();
   const [currentMapId, setCurrentMapId] = useState<WorldMapId>("yunzhou");
@@ -64,8 +65,8 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
     }
     if (!location.unlocked || !location.sceneId) { setNotice(`${location.name}尚未解锁，待后续章节开放。`); return; }
     if(inspectionMode){
-      if(period!=="夜晚"){setNotice("检视只能在夜晚进行。请先推移到夜晚。");return}
-      if(inspectionDays[location.sceneId]===day){setNotice(`${location.name}今日已经检视过了。`);return}
+      if(!canInspectPeriod(period)){setNotice("检视可在夜晚或深夜进行。");return}
+      if(inspectionSlots[location.sceneId]===inspectionSlot(day,period)){setNotice(`${location.name}本时辰已经检视过了。`);return}
       onClose();onInspectScene(location.sceneId);return;
     }
     onClose(); onEnterScene(location.sceneId);
@@ -79,7 +80,7 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
         const active = Boolean(location.sceneId && location.sceneId === sceneId);
         const hasSceneEvent = Boolean(location.sceneId && sceneEventHints.has(location.sceneId));
         const hasInspectionHint=Boolean(location.sceneId&&inspectionHints.has(location.sceneId));
-        const inspected=Boolean(location.sceneId&&inspectionDays[location.sceneId]===day);
+        const inspected=Boolean(location.sceneId&&inspectionSlots[location.sceneId]===inspectionSlot(day,period));
         return <button type="button" key={location.id} className={`map-location ${location.unlocked ? "unlocked" : "locked"} ${location.targetMapId ? "map-gate" : ""} ${active ? "current" : ""} ${inspectionMode?"inspection-mode":""} ${inspected?"inspected":""}`} style={{ left: `${location.x}%`, top: `${location.y}%` }} onClick={(event) => active&&!inspectionMode?feedback.popover({titleKey:"world.sceneTitle",bodyKey:"world.sceneBody",params:{name:location.name},icon:location.icon,anchor:{x:event.clientX,y:event.clientY},details:[{labelKey:"world.locationLabel",value:location.name,emphasis:true},{labelKey:"system.status",value:"当前所在"},{labelKey:"system.effect",value:location.subtitle}],dedupeKey:`map-scene:${location.id}:${day}`}):choose(location)}>
           <span className="map-location-pulse"><b>{location.unlocked ? location.icon : "锁"}</b></span>
           {hasSceneEvent && <span className="map-scene-event-signal" title="此处有可触发事件" aria-label="此处有可触发事件">?</span>}
@@ -113,6 +114,6 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
       <div className="map-compass"><i>北</i><span>✦</span><i>南</i></div>
     </div>
     {!inspectionMode && selectedDungeon && <aside className="dungeon-brief dungeon-preparation-shell" aria-label={`${selectedDungeon.name}战前整备`}><BattlePreparation dungeon={selectedDungeon} mapImage={map.image} rewards={dungeonRewards(selectedDungeon)} onClose={() => setSelectedDungeon(null)} onOpenPanel={(panel) => onOpenBattlePreparation?.(panel)} onStart={() => onEnterDungeon?.(selectedDungeon)} /></aside>}
-    <footer><div className="world-map-tabs">{WORLD_MAPS.map((item, index) => { const locked = index * 7 + 1 > state.dungeons.highestUnlocked; return <button type="button" key={item.id} className={item.id === currentMapId ? "active" : ""} disabled={locked} onClick={() => { setCurrentMapId(item.id); setNotice(""); }}><span>{item.id === "yunzhou" ? "壹" : item.id === "canglan" ? "贰" : "叁"}</span>{locked ? `${item.name}·未启` : item.name}</button>; })}</div><button type="button" className={`inspection-toggle ${inspectionMode?"active":""}`} onClick={()=>{if(period!=="夜晚"){setNotice("检视只能在夜晚进行。请先推移到夜晚。");return}setSelectedDungeon(null);setInspectionMode(value=>!value);setNotice(inspectionMode?"已退出检视模式":"检视模式已开启：地图仅显现本夜确有异动之处")}}><span>眼</span>{inspectionMode?"退出检视":"夜间检视"}</button><p>{notice || (inspectionMode?(inspectionHints.size ? `神识捕捉到 ${inspectionHints.size} 处异动；其余地点本夜不再显示。` : "本夜山河寂静，未发现可检视事件。") : visibleMapEvents.length ? `此域有 ${visibleMapEvents.length} 处待完成异闻，完成剧情前不会消失。` : map.description)}</p></footer>
+    <footer><div className="world-map-tabs">{WORLD_MAPS.map((item, index) => { const locked = index * 7 + 1 > state.dungeons.highestUnlocked; return <button type="button" key={item.id} className={item.id === currentMapId ? "active" : ""} disabled={locked} onClick={() => { setCurrentMapId(item.id); setNotice(""); }}><span>{item.id === "yunzhou" ? "壹" : item.id === "canglan" ? "贰" : "叁"}</span>{locked ? `${item.name}·未启` : item.name}</button>; })}</div><button type="button" className={`inspection-toggle ${inspectionMode?"active":""}`} onClick={()=>{if(!canInspectPeriod(period)){setNotice("检视可在夜晚或深夜进行。");return}setSelectedDungeon(null);setInspectionMode(value=>!value);setNotice(inspectionMode?"已退出检视模式":"检视模式已开启：地图仅显现本夜确有异动之处")}}><span>眼</span>{inspectionMode?"退出检视":"夜间检视"}</button><p>{notice || (inspectionMode?(inspectionHints.size ? `神识捕捉到 ${inspectionHints.size} 处异动；其余地点本夜不再显示。` : "本夜山河寂静，未发现可检视事件。") : visibleMapEvents.length ? `此域有 ${visibleMapEvents.length} 处待完成异闻，完成剧情前不会消失。` : map.description)}</p></footer>
   </section></div>;
 }
