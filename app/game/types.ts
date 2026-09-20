@@ -20,10 +20,12 @@ export type TriggerType = "scene_enter" | "talk" | "gift" | "time_change" | "map
 export type EventCardStyle = "normal" | "special" | "audio" | "easter_egg" | "trigger_point";
 export type OpeningEffect = "none" | "flash_white" | "flash_black";
 export type StageEffect = "none" | "soft_glow" | "heartbeat" | "shake";
+export type StoryVfxId = "pink-mist" | "sword-arc" | "memory-shards" | "ink-omen" | "golden-runes";
 
 export type NodeVisual = {
   portrait?: string;
   stageEffect?: StageEffect;
+  storyEffect?: StoryVfxId;
 };
 
 export type Effect =
@@ -54,7 +56,7 @@ export type Condition =
   | { type: "alchemy_result"; itemId: string };
 
 export type ProjectedInventoryItem = {
-  itemType: "gift" | "material" | "pill" | "equipment" | "card" | "treasure" | "quest" | "fish" | "manual";
+  itemType: "gift" | "material" | "pill" | "food" | "equipment" | "card" | "treasure" | "quest" | "fish" | "manual";
   templateId: string;
   rarity: number;
   amount: number;
@@ -104,6 +106,7 @@ export type EventDefinition = {
   journal: boolean;
   cardStyle?: EventCardStyle;
   openingEffect?: OpeningEffect;
+  defaultStoryEffect?: StoryVfxId;
   defaultPortrait?: string;
   audioSegments?: AudioEventSegment[];
   audioFrameId?: AudioFrameId;
@@ -156,6 +159,14 @@ export type EasterEggItemDefinition = {
   name: string;
   image: string;
   description: string;
+  imagePosition?: string;
+  icon?: string;
+};
+
+export type EasterEggProgressRecord = {
+  acquiredDay: number;
+  shownTo: CharacterId[];
+  unlockedNoteIds: string[];
 };
 
 export type ExplorationEventConfig = {
@@ -165,6 +176,9 @@ export type ExplorationEventConfig = {
   y?: number;
   image: string;
   text: string;
+  icon?: string;
+  interactionLabel?: string;
+  accent?: string;
   rewardItem?: EasterEggItemDefinition;
 };
 
@@ -210,6 +224,9 @@ export type GameState = {
   mapEventSchedules: Record<string, number>;
   calendarEventRuns: Record<string, string[]>;
   collectedEasterEggs: string[];
+  easterEggProgress: Record<string, EasterEggProgressRecord>;
+  daybreakStoryRuns: string[];
+  daybreakAcknowledgedDays: number[];
   completedEvents: string[];
   eventRuns: Record<string, number>;
   talkCounts: Record<string, number>;

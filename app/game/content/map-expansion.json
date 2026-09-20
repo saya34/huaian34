@@ -1,0 +1,201 @@
+{
+  "scenes": [
+    {
+      "id": "senior-sister-home",
+      "name": "师姐住处",
+      "shortName": "师姐居",
+      "description": "膳堂后的一方小院，窗下晾着药草与新试的食谱。入夜后，夭夭师姐会回这里歇息。",
+      "atmosphere": "灯暖 · 汤香",
+      "image": "/assets/scenes/lingxiao-hall.webp",
+      "characters": ["lu-yaoyao"]
+    },
+    {
+      "id": "junior-sister-home",
+      "name": "师妹住处",
+      "shortName": "师妹居",
+      "description": "松影下的安静偏院，窗边放着一只旧布偶。小师妹只在夜晚回屋，白日多在宗门里练剑。",
+      "atmosphere": "松静 · 夜柔",
+      "image": "/assets/scenes/lingxiao-hall.webp",
+      "characters": ["shimei"]
+    },
+    {
+      "id": "forest-cabin",
+      "name": "林间小屋",
+      "shortName": "林舍",
+      "description": "松林深处的猎人小屋，檐下挂着风干草药与旧弓。这里能听到比村中更早的兽鸣。",
+      "atmosphere": "松涛 · 炉烟",
+      "image": "/assets/maps/wildlands.jpg",
+      "characters": ["lieren"]
+    },
+    {
+      "id": "field-cottage",
+      "name": "田间小屋",
+      "shortName": "田舍",
+      "description": "灵田水渠旁的旧屋，竹篱内晒着种子与药草。囡囡母女在这里守着一季又一季的收成。",
+      "atmosphere": "田风 · 草香",
+      "image": "/assets/maps/mountain-village.jpg",
+      "characters": ["nannan", "nannan-ma"]
+    },
+    {
+      "id": "shen-estate",
+      "name": "沈家大院",
+      "shortName": "沈宅",
+      "description": "白墙黛瓦围住一庭旧梅，沈家母女的院落看似清静，却从不缺来往传闻。",
+      "atmosphere": "梅影 · 院深",
+      "image": "/assets/maps/mountain-village.jpg",
+      "characters": ["shen-qingyin", "shen-wantang"]
+    }
+  ],
+  "characters": [
+    {
+      "id": "shimei",
+      "name": "小师妹",
+      "role": "内门小师妹",
+      "courtesy": "阿眠",
+      "bio": "白日抱剑跟在众人身后，入夜却总困得抱着布偶找不到房门。她对山外的一切都好奇，却不肯承认自己怕黑。",
+      "sceneId": "junior-sister-home",
+      "image": "/assets/characters/portrait-refresh/shimei.png",
+      "accent": "#78a7ba",
+      "lovedGift": "osmanthusCake",
+      "relationshipAddresses": ["师兄", "师兄呀", "你", "等我醒来的人"],
+      "giftPreferences": [
+        { "giftId": "osmanthusCake", "tier": "loved", "reaction": "她把糕点分给怀里的布偶一小块，又悄悄把那一块也吃掉了。" },
+        { "giftId": "snowTea", "tier": "liked", "reaction": "她捧着茶盏努力睁眼，说喝完一定继续练剑。" },
+        { "giftId": "peachWine", "tier": "disliked", "reaction": "她抱紧布偶，认真摇了摇头。" }
+      ],
+      "ambientLines": [
+        "我没有偷懒，只是闭着眼把今日剑招又想了一遍。",
+        "师兄，夜路太黑了……我是说，布偶有一点怕。",
+        "明日我一定比师姐更早到殿前。你不许偷偷先走。"
+      ],
+      "appearances": [
+        {
+          "sceneId": "lingxiao",
+          "mode": "random",
+          "guaranteedRules": [],
+          "randomRules": [
+            { "id": "shimei-day-at-sect", "label": "白日在宗门练剑", "periods": ["清晨", "上午", "午后", "黄昏"], "conditions": [], "probability": 100 }
+          ]
+        },
+        {
+          "sceneId": "junior-sister-home",
+          "mode": "random",
+          "guaranteedRules": [],
+          "randomRules": [
+            { "id": "shimei-night-home", "label": "夜晚回自己的屋子", "periods": ["夜晚", "深夜"], "conditions": [], "probability": 100 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lieren",
+      "name": "谢寒山",
+      "role": "云州林场猎人",
+      "courtesy": "寒山",
+      "bio": "常年独居林间，熟悉兽径、天气与每一处可安全扎营的背风坡。她话不多，却会替晚归的人在窗下留灯。",
+      "sceneId": "forest-cabin",
+      "image": "/assets/characters/portrait-refresh/lieren.png",
+      "accent": "#75a6a0",
+      "lovedGift": "herbSachet",
+      "relationshipAddresses": ["过路人", "搭伴的", "你", "归林人"],
+      "giftPreferences": [
+        { "giftId": "herbSachet", "tier": "loved", "reaction": "她将香囊系在弓臂上，说林中湿气重，这份心意很实用。" },
+        { "giftId": "peachWine", "tier": "liked", "reaction": "她替你把酒温在炉边，只给自己倒了半盏。" },
+        { "giftId": "goldHairpin", "tier": "neutral", "reaction": "她端详片刻，收进了最不容易被雨淋湿的匣子。" }
+      ],
+      "ambientLines": [
+        "东边溪谷有新脚印，不像鹿。你若去历练，别独自穿过竹林。",
+        "风从矿口吹出来时带铁腥味，今晚地脉不安稳。",
+        "屋里有热水。先烘干衣裳，再谈你在林子里惹了什么。"
+      ]
+    },
+    {
+      "id": "nannan",
+      "name": "囡囡",
+      "role": "田畔灵植姑娘",
+      "courtesy": "囡囡",
+      "bio": "守着田间小屋和一片试种灵圃，擅长从叶尖和土色判断作物的心情。她总把最好的一把新种留到最后。",
+      "sceneId": "field-cottage",
+      "image": "/assets/characters/portrait-refresh/nannan.png",
+      "accent": "#80aa8e",
+      "lovedGift": "snowTea",
+      "relationshipAddresses": ["仙长", "熟客", "你", "同耕人"],
+      "giftPreferences": [
+        { "giftId": "snowTea", "tier": "loved", "reaction": "她闻过茶香，说茶渣晒干后正好能拌进育苗土。" },
+        { "giftId": "osmanthusCake", "tier": "liked", "reaction": "她掰下一半递给母亲，自己才小口尝起来。" },
+        { "giftId": "goldHairpin", "tier": "neutral", "reaction": "她把发簪插好，又担心下田时弄脏，珍重地收了起来。" }
+      ],
+      "ambientLines": [
+        "今日风软，最适合翻土。若你来帮忙，我就分你一把新种。",
+        "灵草也会认人。你常来，它们的叶子会朝你的方向长。",
+        "娘总说我把田照顾得太细，可每一株发芽时都不一样呀。"
+      ]
+    },
+    {
+      "id": "nannan-ma",
+      "name": "囡囡妈妈",
+      "role": "田间小屋女主人",
+      "courtesy": "田娘子",
+      "bio": "把一家人的日子收拾得井井有条，也懂得村中最朴实的草药与灶火。她看人很准，却从不急着拆穿。",
+      "sceneId": "field-cottage",
+      "image": "/assets/characters/portrait-refresh/nannan-ma.png",
+      "accent": "#a98a72",
+      "lovedGift": "herbSachet",
+      "relationshipAddresses": ["仙长", "常来的", "你呀", "家里人"],
+      "giftPreferences": [
+        { "giftId": "herbSachet", "tier": "loved", "reaction": "她把香囊挂在门帘内侧，笑说进出屋时都能闻见你的心意。" },
+        { "giftId": "osmanthusCake", "tier": "liked", "reaction": "她添了一壶热水，坚持让你坐下把糕吃完再走。" },
+        { "giftId": "snowTea", "tier": "liked", "reaction": "她取出家里的粗陶壶，说好茶也得用人间烟火慢慢泡。" }
+      ],
+      "ambientLines": [
+        "囡囡嘴上说不等你，天一暗却总往村口看。",
+        "下田别穿那身好衣裳。来，我这里有件旧褂子。",
+        "修行人也要按时吃饭。道理再大，饿着肚子都想不明白。"
+      ]
+    },
+    {
+      "id": "shen-qingyin",
+      "name": "沈清音",
+      "role": "沈家二小姐",
+      "courtesy": "清音姑娘",
+      "bio": "住在山下沈家大院，熟悉琴谱、香方与族中旧事。她待客周全，偶尔会在笑意收起时露出过分敏锐的一面。",
+      "sceneId": "shen-estate",
+      "image": "/assets/characters/portrait-refresh/shen-qingyin.png",
+      "accent": "#c18b9b",
+      "lovedGift": "goldHairpin",
+      "relationshipAddresses": ["客人", "道友", "你", "知音"],
+      "giftPreferences": [
+        { "giftId": "goldHairpin", "tier": "loved", "reaction": "她把发簪置于琴案前，笑问你是否愿意替她选一支相配的曲子。" },
+        { "giftId": "snowTea", "tier": "liked", "reaction": "她亲手温盏，记住了你偏好的茶温。" },
+        { "giftId": "peachWine", "tier": "neutral", "reaction": "她命人收进偏厅，说等母亲允准再与你同饮。" }
+      ],
+      "ambientLines": [
+        "你今日先去了谁家？只是闲问，我并不介意。",
+        "院里的梅开得早。若你肯来，我可以只为你留一枝。",
+        "母亲看人很严，你别紧张——我会提前告诉你她喜欢听什么。"
+      ]
+    },
+    {
+      "id": "shen-wantang",
+      "name": "沈晚棠",
+      "role": "沈家大院女主人",
+      "courtesy": "晚棠夫人",
+      "bio": "执掌沈家内外事务，言辞冷静，目光比账房的秤还准。她并不排斥年轻人的心意，只讨厌含糊与敷衍。",
+      "sceneId": "shen-estate",
+      "image": "/assets/characters/portrait-refresh/shen-wantang.png",
+      "accent": "#57849a",
+      "lovedGift": "snowTea",
+      "relationshipAddresses": ["修士", "后生", "你", "可信之人"],
+      "giftPreferences": [
+        { "giftId": "snowTea", "tier": "loved", "reaction": "她饮过一口便报出茶山与年份，随后示意你也坐。" },
+        { "giftId": "goldHairpin", "tier": "liked", "reaction": "她说礼重不如心稳，却仍让侍女好好收进妆匣。" },
+        { "giftId": "peachWine", "tier": "neutral", "reaction": "她验过封泥，淡淡说了一句尚可。" }
+      ],
+      "ambientLines": [
+        "沈家的门不难进。难的是进来以后，仍能把每句话说得明白。",
+        "清音近日总往门外看。你若知道缘故，便别让我等她亲口承认。",
+        "山下日子不比宗门清闲。你若愿意帮忙，先从把这杯茶喝完开始。"
+      ]
+    }
+  ]
+}

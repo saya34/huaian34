@@ -174,7 +174,6 @@ export default function QuestPanel({ onClose, onNavigate }: { onClose: () => voi
       return { statuses, trackedQuestId: current.trackedQuestId === definition.id ? fallback?.id ?? null : current.trackedQuestId };
     });
     setReceipt({ definition, outcome });
-    notify("notice.claimed", definition.name);
   }
 
   function act(definition: QuestDefinition, status: QuestStatus) {

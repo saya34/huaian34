@@ -15,6 +15,7 @@ import { livestockProductById } from "./farm/livestock";
 import { useFeedback } from "./feedback/FeedbackProvider";
 import { manualItemById, SHOP_MANUAL } from "./skills/manual-items";
 import { buyShopItem, itemSellValue, sellShopItem, shopBuyPrice, shopDiscount, shopStockRemaining } from "./core/trading-service";
+import { kitchenRecipeByItemId } from "./kitchen/content";
 
 type ShopModalProps = {
   gifts: GiftDefinition[];
@@ -26,7 +27,7 @@ type ShopModalProps = {
 };
 
 const TYPE_LABELS: Record<UnifiedItemStack["itemType"], string> = {
-  gift: "礼物", material: "灵材", pill: "丹药", equipment: "法器", card: "人物卡", treasure: "宝物", quest: "剧情物品", fish: "灵鱼", manual: "功法玉简",
+  gift: "礼物", material: "灵材", pill: "丹药", food: "灵膳", equipment: "法器", card: "人物卡", treasure: "宝物", quest: "剧情物品", fish: "灵鱼", manual: "功法玉简",
 };
 const RARITY_COLORS = ["#aab5ad", "#7ebf8b", "#5faed0", "#a889ce", "#d59b54", "#e8c56c", "#f2df9b"];
 
@@ -42,6 +43,7 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
   const shopGiftMap = useMemo(() => Object.fromEntries(SHOP_GIFTS.map((item) => [item.id, item])), []);
   const supplyRestored=Boolean(state.shared.globalKeys.medicine_supply_restored);
   const discount = shopDiscount(state);
+  void onNotice;
 
   const sellableStacks = Object.values(state.shared.items).filter((item) => item.amount > 0 && !item.locked && !["card", "quest", "equipment"].includes(item.itemType));
   const equippedIds = new Set(Object.values(state.battle.equipped));
@@ -61,7 +63,7 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
     transact((current) => buyShopItem(current, itemId));
     const copy = `购得「${definition.name}」· ${price} 灵石`;
     setMessage(relationship >= 15 ? `${copy}。宁砚书悄悄抹去了账尾的零头。` : `${copy}。宁砚书将物件仔细包好。`);
-    onNotice(copy);
+    feedback.toast({titleKey:"shop.purchaseTitle",bodyKey:"shop.purchaseBody",params:{name:definition.name,value:price},icon:"购",dedupeKey:`shop-buy:${itemId}:${state.romance.day}`});
   }
 
   function stackDefinition(stack: UnifiedItemStack) {
@@ -73,8 +75,9 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
     const fish = stack.itemType === "fish" ? fishById(stack.itemId) : null;
     const livestock = livestockProductById(stack.itemId);
     const manual = manualItemById(stack.itemId);
-    const name = gift?.name ?? alchemy?.name ?? treasure?.name ?? quest?.name ?? fish?.name ?? livestock?.productName ?? manual?.name ?? stack.itemId;
-    const image = gift?.image ?? alchemy?.image ?? treasure?.art ?? quest?.image ?? fish?.art ?? livestock?.productArt ?? manual?.art ?? "/assets/shop/ning-shop-goods.jpg";
+    const dish = kitchenRecipeByItemId(stack.itemId);
+    const name = gift?.name ?? alchemy?.name ?? treasure?.name ?? quest?.name ?? fish?.name ?? livestock?.productName ?? manual?.name ?? dish?.name ?? stack.itemId;
+    const image = gift?.image ?? alchemy?.image ?? treasure?.art ?? quest?.image ?? fish?.art ?? livestock?.productArt ?? manual?.art ?? dish?.art ?? "/assets/shop/ning-shop-goods.jpg";
     const position = gift?.imagePosition;
     return { name: stack.displayName ?? name, image, position, value: itemSellValue(stack) };
   }
@@ -86,7 +89,7 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
     const gain = definition.value * quantity;
     transact((current) => sellShopItem(current, stack.itemId, quantity));
     const copy = `售出「${definition.name}」×${quantity} · 获得 ${gain.toLocaleString()} 灵石`;
-    setMessage(`${copy}。旧物离柜，也算有了新的缘法。`); onNotice(copy);
+    setMessage(`${copy}。旧物离柜，也算有了新的缘法。`); feedback.toast({titleKey:"shop.saleTitle",bodyKey:"shop.saleBody",params:{name:definition.name,value:gain.toLocaleString()},icon:"售",tone:"gold",dedupeKey:`shop-sell:${stack.itemId}:${quantity}:${state.shared.spiritStones}`});
   }
 
   function sellEquipment(uid: string) {
@@ -99,7 +102,7 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
       return result.ok ? { ...result.meta, spiritStones: current.spiritStones + gain } : current;
     });
     const copy = `售出法器「${name}」· 获得 ${gain.toLocaleString()} 灵石`;
-    setMessage(`${copy}。宁砚书重新系好封签，答应替它寻个好主人。`); onNotice(copy);
+    setMessage(`${copy}。宁砚书重新系好封签，答应替它寻个好主人。`); feedback.toast({titleKey:"shop.saleTitle",bodyKey:"shop.saleBody",params:{name,value:gain.toLocaleString()},icon:"售",tone:"gold",dedupeKey:`shop-sell-equipment:${uid}`});
   }
 
   return <div className="shop-backdrop" role="presentation" onMouseDown={onClose}>
@@ -110,8 +113,8 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
         <button type="button" onClick={onClose} aria-label="离开栖珍阁">×</button>
       </header>
       <div className={`shop-body ${department === "weapons" ? "weapon-department" : ""}`}>
-        <aside className={`shopkeeper-panel ${department === "weapons" ? "weapon-merchant-portrait" : ""}`} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"shop.merchantTitle",bodyKey:"shop.merchantBody",params:{name:department==="weapons"?"霍青翎":"宁砚书"},icon:"商",imageSrc:department==="weapons"?"/assets/shop/huo-qingling.webp":"/assets/shop/ning-yanshu.svg",details:[{labelKey:"relationship.roleLabel",value:department==="weapons"?"玄锋号兵器商 · 可攻略":"栖珍阁掌柜 · 可攻略"},{labelKey:"relationship.valueLabel",value:relationship},{labelKey:"shop.discountLabel",value:`${Math.round(discount*100)} 折`},{labelKey:"shop.merchantService",value:department==="weapons"?"周货、回购、鉴定":"常货、全品类售卖、剧情物品保护"}],dedupeKey:`merchant:${department}:${relationship}`})}>
-          <img src={department === "weapons" ? "/assets/shop/huo-qingling.webp" : "/assets/shop/ning-yanshu.svg"} alt={department === "weapons" ? "玄锋号女商人霍青翎" : "栖珍阁老板娘宁砚书"} />
+        <aside className={`shopkeeper-panel ${department === "weapons" ? "weapon-merchant-portrait" : "refreshed-merchant-portrait"}`} role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"shop.merchantTitle",bodyKey:"shop.merchantBody",params:{name:department==="weapons"?"霍青翎":"宁砚书"},icon:"商",imageSrc:department==="weapons"?"/assets/shop/huo-qingling.webp":"/assets/characters/portrait-refresh/ning-yanshu.png",details:[{labelKey:"relationship.roleLabel",value:department==="weapons"?"玄锋号兵器商 · 可攻略":"栖珍阁掌柜 · 可攻略"},{labelKey:"relationship.valueLabel",value:relationship},{labelKey:"shop.discountLabel",value:`${Math.round(discount*100)} 折`},{labelKey:"shop.merchantService",value:department==="weapons"?"周货、回购、鉴定":"常货、全品类售卖、剧情物品保护"}],dedupeKey:`merchant:${department}:${relationship}`})}>
+          <img src={department === "weapons" ? "/assets/shop/huo-qingling.webp" : "/assets/characters/portrait-refresh/ning-yanshu.png"} alt={department === "weapons" ? "玄锋号女商人霍青翎" : "栖珍阁老板娘宁砚书"} />
           <div><small>{department === "weapons" ? "铸兵行商 · 霍青翎" : "掌柜寄语"}</small><p>“{department === "weapons" ? "兵刃占几格、值几钱，都写在明处；匣中锋芒，买下才与你相见。" : message}”</p></div>
         </aside>
         {department === "weapons" ? <main className="shop-counter weapon-shop-counter"><WeaponMerchantPanel onNotice={onNotice} /></main> : <main className="shop-counter">

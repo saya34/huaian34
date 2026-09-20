@@ -12,6 +12,11 @@ function MessageContent({ item }: { item: FeedbackItem }) {
       <h2>{feedbackText(item.titleKey, item.params)}{item.count > 1 && <b> ×{item.count}</b>}</h2>
       {item.bodyKey && <p>{feedbackText(item.bodyKey, item.params)}</p>}
       {item.details?.length ? <dl>{item.details.map((entry, index) => <div className={`${entry.emphasis ? "emphasis" : ""} ${entry.delta ? `delta-${entry.delta}` : ""}`.trim()} key={`${entry.labelKey}-${index}`}><dt>{feedbackText(entry.labelKey, entry.labelParams)}</dt><dd>{entry.value}</dd></div>)}</dl> : null}
+      {(item.rewards?.length || item.costs?.length || item.impacts?.length) ? <div className="feedback-result-ledger">
+        {item.rewards?.length ? <section><b>获得</b>{item.rewards.map((entry) => <span key={`reward-${entry}`}>{entry}</span>)}</section> : null}
+        {item.costs?.length ? <section><b>消耗</b>{item.costs.map((entry) => <span key={`cost-${entry}`}>{entry}</span>)}</section> : null}
+        {item.impacts?.length ? <section><b>影响</b>{item.impacts.map((entry) => <span key={`impact-${entry}`}>{entry}</span>)}</section> : null}
+      </div> : null}
     </div>
   </>;
 }
@@ -22,8 +27,9 @@ function AnchoredPopover({item,onDismiss}:{item:FeedbackItem;onDismiss:(id?:stri
   return <section className={`feedback-popover tone-${item.tone} ${position.flip?"flip":""}`} style={{left:position.x,top:position.y}} role="dialog"><MessageContent item={item} />{item.actions?.length?<footer>{item.actions.map(action=><button className={`action-${action.tone??"secondary"}`} key={action.labelKey} onClick={()=>{action.onSelect();onDismiss(item.id)}}>{feedbackText(action.labelKey)}</button>)}</footer>:null}<button className="feedback-close" onClick={()=>onDismiss(item.id)} aria-label={feedbackText("system.close")}>{feedbackText("system.closeGlyph")}</button></section>;
 }
 
-export function FeedbackViewport({ center, toasts, floats, sheet, popoverItem, decision, history, historyOpen, onCloseHistory, onDismiss }: {
+export function FeedbackViewport({ center, important, toasts, floats, sheet, popoverItem, decision, history, historyOpen, onCloseHistory, onDismiss }: {
   center: FeedbackItem | null;
+  important: FeedbackItem | null;
   toasts: FeedbackItem[];
   floats: FeedbackItem[];
   sheet: FeedbackItem | null;
@@ -35,14 +41,15 @@ export function FeedbackViewport({ center, toasts, floats, sheet, popoverItem, d
   onDismiss: (id?: string) => void;
 }) {
   return <div className="feedback-viewport" aria-live="polite">
-    {center && <div className={`feedback-center tone-${center.tone} variant-${center.variant}`} role="status" onClick={() => onDismiss(center.id)}>
-      <div className="feedback-scroll" onClick={(event) => event.stopPropagation()}><MessageContent item={center} /><button className="feedback-close" onClick={() => onDismiss(center.id)} aria-label={feedbackText("system.close")}>{feedbackText("system.closeGlyph")}</button></div>
+    {center && <div className={`feedback-center tone-${center.tone} variant-${center.variant}`} role="status" onClick={(event) => { event.stopPropagation(); onDismiss(center.id); }}>
+      <div className="feedback-scroll" onClick={(event) => event.stopPropagation()}><MessageContent item={center} />{center.actions?.length ? <footer>{center.actions.map((action) => <button className={`action-${action.tone ?? "secondary"}`} key={action.labelKey} onClick={() => { action.onSelect(); onDismiss(center.id); }}>{feedbackText(action.labelKey)}</button>)}</footer> : null}<button className="feedback-close" onClick={() => onDismiss(center.id)} aria-label={feedbackText("system.close")}>{feedbackText("system.closeGlyph")}</button></div>
     </div>}
+    {important && <section className={`feedback-important tone-${important.tone} variant-${important.variant}`} role="status" onClick={(event) => event.stopPropagation()}><MessageContent item={important} />{important.actions?.length ? <footer>{important.actions.slice(0, 1).map((action) => <button className={`action-${action.tone ?? "secondary"}`} key={action.labelKey} onClick={() => { action.onSelect(); onDismiss(important.id); }}>{feedbackText(action.labelKey)}</button>)}</footer> : null}<button type="button" className="feedback-close" onClick={(event) => { event.stopPropagation(); onDismiss(important.id); }} aria-label={feedbackText("system.close")}>{feedbackText("system.closeGlyph")}</button></section>}
     <div className="feedback-toast-stack">{toasts.map((item) => <button type="button" className={`feedback-toast tone-${item.tone}`} key={item.id} onClick={() => onDismiss(item.id)}><MessageContent item={item} /></button>)}</div>
     {floats.map((item, index) => <div className={`feedback-float tone-${item.tone}`} key={item.id} style={item.anchor ? { left: item.anchor.x, top: item.anchor.y } : { left: "50%", top: `${42 + index * 5}%` }}><MessageContent item={item} /></div>)}
     {popoverItem && <AnchoredPopover item={popoverItem} onDismiss={onDismiss}/>}
     {sheet && <div className="feedback-sheet-backdrop" role="presentation" onMouseDown={() => onDismiss(sheet.id)}><section className={`feedback-sheet tone-${sheet.tone} variant-${sheet.variant}`} role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><header><span>{sheet.icon ?? feedbackText("system.iconInspect")}</span><button onClick={() => onDismiss(sheet.id)} aria-label={feedbackText("system.close")}>{feedbackText("system.closeGlyph")}</button></header><MessageContent item={sheet} />{sheet.actions?.length ? <footer>{sheet.actions.map((action) => <button className={`action-${action.tone ?? "secondary"}`} key={action.labelKey} onClick={action.onSelect}>{feedbackText(action.labelKey)}</button>)}</footer> : null}</section></div>}
     {decision && <div className="feedback-decision-backdrop" role="presentation"><section className={`feedback-decision tone-${decision.tone}`} role="alertdialog" aria-modal="true"><MessageContent item={decision} /><footer>{decision.actions?.map((action) => <button className={`action-${action.tone ?? "secondary"}`} key={action.labelKey} onClick={action.onSelect}>{feedbackText(action.labelKey)}</button>)}</footer></section></div>}
-    {historyOpen && <div className="feedback-sheet-backdrop" role="presentation" onMouseDown={onCloseHistory}><section className="feedback-history" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><header><div><small>{feedbackText("system.historyEyebrow")}</small><h2>{feedbackText("system.history")}</h2></div><button onClick={onCloseHistory} aria-label={feedbackText("system.close")}>{feedbackText("system.closeGlyph")}</button></header>{history.length ? <ol>{history.map((entry) => <li className={`tone-${entry.tone}`} key={entry.id}><time>{new Date(entry.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</time><div><strong>{entry.title}</strong>{entry.body && <p>{entry.body}</p>}</div></li>)}</ol> : <p className="history-empty">{feedbackText("system.historyEmpty")}</p>}</section></div>}
+    {historyOpen && <div className="feedback-sheet-backdrop" role="presentation" onMouseDown={onCloseHistory}><section className="feedback-history" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><header><div><small>{feedbackText("system.historyEyebrow")}</small><h2>{feedbackText("system.history")}</h2></div><button onClick={onCloseHistory} aria-label={feedbackText("system.close")}>{feedbackText("system.closeGlyph")}</button></header>{history.length ? <ol>{history.map((entry) => <li className={`tone-${entry.tone}`} key={entry.id}><time>{new Date(entry.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</time><div><strong><i>{entry.level}</i>{entry.title}</strong>{entry.body && <p>{entry.body}</p>}{entry.rewards?.map((item) => <small key={`r-${item}`}>＋ {item}</small>)}{entry.costs?.map((item) => <small key={`c-${item}`}>－ {item}</small>)}{entry.impacts?.map((item) => <small key={`i-${item}`}>◇ {item}</small>)}</div></li>)}</ol> : <p className="history-empty">{feedbackText("system.historyEmpty")}</p>}</section></div>}
   </div>;
 }

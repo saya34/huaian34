@@ -11,7 +11,6 @@ import {
   MEDICINE_SHORTAGE_CONTENT,
   MEDICINE_SHORTAGE_ROUTES,
   medicineShortageCompletionEffects,
-  medicineShortageCompletionNotice,
   medicineShortageConsumptionEffects,
   type PathProjectDestination,
 } from "./medicine-shortage-service";
@@ -42,16 +41,17 @@ export default function PathProjectPanel({ onClose, onNotice, onNavigate }: {
   const remaining = project.deadlineDay === undefined ? 3 : Math.max(0, project.deadlineDay - game.day + 1);
   const readiness = evaluateMedicineShortageRoutes(state);
   const selectedRoute = MEDICINE_SHORTAGE_ROUTES.find((item) => item.id === project.route);
+  void onNotice;
 
   function accept() {
     setRomance((current) => ({ ...current, medicineShortage: { status: "active", acceptedDay: current.day, deadlineDay: current.day + 2, battleVictories: 0, farmHarvestsAtAccept: state.farm.totalHarvests } }));
-    onNotice("主线任务已接受 · 坊市药材断供");
+    feedback.toast({titleKey:"system.dynamicMessage",params:{message:"主线任务已接受 · 坊市药材断供"},icon:"任",tone:"gold",dedupeKey:`project-accepted:${game.day}`});
   }
 
   function choose(route: PathProjectRoute) {
     const info = MEDICINE_SHORTAGE_ROUTES.find((item) => item.id === route)!;
     setRomance((current) => ({ ...current, medicineShortage: { ...current.medicineShortage, route } }));
-    onNotice(`主解法已定 · ${info.name}`);
+    feedback.toast({titleKey:"system.dynamicMessage",params:{message:`主解法已定 · ${info.name}`},icon:"途",dedupeKey:`project-route:${route}`});
   }
 
   async function deliver() {
@@ -74,7 +74,7 @@ export default function PathProjectPanel({ onClose, onNotice, onNavigate }: {
     const outcome = overdue ? "recovered" : "stabilized";
     applyEffects([...medicineShortageConsumptionEffects(state, route), ...medicineShortageCompletionEffects(outcome)]);
     setRomance((current) => ({ ...current, medicineShortage: { ...current.medicineShortage, status: "completed", completedDay: current.day, outcome } }));
-    onNotice(medicineShortageCompletionNotice(outcome));
+    // 完成后的世界变化由当前结果页完整呈现，不再叠加第二条全局通知。
   }
 
   useEffect(() => {

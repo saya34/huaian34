@@ -41,18 +41,27 @@ export default function LivestockPanel({ day, period, onBack, onClose, onNotice 
   const readyTotal = livestock.animals.filter((animal) => animal.state === "ready").length;
   const livestockUi = GATHERING_PRESENTATION.livestock;
   const animalStateRef = useRef(new Map<string,string>());
+  const animalStateInitializedRef = useRef(false);
 
   useEffect(() => {
+    if (!animalStateInitializedRef.current) {
+      for (const animal of livestock.animals) animalStateRef.current.set(animal.uid, `${animal.state}${animal.sick?":sick":""}`);
+      animalStateInitializedRef.current = true;
+      return;
+    }
+    const newlyReady: string[] = [];
     for (const animal of livestock.animals) {
       const before = animalStateRef.current.get(animal.uid);
       const beast = spiritBeastById(animal.speciesId)!;
-      if (before && animal.state === "ready" && before !== "ready") feedback.publish({variant:"progression-milestone",priority:2,titleKey:"livestock.productReady",params:{name:beast.name},icon:"成",dedupeKey:`livestock:ready:${animal.uid}:${animal.readyAtTick}`});
-      if (animal.sick && before && !before.endsWith(":sick")) feedback.publish({variant:"world-announcement",priority:1,tone:"danger",titleKey:"livestock.sickTitle",bodyKey:"livestock.sickBody",params:{name:beast.name},icon:"病",dedupeKey:`livestock:sick:${animal.uid}`});
+      if (before && animal.state === "ready" && !before.startsWith("ready")) newlyReady.push(beast.name);
+      if (animal.sick && before && !before.endsWith(":sick")) feedback.publish({variant:"world-announcement",level:"L2",tone:"danger",titleKey:"livestock.sickTitle",bodyKey:"livestock.sickBody",params:{name:beast.name},icon:"病",dedupeKey:`livestock:sick:${animal.uid}`});
       animalStateRef.current.set(animal.uid, `${animal.state}${animal.sick?":sick":""}`);
     }
-  }, [feedback, livestock.animals]);
+    if (newlyReady.length) feedback.toast({titleKey:"livestock.productReady",params:{name:newlyReady.length > 1 ? `${newlyReady[0]}等 ${newlyReady.length} 只灵兽` : newlyReady[0]},icon:"成",dedupeKey:`livestock:ready:${tick}:${newlyReady.join("-")}`});
+  }, [feedback, livestock.animals, tick]);
 
-  function announce(copy: string) { setMessage(copy); onNotice(copy); }
+  void onNotice;
+  function announce(copy: string) { setMessage(copy); }
   function floatBeast(uid: string, text: string, kind: "feed" | "love" | "collect" | "info") { setBeastFx({ uid, text, kind }); window.setTimeout(() => setBeastFx((current) => current?.uid === uid ? null : current), 1200); }
 
   function feed(uid: string, favorite = false) {
@@ -65,11 +74,11 @@ export default function LivestockPanel({ day, period, onBack, onClose, onNotice 
     const result = feedSpiritBeast(livestock, uid, tick, favorite);
     if (!result.ok) { announce(result.message); return; }
     setFarm((current) => ({ ...current, livestock: result.progress }));
-    applyEffects([{ type: "remove_item", itemId: material.id, amount: required }]); floatBeast(uid, `${favorite ? "喜食" : "饱食"} · ${material.name} -${required}`, "feed"); feedback.float({titleKey:"livestock.feedFloat",params:{name:material.name,amount:required},icon:"饲",dedupeKey:`livestock:feed:${uid}:${tick}`}); announce(`${result.message} · ${material.name} -${required}`);
+    applyEffects([{ type: "remove_item", itemId: material.id, amount: required }]); floatBeast(uid, `${favorite ? "喜食" : "饱食"} · ${material.name} -${required}`, "feed"); announce(`${result.message} · ${material.name} -${required}`);
   }
 
-  function love(uid: string) { const result = loveSpiritBeast(livestock, uid, tick, interactionTool); if (!result.ok) { announce(result.message); return; } setFarm((current) => ({ ...current, livestock: result.progress })); floatBeast(uid, "♥ 亲和 +8", "love"); feedback.float({titleKey:"livestock.bondFloat",params:{amount:8},icon:"心",tone:"cinnabar",dedupeKey:`livestock:love:${uid}:${tick}`}); announce(result.message); }
-  function collect(uid: string) { const result = collectSpiritBeast(livestock, uid, tick); if (!result.ok) { announce(result.message); return; } const productName=spiritBeastById(livestock.animals.find((item) => item.uid === uid)?.speciesId ?? "")?.productName??result.reward.itemId; setFarm((current) => ({ ...current, livestock: result.progress })); applyEffects([{ type: "add_item", item: result.reward }, { type: "add_player_exp", amount: result.reward.rarity * 2 },{type:"record_activity",receipt:createActivityReceipt({kind:"livestock",title:`灵兽产出 · ${productName}`,summary:"唤醒灵兽后，产物已经直接进入统一行囊。",rewards:[`${productName} ×${result.reward.amount}`,`修为 +${result.reward.rarity*2}`],impacts:["灵兽累计产出已更新","任务与加工库存已同步"],nextStep:{target:"inventory",label:"查看产物与用途"}})}]); floatBeast(uid, `+${productName} ×${result.reward.amount}`, "collect"); feedback.float({titleKey:"livestock.collectFloat",params:{name:productName,amount:result.reward.amount},icon:"收",tone:"gold",dedupeKey:`livestock:collect:${uid}:${tick}`}); announce(`${result.message} · 已收入乾坤行囊`); }
+  function love(uid: string) { const result = loveSpiritBeast(livestock, uid, tick, interactionTool); if (!result.ok) { announce(result.message); return; } setFarm((current) => ({ ...current, livestock: result.progress })); floatBeast(uid, "♥ 亲和 +8", "love"); announce(result.message); }
+  function collect(uid: string) { const result = collectSpiritBeast(livestock, uid, tick); if (!result.ok) { announce(result.message); return; } const productName=spiritBeastById(livestock.animals.find((item) => item.uid === uid)?.speciesId ?? "")?.productName??result.reward.itemId; setFarm((current) => ({ ...current, livestock: result.progress })); applyEffects([{ type: "add_item", item: result.reward }, { type: "add_player_exp", amount: result.reward.rarity * 2 },{type:"record_activity",receipt:createActivityReceipt({kind:"livestock",title:`灵兽产出 · ${productName}`,summary:"唤醒灵兽后，产物已经直接进入统一行囊。",rewards:[`${productName} ×${result.reward.amount}`,`修为 +${result.reward.rarity*2}`],impacts:["灵兽累计产出已更新","任务与加工库存已同步"],nextStep:{target:"inventory",label:"查看产物与用途"}})}]); floatBeast(uid, `+${productName} ×${result.reward.amount}`, "collect"); announce(`${result.message} · 已收入乾坤行囊`); }
   function cure(uid: string) { const cost = 48; if (state.shared.spiritStones < cost) { announce(`诊治需要 ${cost} 灵石`); return; } const result = cureSpiritBeast(livestock, uid); if (!result.ok) { announce(result.message); return; } setFarm((current) => ({ ...current, livestock: result.progress })); applyEffects([{ type: "add_currency", amount: -cost }]); floatBeast(uid, "药香回灵 · 已痊愈", "love"); announce(`${result.message} · 灵石 -${cost}`); }
   function improveShelter() { const cost = livestock.shelterLevel * 260; if (state.shared.spiritStones < cost) { announce(`扩建栏舍需要 ${cost} 灵石`); return; } const result = upgradeShelter(livestock); if (!result.ok) { announce(result.message); return; } setFarm((current) => ({ ...current, livestock: result.progress })); applyEffects([{ type: "add_currency", amount: -cost }]); feedback.publish({variant:"progression-milestone",priority:1,titleKey:"livestock.upgradeTitle",bodyKey:"livestock.upgradeBody",params:{level:result.progress.shelterLevel},icon:"舍",dedupeKey:`livestock:shelter:${result.progress.shelterLevel}`}); announce(`${result.message} · 灵石 -${cost}`); }
   async function sell(uid: string) { const result = sellSpiritBeast(livestock, uid); if (!result.ok) return; const definition = spiritBeastById(livestock.animals.find((entry) => entry.uid === uid)?.speciesId ?? "")!; const accepted = await feedback.confirm({ titleKey:"livestock.sellTitle", bodyKey:"livestock.sellBody", params:{name:definition.name,value:result.gain}, icon:"托", tone:"cinnabar", dedupeKey:`livestock:sell:${uid}` }); if (!accepted) return; setFarm((current) => ({ ...current, livestock: result.progress })); applyEffects([{ type: "add_currency", amount: result.gain }]); setSelectedUid(result.progress.animals[0]?.uid ?? ""); announce(`${result.message} · 获得 ${result.gain} 灵石`); }

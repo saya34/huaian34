@@ -10,11 +10,12 @@ import type { MiningProgress } from "../mining/mining";
 import type { QuestProgress } from "../quests/types";
 import type { GatheringProgress } from "../gathering/types";
 import type { AlchemyBatch } from "../alchemy/batch-service";
+import type { KitchenProgress, LuckBlessing } from "../kitchen/types";
 
-export const SAVE_VERSION = 6 as const;
+export const SAVE_VERSION = 7 as const;
 
 export type UnifiedRarity = 1 | 2 | 3 | 4 | 5 | 6 | 7;
-export type UnifiedItemType = "gift" | "material" | "pill" | "equipment" | "card" | "treasure" | "quest" | "fish" | "manual";
+export type UnifiedItemType = "gift" | "material" | "pill" | "food" | "equipment" | "card" | "treasure" | "quest" | "fish" | "manual";
 
 export type UnifiedItemStack = {
   itemId: string;
@@ -66,11 +67,11 @@ export type DungeonProgress = {
   lastSettlement?: "victory" | "extracted" | "defeat";
 };
 
-export type ActivityDestination = "inventory" | "tasks" | "alchemy" | "battle" | "farm" | "fishing" | "mining" | "world";
+export type ActivityDestination = "inventory" | "tasks" | "alchemy" | "battle" | "farm" | "fishing" | "mining" | "kitchen" | "world";
 
 export type ActivityReceipt = {
   id: string;
-  kind: "battle" | "alchemy" | "fishing" | "mining" | "farming" | "livestock" | "story" | "quest";
+  kind: "battle" | "alchemy" | "fishing" | "mining" | "farming" | "livestock" | "kitchen" | "story" | "quest";
   title: string;
   summary: string;
   rewards: string[];
@@ -89,6 +90,7 @@ export type SharedPlayerState = {
   cards: UnifiedCardInstance[];
   learnedSkills: number[];
   globalKeys: Record<string, boolean>;
+  luck: LuckBlessing;
 };
 
 export type UnifiedGameState = {
@@ -102,9 +104,10 @@ export type UnifiedGameState = {
   fishing: FishingProgress;
   mining: MiningProgress;
   gathering: GatheringProgress;
+  kitchen: KitchenProgress;
   dungeons: DungeonProgress;
   quests: QuestProgress;
-  activity: { last?: ActivityReceipt };
+  activity: { last?: ActivityReceipt; history: ActivityReceipt[] };
 };
 
 export type GameEffect =
@@ -116,6 +119,9 @@ export type GameEffect =
   | { type: "add_relationship"; characterId: string; amount: number }
   | { type: "add_player_exp"; amount: number }
   | { type: "spend_stamina"; amount: number }
+  | { type: "restore_stamina"; amount: number }
+  | { type: "add_luck"; bonus: number; charges: number; source: string }
+  | { type: "consume_luck_charge" }
   | { type: "set_global_key"; key: string; value: boolean }
   | { type: "reveal_dungeon"; dungeonId: string }
   | { type: "complete_dungeon"; waveId: number; result: "victory" | "extracted" | "defeat" }

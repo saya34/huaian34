@@ -217,9 +217,13 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
   const pendingMythicCard = pendingBatch?.card && isMythicCardRecord(pendingBatch.card) ? pendingBatch.card : null;
   const [revealedMythicCard, setRevealedMythicCard] = useState<MythicCardRecord | null>(null);
   const [mythicRevealFromCodex, setMythicRevealFromCodex] = useState(false);
+  useEffect(() => {
+    const busy = Boolean(showResult || characterCard || revealedMythicCard || openingFlash);
+    feedback.setBusy("rare-reveal", busy);
+    return () => feedback.setBusy("rare-reveal", false);
+  }, [characterCard, feedback, openingFlash, revealedMythicCard, showResult]);
   const pointerDragRef = useRef<{ item: GameItem; startX: number; startY: number; pointerId: number; moved: boolean } | null>(null);
   const suppressClickUntilRef = useRef(0);
-  const brewSerial = alchemy.brewSequence ?? 0;
   const pendingCharacter = useMemo(() => {
     const card = pendingBatch?.card;
     if (!card || isMythicCardRecord(card)) return null;
@@ -228,7 +232,6 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
   }, [pendingBatch]);
   const recipeVersionRef = useRef(0);
   const mythicRevealStartedRef = useRef(false);
-  const announcedBrewRef = useRef("");
 
   const filled = slots.filter(Boolean).length;
   const hasFatedFlower = slots.some(isFatedFlower);
@@ -261,19 +264,9 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
     feedback.toast({titleKey:"system.dynamicMessage",params:{message:toast},icon:"炉",dedupeKey:`alchemy-toast:${toast}`});
   }, [feedback, toast]);
 
-  useEffect(() => {
-    if (phase !== "brewing") return;
-    const key=`${brewSerial}:${slots.map(item=>item?.id??"empty").join(":")}`;
-    if (announcedBrewRef.current===key)return;
-    announcedBrewRef.current=key;
-    feedback.toast({titleKey:"alchemy.brewTitle",bodyKey:"alchemy.brewing",icon:"火",tone:"cinnabar",dedupeKey:`alchemy-brew:${key}`});
-  }, [feedback, phase, slots, brewSerial]);
-
-  useEffect(() => {
-    if (phase !== "done" || !resultItem) return;
-    const rare=resultItem.rarity>=4||resultMutation!=="normal";
-    feedback.publish({variant:rare?"rare-reward":"identification-reveal",priority:rare?0:1,tone:rare?"gold":"jade",titleKey:rare?"alchemy.rareTitle":"alchemy.resultTitle",bodyKey:rare?"alchemy.rareBody":"alchemy.resultBody",params:{name:mutationDisplayName(resultItem,resultMutation)},icon:rare?"丹":"成",imageSrc:resultItem.image,dedupeKey:`alchemy-result:${brewSerial}:${resultItem.id}:${resultMutation}`});
-  }, [feedback, phase, resultItem, resultMutation, brewSerial]);
+  // Furnace flame/progress is the sole brewing feedback. The finished batch is
+  // revealed by its owned result/card overlay after the player opens the炉,
+  // so the global provider must not add a second celebration here.
   const manualRefreshPrice = getManualRefreshPrice(manualRefreshCount);
   const manualResetRemaining = Math.max(0, refreshResetAt - marketClock);
   const soldOutRemaining = Math.max(0, soldOutRefreshAt - marketClock);
@@ -414,7 +407,7 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
 
   useEffect(() => {
     if (!toast) return;
-    const timeout = setTimeout(() => setToast(""), 2600);
+    const timeout = setTimeout(() => setToast(""), 1500);
     return () => clearTimeout(timeout);
   }, [toast]);
 
@@ -1125,7 +1118,7 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
       />
 
       <FatedCharacterOverlay character={characterCard} fromCodex={characterCardFromCodex} onCollect={collectCharacter} />
-      <AlchemyResultOverlay open={showResult} item={resultItem} mutation={resultMutation} onCollect={() => collectResult()} onReset={resetBrew} />
+      <AlchemyResultOverlay open={showResult} item={resultItem} mutation={resultMutation} firstObtain={(productStacks[productStackKey(resultItem.id,resultMutation)]?.count??0)===0} onCollect={() => collectResult()} onReset={resetBrew} />
     </main>
   );
 }

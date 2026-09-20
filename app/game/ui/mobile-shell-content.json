@@ -16,7 +16,6 @@
     "events": { "icon": "卷", "label": "事件簿", "hint": "回看已知剧情线索" },
     "messages": { "icon": "笺", "label": "传音匣", "hint": "阅读人物来信" },
     "gallery": { "icon": "忆", "label": "云上展馆", "hint": "重温已解锁音画" },
-    "collection": { "icon": "藏", "label": "藏珍录", "hint": "查看剧情物品与彩蛋" },
     "history": { "icon": "讯", "label": "讯息录", "hint": "查看最近的重要反馈" },
     "wait": { "icon": "候", "label": "等待", "hint": "推进一阶段，不恢复体力" },
     "rest": { "icon": "憩", "label": "短休", "hint": "推进一阶段，恢复少量体力" },

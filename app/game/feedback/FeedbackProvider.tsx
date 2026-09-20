@@ -3,40 +3,67 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { FeedbackViewport } from "./FeedbackViewport";
 import { feedbackText } from "./texts";
-import type { FeedbackApi, FeedbackHistoryItem, FeedbackInput, FeedbackItem, FeedbackTone } from "./types";
+import type { FeedbackApi, FeedbackBusyScope, FeedbackDismissPolicy, FeedbackHistoryItem, FeedbackInput, FeedbackItem, FeedbackLevel, FeedbackTone } from "./types";
 
 const FeedbackContext = createContext<FeedbackApi | null>(null);
-const CENTER_VARIANTS = new Set([
-  "world-announcement",
-  "progression-milestone",
-  "relationship-reveal",
-  "day-opening",
-  "project-milestone",
-  "rare-reward",
-  "identification-reveal",
-]);
-const FEEDBACK_HISTORY_KEY = "huaian-feedback-history-v1";
+const FEEDBACK_HISTORY_KEY = "huaian-feedback-history-v2";
+const HISTORY_LIMIT = 160;
 
-function compactCenterQueue(items: FeedbackItem[]) {
-  if (items.length <= 5) return items;
-  const kept=items.slice(0,4),rest=items.slice(4),last=rest.at(-1)!;
-  return [...kept,{...last,id:`${last.id}-summary`,variant:"project-milestone" as const,priority:2 as const,titleKey:"world.phaseSummaryTitle",bodyKey:"world.phaseSummaryBody",params:{count:rest.length},icon:"录",count:1,dedupeKey:`phase-summary:${last.createdAt}`}];
-}
+const VARIANT_LEVEL: Record<FeedbackInput["variant"], FeedbackLevel> = {
+  "world-announcement": "L2",
+  "progression-milestone": "L2",
+  "relationship-reveal": "L2",
+  "day-opening": "L1",
+  "project-milestone": "L2",
+  "rare-reward": "L3",
+  "identification-reveal": "L2",
+  "action-toast": "L1",
+  "floating-text": "L1",
+  "info-popover": "D",
+  "inspector-sheet": "D",
+  "equipment-compare": "D",
+  "decision-dialog": "D",
+};
+
+const DEFAULT_DURATION: Record<Exclude<FeedbackLevel, "L0" | "D">, number> = { L1: 1500, L2: 2800, L3: 4200 };
 
 function defaultTone(input: FeedbackInput): FeedbackTone {
   if (input.tone) return input.tone;
+  if (input.outcome === "failed" || input.outcome === "damaged") return "danger";
   if (input.variant === "rare-reward" || input.variant === "identification-reveal") return "gold";
   if (input.variant === "relationship-reveal") return "cinnabar";
   if (input.variant === "decision-dialog") return "danger";
   return "jade";
 }
 
+function defaultDismissPolicy(level: FeedbackLevel): FeedbackDismissPolicy {
+  if (level === "D") return "manual";
+  if (level === "L3") return "click";
+  return "auto";
+}
+
+function shouldArchive(input: FeedbackItem) {
+  return input.record === true || input.level === "L2" || input.level === "L3" || input.level === "D";
+}
+
+function itemEventKey(input: FeedbackInput) {
+  return input.receiptId ?? input.eventId;
+}
+
+function sortQueue(items: FeedbackItem[]) {
+  const rank: Record<FeedbackLevel, number> = { D: 0, L3: 1, L2: 2, L1: 3, L0: 4 };
+  return [...items].sort((a, b) => rank[a.level] - rank[b.level] || (a.priority ?? 2) - (b.priority ?? 2) || a.createdAt - b.createdAt);
+}
+
 export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   const idRef = useRef(0);
   const dedupeRef = useRef(new Map<string, number>());
-  const combatBusyRef = useRef(false);
+  const eventIdsRef = useRef(new Set<string>());
+  const busyScopesRef = useRef(new Set<FeedbackBusyScope>());
   const resolveConfirmRef = useRef<((answer: boolean) => void) | null>(null);
+  const [busyRevision, setBusyRevision] = useState(0);
   const [center, setCenter] = useState<FeedbackItem | null>(null);
+  const [important, setImportant] = useState<FeedbackItem | null>(null);
   const [queue, setQueue] = useState<FeedbackItem[]>([]);
   const [toasts, setToasts] = useState<FeedbackItem[]>([]);
   const [floats, setFloats] = useState<FeedbackItem[]>([]);
@@ -47,78 +74,103 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(FEEDBACK_HISTORY_KEY);
-      if (saved) setHistory(JSON.parse(saved));
-    } catch {
-      setHistory([]);
-    }
+    const timer = window.setTimeout(() => {
+      try {
+        const saved = window.localStorage.getItem(FEEDBACK_HISTORY_KEY);
+        if (saved) setHistory(JSON.parse(saved));
+      } catch {
+        setHistory([]);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    try { window.localStorage.setItem(FEEDBACK_HISTORY_KEY, JSON.stringify(history.slice(0, 60))); } catch { /* History is optional. */ }
+    try { window.localStorage.setItem(FEEDBACK_HISTORY_KEY, JSON.stringify(history.slice(0, HISTORY_LIMIT))); } catch { /* History is optional. */ }
   }, [history]);
 
   const archive = useCallback((item: FeedbackItem) => {
+    if (!shouldArchive(item)) return;
     const record: FeedbackHistoryItem = {
       id: item.id,
       createdAt: item.createdAt,
       variant: item.variant,
+      level: item.level,
       tone: defaultTone(item),
       title: feedbackText(item.titleKey, item.params),
       body: item.bodyKey ? feedbackText(item.bodyKey, item.params) : "",
+      eventId: item.eventId,
+      receiptId: item.receiptId,
+      rewards: item.rewards,
+      costs: item.costs,
+      impacts: item.impacts,
     };
-    setHistory((current) => [record, ...current.filter((entry) => entry.id !== record.id)].slice(0, 60));
+    setHistory((current) => [record, ...current.filter((entry) => entry.id !== record.id)].slice(0, HISTORY_LIMIT));
+  }, []);
+
+  const isBlocked = useCallback((item: FeedbackItem) => {
+    if (!busyScopesRef.current.size || item.level === "L0" || item.level === "L1" || item.level === "D") return false;
+    const owner = item.presentationOwner as FeedbackBusyScope | undefined;
+    if (owner && busyScopesRef.current.has(owner)) return false;
+    if (item.scope === "combat" && busyScopesRef.current.has("combat")) return false;
+    return true;
   }, []);
 
   const publish = useCallback<FeedbackApi["publish"]>((input) => {
     const now = Date.now();
-    const dedupeKey = input.dedupeKey ?? `${input.variant}:${input.titleKey}:${JSON.stringify(input.params ?? {})}`;
+    const level = input.level ?? VARIANT_LEVEL[input.variant];
+    const eventKey = itemEventKey(input);
+    if (eventKey && eventIdsRef.current.has(eventKey)) return null;
+    const dedupeKey = input.dedupeKey ?? eventKey ?? `${input.variant}:${input.titleKey}:${JSON.stringify(input.params ?? {})}`;
     const lastTime = dedupeRef.current.get(dedupeKey) ?? 0;
     if (now - lastTime < 500) {
-      setToasts((current) => current.map((item) => item.dedupeKey === dedupeKey ? { ...item, count: item.count + 1, createdAt: now } : item));
+      // Keep the first expiry. New messages must never extend an old L1 indefinitely.
+      setToasts((current) => current.map((item) => item.dedupeKey === dedupeKey ? { ...item, count: item.count + 1 } : item));
+      setFloats((current) => current.map((item) => item.dedupeKey === dedupeKey ? { ...item, count: item.count + 1 } : item));
       return null;
     }
     dedupeRef.current.set(dedupeKey, now);
+    if (eventKey) eventIdsRef.current.add(eventKey);
+    const duration = level === "L0" || level === "D" ? undefined : input.durationMs ?? DEFAULT_DURATION[level];
+    const dismissPolicy = input.dismissPolicy ?? defaultDismissPolicy(level);
     const item: FeedbackItem = {
       ...input,
       id: `feedback-${now}-${++idRef.current}`,
       createdAt: now,
+      expiresAt: dismissPolicy === "auto" && duration ? now + duration : undefined,
       count: 1,
+      level,
+      dismissPolicy,
       priority: input.priority ?? 2,
       tone: defaultTone(input),
       dedupeKey,
     };
     archive(item);
-    if (CENTER_VARIANTS.has(item.variant)) {
-      if (combatBusyRef.current && item.scope !== "combat" && (item.priority ?? 2) > 0) {
-        setQueue((queued) => compactCenterQueue([...queued, item].sort((a, b) => (a.priority ?? 2) - (b.priority ?? 2) || a.createdAt - b.createdAt)));
-        return item.id;
-      }
+    if (level === "L0") return item.id;
+    if (input.variant === "decision-dialog") setDecision(item);
+    else if (input.variant === "info-popover") setPopoverItem(item);
+    else if (level === "D" || input.variant === "inspector-sheet" || input.variant === "equipment-compare") setSheet(item);
+    else if (isBlocked(item)) setQueue((current) => sortQueue([...current, item]));
+    else if (level === "L3") {
       setCenter((current) => {
         if (!current) return item;
-        setQueue((queued) => compactCenterQueue([...queued, item].sort((a, b) => (a.priority ?? 2) - (b.priority ?? 2) || a.createdAt - b.createdAt)));
+        setQueue((queued) => sortQueue([...queued, item]));
         return current;
       });
-    } else if (item.variant === "action-toast") {
-      setToasts((current) => [...current.slice(-3), item]);
-    } else if (item.variant === "floating-text") {
-      setFloats((current) => [...current.slice(-5), item]);
-    } else if (item.variant === "decision-dialog") {
-      setDecision(item);
-    } else if (item.variant === "info-popover") {
-      setPopoverItem(item);
-    } else {
-      setSheet(item);
-    }
+    } else if (level === "L2") {
+      setImportant((current) => {
+        if (!current) return item;
+        setQueue((queued) => sortQueue([...queued, item]));
+        return current;
+      });
+    } else if (input.variant === "floating-text") setFloats([item]);
+    else setToasts([item]);
     return item.id;
-  }, [archive]);
+  }, [archive, isBlocked]);
 
   const dismiss = useCallback((id?: string) => {
-    setCenter((current) => {
-      if (id && current?.id !== id) return current;
-      return null;
-    });
+    setCenter((current) => !id || current?.id === id ? null : current);
+    setImportant((current) => !id || current?.id === id ? null : current);
     setToasts((current) => id ? current.filter((item) => item.id !== id) : []);
     setFloats((current) => id ? current.filter((item) => item.id !== id) : []);
     setSheet((current) => !id || current?.id === id ? null : current);
@@ -127,41 +179,52 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (center || queue.length === 0 || combatBusyRef.current) return;
+    if (center || important || queue.length === 0 || busyScopesRef.current.size) return;
     const [next, ...rest] = queue;
-    setCenter(next);
-    setQueue(rest);
-  }, [center, queue]);
-
-  useEffect(() => {
-    if (!center) return;
-    const duration = center.durationMs ?? (center.priority === 0 ? 5200 : 3600);
-    const timer = window.setTimeout(() => dismiss(center.id), duration);
+    const timer = window.setTimeout(() => {
+      setQueue(rest);
+      if (next.level === "L3") setCenter(next);
+      else setImportant(next);
+    }, 0);
     return () => window.clearTimeout(timer);
-  }, [center, dismiss]);
+  }, [busyRevision, center, important, queue]);
 
   useEffect(() => {
-    if (!toasts.length) return;
-    const timers = toasts.map((item) => window.setTimeout(() => dismiss(item.id), item.durationMs ?? 3000));
-    return () => timers.forEach(window.clearTimeout);
-  }, [dismiss, toasts]);
+    if (!center?.expiresAt) return;
+    const timer = window.setTimeout(() => dismiss(center.id), Math.max(0, center.expiresAt - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [center?.expiresAt, center?.id, dismiss]);
 
   useEffect(() => {
-    if (!floats.length) return;
-    const timers = floats.map((item) => window.setTimeout(() => dismiss(item.id), item.durationMs ?? 1800));
-    return () => timers.forEach(window.clearTimeout);
-  }, [dismiss, floats]);
+    if (!important?.expiresAt) return;
+    const timer = window.setTimeout(() => dismiss(important.id), Math.max(0, important.expiresAt - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [dismiss, important?.expiresAt, important?.id]);
 
-  const toast = useCallback<FeedbackApi["toast"]>((input) => publish({ ...input, variant: "action-toast" }), [publish]);
-  const float = useCallback<FeedbackApi["float"]>((input) => publish({ ...input, variant: "floating-text" }), [publish]);
-  const inspect = useCallback<FeedbackApi["inspect"]>((input) => publish({ ...input, variant: "inspector-sheet" }), [publish]);
-  const popover = useCallback<FeedbackApi["popover"]>((input) => publish({ ...input, variant: "info-popover" }), [publish]);
-  const compare = useCallback<FeedbackApi["compare"]>((input) => publish({ ...input, variant: "equipment-compare" }), [publish]);
+  useEffect(() => {
+    const expiring = [...toasts, ...floats].filter((item) => item.expiresAt);
+    if (!expiring.length) return;
+    const nearest = Math.min(...expiring.map((item) => item.expiresAt!));
+    const timer = window.setTimeout(() => {
+      const now = Date.now();
+      setToasts((current) => current.filter((item) => !item.expiresAt || item.expiresAt > now));
+      setFloats((current) => current.filter((item) => !item.expiresAt || item.expiresAt > now));
+    }, Math.max(0, nearest - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [floats, toasts]);
+
+  const toast = useCallback<FeedbackApi["toast"]>((input) => publish({ ...input, level: input.level ?? "L1", variant: "action-toast" }), [publish]);
+  const float = useCallback<FeedbackApi["float"]>((input) => publish({ ...input, level: input.level ?? "L1", variant: "floating-text" }), [publish]);
+  const inspect = useCallback<FeedbackApi["inspect"]>((input) => publish({ ...input, level: "D", dismissPolicy: "manual", variant: "inspector-sheet" }), [publish]);
+  const popover = useCallback<FeedbackApi["popover"]>((input) => publish({ ...input, level: "D", dismissPolicy: "manual", variant: "info-popover" }), [publish]);
+  const compare = useCallback<FeedbackApi["compare"]>((input) => publish({ ...input, level: "D", dismissPolicy: "manual", variant: "equipment-compare" }), [publish]);
   const confirm = useCallback<FeedbackApi["confirm"]>((input) => new Promise<boolean>((resolve) => {
     resolveConfirmRef.current?.(false);
     resolveConfirmRef.current = resolve;
     publish({
       ...input,
+      level: "D",
+      dismissPolicy: "decision",
       variant: "decision-dialog",
       actions: [
         { labelKey: "system.cancel", tone: "secondary", onSelect: () => { resolveConfirmRef.current?.(false); resolveConfirmRef.current = null; setDecision(null); } },
@@ -170,15 +233,20 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
     });
   }), [publish]);
 
-  const setCombatBusy = useCallback((busy: boolean) => {
-    combatBusyRef.current = busy;
-    if (!busy) setQueue((current) => [...current]);
+  const setBusy = useCallback((scope: FeedbackBusyScope, busy: boolean) => {
+    if (busy) busyScopesRef.current.add(scope);
+    else busyScopesRef.current.delete(scope);
+    setBusyRevision((value) => value + 1);
   }, []);
-  const api = useMemo<FeedbackApi>(() => ({ publish, toast, float, inspect, popover, compare, confirm, dismiss, openHistory: () => setHistoryOpen(true), setCombatBusy }), [compare, confirm, dismiss, float, inspect, popover, publish, setCombatBusy, toast]);
+  const setCombatBusy = useCallback((busy: boolean) => setBusy("combat", busy), [setBusy]);
+  const api = useMemo<FeedbackApi>(() => ({
+    publish, toast, float, inspect, popover, compare, confirm, dismiss,
+    openHistory: () => setHistoryOpen(true), setBusy, setCombatBusy,
+  }), [compare, confirm, dismiss, float, inspect, popover, publish, setBusy, setCombatBusy, toast]);
 
   return <FeedbackContext.Provider value={api}>
     {children}
-    <FeedbackViewport center={center} toasts={toasts} floats={floats} sheet={sheet} popoverItem={popoverItem} decision={decision} history={history} historyOpen={historyOpen} onCloseHistory={() => setHistoryOpen(false)} onDismiss={dismiss} />
+    <FeedbackViewport center={center} important={important} toasts={toasts} floats={floats} sheet={sheet} popoverItem={popoverItem} decision={decision} history={history} historyOpen={historyOpen} onCloseHistory={() => setHistoryOpen(false)} onDismiss={dismiss} />
   </FeedbackContext.Provider>;
 }
 

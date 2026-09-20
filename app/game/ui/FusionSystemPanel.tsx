@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as React from "react";
 import { EVENTS, GIFTS } from "../content";
 import { ITEM_TABLE } from "../alchemy/item-data";
@@ -19,16 +19,23 @@ import { itemTemplateId } from "../core/inventory-service";
 import { CARD_QUALITY_NAMES } from "../core/card-service";
 import CultivationArtsPanel from "../skills/CultivationArtsPanel";
 import { manualItemById } from "../skills/manual-items";
+import { kitchenRecipeByItemId } from "../kitchen/content";
+import { easterEggPresentationById } from "../easter-eggs/content";
+import { isEasterEggItem, revealEligibleEasterEggNotes } from "../easter-eggs/system";
+import { getCalendarDate } from "../calendar-engine";
 
 export type FusionPanelId = "profile" | "inventory" | "cards" | "skills" | "equipment";
 
 const RARITY = ["", ...Object.values(CARD_QUALITY_NAMES)];
-const TYPE_LABEL: Record<UnifiedItemType, string> = { gift: "礼物甜品", material: "炼丹灵材", pill: "丹药", equipment: "装备", card: "人物卡", treasure: "秘境宝物", quest: "剧情物品", fish: "灵鱼渔获", manual: "功法玉简" };
-const FILTERS: Array<[string, UnifiedItemType | "all"]> = [["全部", "all"], ["礼物", "gift"], ["灵材", "material"], ["丹药", "pill"], ["功法", "manual"], ["装备", "equipment"], ["宝物", "treasure"], ["渔获", "fish"], ["剧情", "quest"]];
+const TYPE_LABEL: Record<UnifiedItemType, string> = { gift: "礼物甜品", material: "炼丹灵材", pill: "丹药", food: "烟火灵膳", equipment: "装备", card: "人物卡", treasure: "秘境宝物", quest: "剧情物品", fish: "灵鱼渔获", manual: "功法玉简" };
+type InventoryFilter = UnifiedItemType | "all" | "easter";
+const FILTERS: Array<[string, InventoryFilter]> = [["全部", "all"], ["藏珍", "easter"], ["礼物", "gift"], ["灵材", "material"], ["丹药", "pill"], ["灵膳", "food"], ["功法", "manual"], ["装备", "equipment"], ["宝物", "treasure"], ["渔获", "fish"], ["剧情", "quest"]];
 
-type ItemPresentation = { name: string; image: string; description: string; detail: string; position: string; atlas?: boolean };
+type ItemPresentation = { name: string; image: string; description: string; detail: string; position: string; atlas?: boolean; atlasSize?: string };
 
 function itemPresentation(stack: UnifiedItemStack): ItemPresentation {
+  const dish = kitchenRecipeByItemId(stack.itemId);
+  if (dish) return { name: dish.name, image: dish.art, description: dish.description, detail: `灵膳 · 体力 +${dish.effects.stamina} · 修为 +${dish.effects.experience}${dish.effects.luckCharges ? ` · 食运 ${dish.effects.luckBonus}阶×${dish.effects.luckCharges}次` : ""}`, position: "center" };
   const manualItem = manualItemById(stack.itemId);
   if (manualItem) return { name: manualItem.name, image: manualItem.art, description: manualItem.description, detail: manualItem.tags.join(" · "), position: "center" };
   const alchemy = ITEM_TABLE.find((item) => item.id === itemTemplateId(stack));
@@ -36,7 +43,7 @@ function itemPresentation(stack: UnifiedItemStack): ItemPresentation {
   const gift = GIFTS.find((item) => item.id === stack.itemId);
   if (gift) return { name: gift.name, image: gift.image, description: gift.description, detail: gift.tags.join(" · "), position: gift.imagePosition ?? "center", atlas: gift.image.includes("gift-atlas") };
   const quest = EVENTS.map((event) => event.exploration?.rewardItem).find((item) => item?.id === stack.itemId);
-  if (quest) return { name: quest.name, image: quest.image, description: quest.description, detail: "藏珍录 · 剧情见证", position: "center" };
+  if (quest) return { name: quest.name, image: quest.image, description: quest.description, detail: "藏珍录 · 剧情见证", position: quest.imagePosition ?? "center", atlas: quest.image.includes("easter-egg-atlas"), atlasSize: "500% 400%" };
   if (stack.itemId.startsWith("treasure:")) {
     const treasure = treasureById(stack.itemId.slice(9));
     return { name: treasure.name, image: treasure.art, description: treasure.description, detail: `${treasure.width}×${treasure.height} 格 · 秘境带回`, position: "center" };
@@ -51,31 +58,42 @@ function itemPresentation(stack: UnifiedItemStack): ItemPresentation {
 }
 
 function ItemArtwork({ item, className = "" }: { item: ItemPresentation; className?: string }) {
-  if (item.atlas) return <span className={`cropped-item-atlas ${className}`} style={{ backgroundImage: `url(${item.image})`, backgroundPosition: item.position, backgroundSize: "500% 100%" }} aria-hidden="true" />;
+  if (item.atlas) return <span className={`cropped-item-atlas ${className}`} style={{ backgroundImage: `url(${item.image})`, backgroundPosition: item.position, backgroundSize: item.atlasSize ?? "500% 100%" }} aria-hidden="true" />;
   return <img className={className} src={item.image} alt="" style={{ objectPosition: item.position }} />;
 }
 
 export default function FusionSystemPanel({ panel, onClose }: { panel: FusionPanelId; onClose: () => void }) {
-  const { state, setBattle, applyEffects } = useUnifiedGame();
+  const { state, setRomance, setBattle, applyEffects } = useUnifiedGame();
   const feedback = useFeedback();
-  const [filter, setFilter] = useState<UnifiedItemType | "all">("all");
+  const [filter, setFilter] = useState<InventoryFilter>("all");
   const allItems = useMemo(() => Object.values(state.shared.items).filter((item) => item.amount > 0).sort((a, b) => b.rarity - a.rarity || b.amount - a.amount), [state.shared.items]);
-  const items = filter === "all" ? allItems : allItems.filter((item) => item.itemType === filter);
+  const items = filter === "all" ? allItems : filter === "easter" ? allItems.filter(isEasterEggItem) : allItems.filter((item) => item.itemType === filter);
   const [selectedItemId, setSelectedItemId] = useState(() => allItems[0]?.itemId ?? "");
   const [itemInspectorOpen, setItemInspectorOpen] = useState(false);
+  const [noteReveal, setNoteReveal] = useState<{ itemId: string; noteIds: string[] } | null>(null);
   const selectedStack = allItems.find((item) => item.itemId === selectedItemId) ?? items[0] ?? allItems[0];
   const selected = selectedStack ? itemPresentation(selectedStack) : null;
   const selectedManual = selectedStack ? manualItemById(selectedStack.itemId) : undefined;
+  const selectedEasterEgg = selectedStack ? easterEggPresentationById(selectedStack.itemId) : undefined;
+  const selectedEasterProgress = selectedStack ? state.romance.easterEggProgress[selectedStack.itemId] : undefined;
+  const acquiredDate = selectedEasterProgress ? getCalendarDate(selectedEasterProgress.acquiredDay) : null;
   const selectedManualLearned = selectedManual ? state.shared.learnedSkills.includes(selectedManual.skillId) : false;
   const learnSelectedManual = () => {
     if (!selectedStack || !selectedManual || selectedManualLearned) return;
     applyEffects([{ type: "remove_item", itemId: selectedStack.itemId, amount: 1 }, { type: "learn_skill", skillId: selectedManual.skillId }]);
-    feedback.toast({ priority: 2, tone: "gold", titleKey: "system.toastSuccess", bodyKey: "system.dynamicMessage", params: { message: `参悟${selectedManual.name}，已习得功法。` }, icon: selectedManual.icon, dedupeKey: `learn-manual:${selectedManual.skillId}` });
   };
   const passiveBonusCount = state.shared.cards.filter((card) => card.mode === "passive").length;
   const attributes = computeFinalAttributes(state);
   const nextLevelExperience = experienceToNextLevel(state.shared.playerLevel);
   const panelTitle = panel === "profile" ? "修士属性" : panel === "inventory" ? "乾坤行囊" : panel === "cards" ? "太虚名册" : panel === "skills" ? "万法谱" : "法器阁";
+  useEffect(()=>{if(!noteReveal)return;const timer=window.setTimeout(()=>setNoteReveal(null),1900);return()=>window.clearTimeout(timer)},[noteReveal]);
+  const filterCount=(id:InventoryFilter)=>id==="all"?allItems.length:id==="easter"?allItems.filter(isEasterEggItem).length:allItems.filter((item)=>item.itemType===id).length;
+  const inspectItem=(itemId:string)=>{
+    setSelectedItemId(itemId);setItemInspectorOpen(true);
+    const definition=easterEggPresentationById(itemId);if(!definition)return;
+    const preview=revealEligibleEasterEggNotes(state.romance,definition);
+    if(preview.newlyUnlocked.length){setNoteReveal({itemId,noteIds:preview.newlyUnlocked});setRomance((current)=>revealEligibleEasterEggNotes(current,definition).state)}
+  };
 
   return <div className="fusion-system-backdrop" role="presentation" onMouseDown={onClose}>
     <section className={`fusion-system-panel panel-${panel}`} role="dialog" aria-modal="true" aria-label={panelTitle} onMouseDown={(event) => event.stopPropagation()}>
@@ -88,9 +106,9 @@ export default function FusionSystemPanel({ panel, onClose }: { panel: FusionPan
       </div>}
 
       {panel === "inventory" && <div className="professional-inventory">
-        <nav className="inventory-filters" aria-label="行囊分类">{FILTERS.map(([label, id]) => <button key={id} className={filter === id ? "active" : ""} onClick={() => { setFilter(id); setItemInspectorOpen(false); const first = id === "all" ? allItems[0] : allItems.find((item) => item.itemType === id); if (first) setSelectedItemId(first.itemId); }}>{label}<b>{id === "all" ? allItems.length : allItems.filter((item) => item.itemType === id).length}</b></button>)}</nav>
-        <div className={`inventory-workspace ${itemInspectorOpen ? "inspector-open" : ""}`}><div className="inventory-art-grid">{items.map((stack) => { const meta = itemPresentation(stack); return <button type="button" key={stack.itemId} className={selectedStack?.itemId === stack.itemId ? "selected" : ""} data-rarity={stack.rarity} onMouseEnter={() => setSelectedItemId(stack.itemId)} onFocus={() => setSelectedItemId(stack.itemId)} onClick={() => { setSelectedItemId(stack.itemId); setItemInspectorOpen(true); }} aria-label={`${meta.name}，${RARITY[stack.rarity]}，数量${stack.amount}`}><span className="item-art"><ItemArtwork item={meta} /><i>{RARITY[stack.rarity]}</i></span><strong>{meta.name}</strong><b>×{stack.amount}</b></button>; })}{items.length === 0 && <div className="fusion-empty">此分类尚无物品。秘境、赠礼与炼丹都会将所得送入这里。</div>}</div>
-          <aside className={`item-inspector ${selectedManual ? "manual-inspector" : ""}`}><button type="button" className="item-inspector-close" onClick={() => setItemInspectorOpen(false)} aria-label={feedbackText("system.close")}>×</button>{selected && selectedStack ? <><div className="inspector-art" data-rarity={selectedStack.rarity}><ItemArtwork item={selected} /><span>{RARITY[selectedStack.rarity]}</span></div><small>{TYPE_LABEL[selectedStack.itemType]} · {selectedStack.sourceTags.join(" / ")}</small><h3>{selected.name}</h3><p>{selected.description}</p><div className="inspector-tags"><span>{selected.detail}</span><span>持有 ×{selectedStack.amount}</span>{selectedStack.locked && <span>剧情锁定</span>}</div>{selectedManual && <div className="manual-learn-row"><small>{selectedManualLearned ? "此诀已收入万法谱" : "研读会消耗一卷玉简"}</small><button type="button" disabled={selectedManualLearned} onClick={learnSelectedManual}>{selectedManualLearned ? "已习得" : `研读 · 习得${selectedManual.name.replace(/[《》]/g, "")}`}</button></div>}<footer><span>可用于 {selectedStack.itemType === "material" ? "玄火丹炉" : selectedStack.itemType === "gift" ? "人物赠礼" : selectedStack.itemType === "treasure" ? "收藏与交易" : selectedStack.itemType === "fish" ? "鱼获图鉴与商店交易" : selectedStack.itemType === "manual" ? "研读并收入万法谱" : selectedStack.itemType === "quest" ? "剧情回顾与世界线索" : "对应玩法"}</span><button type="button" onClick={()=>feedback.inspect({titleKey:"items.nameLabel",bodyKey:"world.changeBody",params:{message:selected.description},icon:"鉴",imageSrc:selected.image,details:[{labelKey:"items.nameLabel",value:selected.name,emphasis:true},{labelKey:"items.rarityLabel",value:RARITY[selectedStack.rarity]},{labelKey:"items.countLabel",value:selectedStack.amount},{labelKey:"items.sourceLabel",value:selectedStack.sourceTags.join(" · ")},{labelKey:"items.tagsLabel",value:selected.detail},{labelKey:"items.lockedLabel",value:feedbackText(selectedStack.locked?"system.yes":"system.no")}],dedupeKey:`inventory:inspect:${selectedStack.itemId}:${selectedStack.amount}`})}>{feedbackText("system.details")}</button></footer></> : <div className="fusion-empty">行囊尚空</div>}</aside></div>
+        <nav className="inventory-filters" aria-label="行囊分类">{FILTERS.map(([label, id]) => <button key={id} className={filter === id ? "active" : ""} onClick={() => { setFilter(id); setItemInspectorOpen(false); const first = id === "all" ? allItems[0] : id === "easter" ? allItems.find(isEasterEggItem) : allItems.find((item) => item.itemType === id); if (first) setSelectedItemId(first.itemId); }}>{label}<b>{filterCount(id)}</b></button>)}</nav>
+        <div className={`inventory-workspace ${itemInspectorOpen ? "inspector-open" : ""}`}><div className="inventory-art-grid">{items.map((stack) => { const meta = itemPresentation(stack); const egg=isEasterEggItem(stack); return <button type="button" key={stack.itemId} className={`${selectedStack?.itemId === stack.itemId ? "selected" : ""} ${egg?"easter-inventory-item":""}`} data-rarity={stack.rarity} onMouseEnter={() => setSelectedItemId(stack.itemId)} onFocus={() => setSelectedItemId(stack.itemId)} onClick={() => inspectItem(stack.itemId)} aria-label={`${meta.name}，${RARITY[stack.rarity]}，数量${stack.amount}`}><span className="item-art"><ItemArtwork item={meta} /><i>{egg?"藏珍":RARITY[stack.rarity]}</i></span><strong>{meta.name}</strong><b>×{stack.amount}</b></button>; })}{items.length === 0 && <div className="fusion-empty">此分类尚无物品。秘境、赠礼与炼丹都会将所得送入这里。</div>}</div>
+          <aside className={`item-inspector ${selectedManual ? "manual-inspector" : ""} ${selectedEasterEgg?"easter-inspector":""}`}><button type="button" className="item-inspector-close" onClick={() => setItemInspectorOpen(false)} aria-label={feedbackText("system.close")}>×</button>{selected && selectedStack ? <><div className="inspector-art" data-rarity={selectedStack.rarity}><ItemArtwork item={selected} /><span>{selectedEasterEgg?"藏珍":RARITY[selectedStack.rarity]}</span></div><small>{TYPE_LABEL[selectedStack.itemType]} · {selectedStack.sourceTags.join(" / ")}</small><h3>{selected.name}</h3><p>{selected.description}</p><div className="inspector-tags"><span>{selected.detail}</span><span>持有 ×{selectedStack.amount}</span>{selectedStack.locked && <span>剧情锁定</span>}</div>{selectedEasterEgg&&<section className="easter-egg-ledger"><header><small>ACQUIRED · 获取日期</small><strong>{acquiredDate?`${acquiredDate.eraYear} · ${acquiredDate.monthName}${acquiredDate.dayName}`:"旧档藏珍"}</strong><span>已向 {selectedEasterProgress?.shownTo.length??0} 位关联人物展示</span></header><div>{selectedEasterEgg.notes.map((note,index)=>{const unlocked=selectedEasterProgress?.unlockedNoteIds.includes(note.id);const revealing=noteReveal?.itemId===selectedStack.itemId&&noteReveal.noteIds.includes(note.id);return <article key={note.id} className={`${unlocked?"unlocked":"masked"} ${revealing?"revealing":""}`}><i>{String(index+1).padStart(2,"0")}</i><p>{unlocked?note.text:"这段补注尚被旧忆遮住"}</p><span>{unlocked?"已解明":"与关联人物交谈后，回来查看"}</span></article>})}</div></section>}{selectedManual && <div className="manual-learn-row"><small>{selectedManualLearned ? "此诀已收入万法谱" : "研读会消耗一卷玉简"}</small><button type="button" disabled={selectedManualLearned} onClick={learnSelectedManual}>{selectedManualLearned ? "已习得" : `研读 · 习得${selectedManual.name.replace(/[《》]/g, "")}`}</button></div>}<footer><span>可用于 {selectedStack.itemType === "material" ? "玄火丹炉" : selectedStack.itemType === "gift" ? "人物赠礼" : selectedStack.itemType === "food" ? "恢复体力、增长修为与获取食运" : selectedStack.itemType === "treasure" ? "收藏与交易" : selectedStack.itemType === "fish" ? "鱼获图鉴与商店交易" : selectedStack.itemType === "manual" ? "研读并收入万法谱" : selectedEasterEgg ? "向关联人物展示，不会被消耗" : selectedStack.itemType === "quest" ? "剧情回顾与世界线索" : "对应玩法"}</span><button type="button" onClick={()=>feedback.inspect({titleKey:"items.nameLabel",bodyKey:"world.changeBody",params:{message:selected.description},icon:"鉴",imageSrc:selected.image,details:[{labelKey:"items.nameLabel",value:selected.name,emphasis:true},{labelKey:"items.rarityLabel",value:RARITY[selectedStack.rarity]},{labelKey:"items.countLabel",value:selectedStack.amount},{labelKey:"items.sourceLabel",value:selectedStack.sourceTags.join(" · ")},{labelKey:"items.tagsLabel",value:selected.detail},{labelKey:"items.lockedLabel",value:feedbackText(selectedStack.locked?"system.yes":"system.no")}],dedupeKey:`inventory:inspect:${selectedStack.itemId}:${selectedStack.amount}`})}>{feedbackText("system.details")}</button></footer></> : <div className="fusion-empty">行囊尚空</div>}</aside></div>
       </div>}
 
       {panel === "cards" && <div className="card-codex-layout"><aside><div><small>主动人物卡</small><strong>{state.shared.cards.filter((card) => card.mode === "active").length}</strong><span>元气满时随机展示至多三张</span></div><div><small>被动人物卡</small><strong>{passiveBonusCount}</strong><span>全部自动叠加，不占卡槽</span></div></aside><div className="professional-card-grid">{state.shared.cards.map((card) => <article key={card.id} data-rarity={card.rarity}><div className="card-art"><img src={card.art} alt="" /><span>{RARITY[card.rarity]}</span><i>{card.mode === "active" ? "主动" : "被动"}</i></div><small>{card.source === "story" ? "人物剧情·固定命契" : card.source === "alchemy" ? "玄火丹炉·星命显化" : "秘境·偶得命契"}</small><h3>{card.name}</h3><p>{card.mode === "active" ? `元气满时进入三选一，召唤后释放「${card.activeEffect === "healing" ? "青囊回春" : card.activeEffect === "ward" ? "护道金光" : card.activeEffect === "frost" ? "霜天封境" : "剑意横空"}」。` : `持有即生效：${Object.entries(card.bonuses ?? {}).map(([key, value]) => `${key} +${value}`).join(" · ") || "命格加护"}。`}</p><footer><span>{card.mode === "active" ? "进入主动候选池" : "已计入永久属性"}</span><b>◆{card.rarity}</b></footer></article>)}{state.shared.cards.length === 0 && <div className="fusion-empty">名册尚空。人物关系事件、星命神花与高阶秘境均可获得完整人物卡。</div>}</div></div>}

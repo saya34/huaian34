@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import { MATERIALS } from "../alchemy/item-data";
 import FishingEncounter from "./FishingEncounter";
@@ -69,8 +69,14 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
   const [failureReason, setFailureReason] = useState<FishingReelResult["failureReason"]>("escaped");
   const fishingCareer = state.gathering.careers.fishing;
   const activeRod = selectedTool("fishing", fishingCareer);
-  const pool = useMemo(() => weightedPool(location, baitId, chumId, fishingCareer), [baitId, chumId, location, fishingCareer]);
+  const mealLuckBonus = state.shared.luck.charges > 0 ? state.shared.luck.bonus : 0;
+  const pool = useMemo(() => weightedPool(location, baitId, chumId, fishingCareer, mealLuckBonus), [baitId, chumId, location, fishingCareer, mealLuckBonus]);
   const attemptsLeft = Math.max(0, DAILY_CAST_LIMIT - progress.dailyAttempts);
+  useEffect(() => {
+    const busy = phase === "reeling" || showRareReveal;
+    feedback.setBusy("fishing", busy);
+    return () => feedback.setBusy("fishing", false);
+  }, [feedback, phase, showRareReveal]);
 
   function buyBait(id: BaitId) {
     const price = BAITS[id].price;
@@ -92,22 +98,26 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
     const chum = CHUMS[chumId];
     const chumMaterial = chum.materialName ? MATERIALS.find((item) => item.name === chum.materialName) : null;
     if (chumMaterial && (state.shared.items[chumMaterial.id]?.amount ?? 0) < 1) { onNotice(`缺少${chum.materialName}，请先在灵田培育。`); return; }
-    const cast = castFishing(progress, { day, tick, location, baitId, chumId, randomSpotId, career:fishingCareer });
+    const cast = castFishing(progress, { day, tick, location, baitId, chumId, randomSpotId, career:fishingCareer, luckBonus: mealLuckBonus });
     if (!cast.ok) { onNotice(cast.message); return; }
     const fish = fishById(cast.catch.fishId)!;
     setTarget(fish); setMobileDrawer(null); setFailureReason(undefined);
     setPhase("reeling"); setCastRound((value) => value + 1);
     setFishing(cast.progress);
-    if (chumMaterial) applyEffects([{ type: "remove_item", itemId: chumMaterial.id, amount: 1 }]);
-    if (fish.rarity >= 4) feedback.toast({priority:1,tone:"gold",titleKey:"system.toastWarning",bodyKey:"fishing.rareHint",icon:"异",dedupeKey:`fishing:rare-hint:${castRound+1}`});
-    onNotice(`${activeRod.name}抛入水中 · 消耗${BAITS[baitId].name}${chumMaterial ? `与${chum.materialName}` : ""}`);
+    applyEffects([
+      ...(chumMaterial ? [{ type: "remove_item" as const, itemId: chumMaterial.id, amount: 1 }] : []),
+      ...(mealLuckBonus > 0 ? [{ type: "consume_luck_charge" as const }] : []),
+    ]);
+    // The fish shadow and water pattern carry the rarity hint in-scene. Do not
+    // name or celebrate the catch before the reel result is known.
   }
 
   function finishReeling(result: FishingReelResult) {
     if (!target) return;
     if (result.success) {
       setPhase("success");
-      setShowRareReveal(target.rarity >= 4);
+      const firstObtain = (progress.records[target.id] ?? 0) === 0;
+      setShowRareReveal(target.rarity >= 4 && firstObtain);
       const reel = reelFishing(progress.pendingCast ? progress : state.fishing, true);
       setFishing((current) => reelFishing(current, true).progress);
       const careerResult=resolveGatheringOutcome(state.gathering,{professionId:"fishing",itemId:target.id,name:target.name,rarity:target.rarity,art:target.art,location:location.name,tick,seed:`fish:${day}:${tick}:${target.id}:${progress.totalCaught}`,tags:["水产",location.kind === "random" ? "游光钓点" : "常驻钓点"]});
@@ -122,10 +132,12 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
       if (isSecondSuccessfulCatch && !state.shared.learnedSkills.includes(FISHING_SECOND_CATCH_MANUAL.skillId) && !state.shared.items[FISHING_SECOND_CATCH_MANUAL.itemId]?.amount) {
         rewards.push({ type: "add_item", item: { itemId: FISHING_SECOND_CATCH_MANUAL.itemId, itemType: "manual", rarity: FISHING_SECOND_CATCH_MANUAL.rarity, amount: 1, sourceTags: [location.name, "第二次垂钓奇遇", "功法玉简"] } });
       }
-      rewards.push({ type: "record_activity", receipt: createActivityReceipt({ kind: "fishing", title: `钓得 · ${target.name}`, summary: `${location.name}的鱼获已完整收入乾坤行囊。`, rewards: [`${target.name} ×1`, careerResult.companion ? `${careerResult.companion.name} ×1` : reel.ok && reel.mapFragment ? "河图残片 ×1" : `修为 +${target.rarity * 3}`], impacts: [`听澜师经验 +${careerResult.experience}`, "任务与配方进度已同步"], nextStep: { target: "inventory", label: "查看鱼获与可用配方" } }) });
+      const receipt=createActivityReceipt({ kind: "fishing", title: `钓得 · ${target.name}`, summary: `${location.name}的鱼获已完整收入乾坤行囊。`, rewards: [`${target.name} ×1`, careerResult.companion ? `${careerResult.companion.name} ×1` : reel.ok && reel.mapFragment ? "河图残片 ×1" : `修为 +${target.rarity * 3}`], impacts: [`听澜师经验 +${careerResult.experience}`, "任务与配方进度已同步"], nextStep: { target: "inventory", label: "查看鱼获与可用配方" } });
+      rewards.push({ type: "record_activity", receipt });
       applyEffects(rewards);
       feedback.publish({
-        variant: target.rarity >= 4 ? "rare-reward" : "action-toast",
+        variant: target.rarity >= 4 && firstObtain ? "rare-reward" : "action-toast",
+        level: target.rarity >= 4 && firstObtain ? "L0" : "L1",
         priority: target.rarity >= 4 ? 1 : 3,
         tone: target.rarity >= 4 ? "gold" : "jade",
         titleKey: target.rarity >= 4 ? "items.rareTitle" : "fishing.catchTitle",
@@ -133,16 +145,20 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
         params: { name: target.name, amount: 1 },
         icon: target.icon,
         imageSrc: target.art,
-        dedupeKey: `fishing:catch:${target.id}:${progress.totalCaught + 1}`,
+        receiptId: receipt.id,
+        presentationOwner: "fishing",
+        firstObtain,
+        record: target.rarity >= 4,
+        rewards: receipt.rewards,
+        impacts: receipt.impacts,
       });
-      onNotice(`收杆成功 · 获得${target.name}${careerResult.companion?`、${careerResult.companion.name}`:""}${reel.ok && reel.mapFragment ? "与河图残片" : ""}${isSecondSuccessfulCatch ? `，另从鱼腹灵匣中取得${FISHING_SECOND_CATCH_MANUAL.name}` : ""} · 听澜师经验 +${careerResult.experience}`);
       return;
     }
     setPhase("failed");
     setFailureReason(result.failureReason ?? "escaped");
     setFishing((current) => reelFishing(current, false).progress);
-    feedback.toast({ priority:3, tone:"muted", titleKey:"system.toastInfo", bodyKey:"fishing.fail", icon:"澜", dedupeKey:`fishing:escape:${castRound}` });
-    onNotice("灵线失衡，鱼影挣脱了。 ");
+    // Failure reason remains on the fishing stage; a second global toast would
+    // cover the retry/leave decision and repeat the same information.
   }
 
   function retryEscaped() {
@@ -186,7 +202,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
       <header className="fishing-heading">
         <div className="fishing-location-heading" role="button" tabIndex={0} onClick={() => feedback.inspect({titleKey:"fishing.pointTitle",bodyKey:"world.changeBody",params:{message:location.subtitle},icon:"钓",details:[{labelKey:"world.locationLabel",value:location.name,emphasis:true},{labelKey:"fishing.kindLabel",value:feedbackText(location.kind === "random" ? "fishing.kindRandom" : "fishing.kindResident")},{labelKey:"fishing.periodLabel",value:period},{labelKey:"fishing.poolLabel",value:pool.map((entry)=>FISH.find((fish)=>fish.id===entry.fishId)?.name).filter(Boolean).join(feedbackText("system.listSeparator"))},{labelKey:"fishing.baitLabel",value:BAITS[baitId].name}],dedupeKey:`fishing:location:${location.id}:${day}:${period}`})} onKeyDown={(event)=>{if(event.key==="Enter"||event.key===" ")event.currentTarget.click()}}><small>SPIRIT ANGLING · {feedbackText(location.kind === "random" ? "fishing.kindRandom" : "fishing.kindResident")}</small><h2>{location.name}</h2><p>{location.subtitle} · 第 {day} 日 {period}</p></div>
         <div className="fishing-attempts"><span>今日抛竿</span><strong>{attemptsLeft}<small> / {DAILY_CAST_LIMIT}</small></strong><em>{activeRod.name} · {fishingCareer.toolTier}阶</em></div>
-        <div className="fishing-mobile-vitals" aria-label={`${location.name}，${period}，体力 ${state.romance.stamina}，灵石 ${state.shared.spiritStones}`}><span><small>{location.name}</small><b>{period}</b></span><i>{reelUi.staminaShort} {state.romance.stamina}</i><i>{reelUi.currencyShort} {state.shared.spiritStones.toLocaleString()}</i></div>
+        <div className="fishing-mobile-vitals" aria-label={`${location.name}，${period}，体力 ${state.romance.stamina}，灵石 ${state.shared.spiritStones}`}><span><small>{location.name}</small><b>{period}</b></span><i>{reelUi.staminaShort} {state.romance.stamina}</i><i>{reelUi.currencyShort} {state.shared.spiritStones.toLocaleString()}</i>{state.shared.luck.charges>0&&<i className="meal-luck-vital">福 {state.shared.luck.bonus}阶×{state.shared.luck.charges}</i>}</div>
         <button type="button" onClick={leaveFishing} aria-label="离开钓点">×</button>
       </header>
 
@@ -220,7 +236,7 @@ export default function FishingModal({ locationId, randomSpotId, day, period, on
             {phase === "failed" && <button type="button" className="retry-fish" onClick={retryEscaped}>循波追回 · ◉ 1000</button>}
             <button type="button" onClick={() => location.kind === "resident" ? continueFishing() : leaveFishing()}>{location.kind === "resident" ? "放弃鱼影 · 再听一竿" : "放弃鱼影 · 返回山河图"}</button>
           </div>}
-          {showRareReveal && target && <RareCatchReveal fish={target} onClose={() => setShowRareReveal(false)} />}
+          {showRareReveal && target && <RareCatchReveal fish={target} firstObtain onClose={() => setShowRareReveal(false)} />}
         </main>
 
         <aside className={`bait-shop-panel mobile-game-drawer ${mobileDrawer === "kit" ? "drawer-open" : ""}`}>

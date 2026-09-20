@@ -1,6 +1,6 @@
 export type BaitId = "spirit-worm" | "jade-lure" | "star-bait";
 export type ChumId = "none" | "frost-chum" | "jade-chum" | "fire-chum";
-export type FishingMapId = "yunzhou" | "canglan" | "chixia";
+export type FishingMapId = "yunzhou" | "village" | "wilds" | "canglan" | "chixia";
 export type FishingLocationId = "lingxiao-cloudpool" | "tavern-pier" | "yunzhou-wild" | "canglan-wild" | "chixia-wild";
 import type { GatheringCareerState } from "../gathering/types";
 import { gatheringLevel, selectedTool } from "../gathering/engine";
@@ -104,10 +104,10 @@ const BASE_FISHING_LOCATIONS: FishingLocation[] = [
   { id: "lingxiao-cloudpool", name: "凌霄云海天池", subtitle: "常驻钓点 · 云气鱼池", kind: "resident", sceneId: "lingxiao", mapId: "yunzhou", pool: [
     { fishId: "cloud-wing-fish", weight: 45 }, { fishId: "frost-fin-sturgeon", weight: 30 }, { fishId: "silver-tail-carp", weight: 17 }, { fishId: "jade-kun-fry", weight: 7 }, { fishId: "void-dragon-carp", weight: 1 },
   ] },
-  { id: "tavern-pier", name: "醉月楼水榭", subtitle: "常驻钓点 · 酒香河湾", kind: "resident", sceneId: "tavern", mapId: "yunzhou", pool: [
+  { id: "tavern-pier", name: "醉月楼水榭", subtitle: "常驻钓点 · 酒香河湾", kind: "resident", sceneId: "tavern", mapId: "village", pool: [
     { fishId: "green-scale-crucian", weight: 46 }, { fishId: "silver-tail-carp", weight: 29 }, { fishId: "drunken-moon-mandarin", weight: 17 }, { fishId: "dream-goldscale", weight: 7 }, { fishId: "moon-shadow-eel", weight: 1 },
   ] },
-  { id: "yunzhou-wild", name: "云州游光灵泉", subtitle: "随机钓点 · 今日显现", kind: "random", mapId: "yunzhou", pool: [
+  { id: "yunzhou-wild", name: "野外游光灵泉", subtitle: "随机钓点 · 今日显现", kind: "random", mapId: "wilds", pool: [
     { fishId: "silver-tail-carp", weight: 34 }, { fishId: "moon-shadow-eel", weight: 29 }, { fishId: "dream-goldscale", weight: 23 }, { fishId: "jade-kun-fry", weight: 11 }, { fishId: "void-dragon-carp", weight: 3 },
   ] },
   { id: "canglan-wild", name: "沧澜裂隙鱼影", subtitle: "随机钓点 · 寒潮鱼池", kind: "random", mapId: "canglan", pool: [
@@ -135,7 +135,10 @@ export function normalizeFishingProgress(value?: Partial<FishingProgress> | null
   const base = createInitialFishing();
   const pendingCast = value?.pendingCast ? { ...value.pendingCast, chumId: value.pendingCast.chumId ?? "none" as const } : null;
   const lastEscape = value?.lastEscape ? { ...value.lastEscape, chumId: value.lastEscape.chumId ?? "none" as const } : null;
-  return { ...base, ...value, pendingCast, lastEscape, baits: { ...base.baits, ...value?.baits }, records: { ...base.records, ...value?.records }, randomSpots: Array.isArray(value?.randomSpots) ? value.randomSpots : [], aging: Array.isArray(value?.aging) ? value.aging : [] };
+  const randomSpots = Array.isArray(value?.randomSpots)
+    ? value.randomSpots.map((spot) => spot.locationId === "yunzhou-wild" ? { ...spot, mapId: "wilds" as const } : spot)
+    : [];
+  return { ...base, ...value, pendingCast, lastEscape, baits: { ...base.baits, ...value?.baits }, records: { ...base.records, ...value?.records }, randomSpots, aging: Array.isArray(value?.aging) ? value.aging : [] };
 }
 
 function hash(seed: string) {
@@ -146,8 +149,16 @@ function hash(seed: string) {
 
 const SPOT_COORDINATES: Record<FishingMapId, Array<[number, number]>> = {
   yunzhou: [[24, 74], [77, 55], [18, 43]],
+  village: [[17, 52], [64, 71], [34, 28]],
+  wilds: [[20, 49], [59, 72], [44, 31]],
   canglan: [[28, 68], [71, 31], [52, 76]],
   chixia: [[23, 61], [69, 70], [76, 31]],
+};
+
+const RANDOM_FISHING_LOCATION_BY_MAP: Record<"wilds" | "canglan" | "chixia", FishingLocationId> = {
+  wilds: "yunzhou-wild",
+  canglan: "canglan-wild",
+  chixia: "chixia-wild",
 };
 
 export function resetFishingDay(progress: FishingProgress, day: number): FishingProgress {
@@ -157,7 +168,7 @@ export function resetFishingDay(progress: FishingProgress, day: number): Fishing
 export function ensureRandomFishingSpots(progress: FishingProgress, day: number, highestUnlocked: number): FishingProgress {
   const current = resetFishingDay(progress, day);
   if (current.lastSpawnDay === day) return current;
-  const maps: FishingMapId[] = ["yunzhou"];
+  const maps: Array<"wilds" | "canglan" | "chixia"> = ["wilds"];
   if (highestUnlocked >= 8) maps.push("canglan");
   if (highestUnlocked >= 15) maps.push("chixia");
   const count = day % 5 === 0 ? 2 : 1;
@@ -165,12 +176,12 @@ export function ensureRandomFishingSpots(progress: FishingProgress, day: number,
     const mapId = maps[Math.floor(hash(`map:${day}:${index}`) * maps.length)];
     const coordinates = SPOT_COORDINATES[mapId];
     const [x, y] = coordinates[Math.floor(hash(`coord:${day}:${index}`) * coordinates.length)];
-    return { id: `fishing-light-${day}-${index}`, locationId: `${mapId}-wild` as FishingLocationId, mapId, x, y, spawnDay: day };
+    return { id: `fishing-light-${day}-${index}`, locationId: RANDOM_FISHING_LOCATION_BY_MAP[mapId], mapId, x, y, spawnDay: day };
   });
   return { ...current, randomSpots: spots, lastSpawnDay: day };
 }
 
-export function weightedPool(location: FishingLocation, baitId: BaitId, chumId: ChumId = "none", career?: GatheringCareerState) {
+export function weightedPool(location: FishingLocation, baitId: BaitId, chumId: ChumId = "none", career?: GatheringCareerState, luckBonus = 0) {
   const tuning = FISHING_TEST_TUNING?.enabled ? FISHING_TEST_TUNING : undefined;
   const sourcePool = tuning && !location.pool.some((entry) => entry.fishId === tuning.featuredFishId) ? [...location.pool, { fishId: tuning.featuredFishId, weight: 1 }] : location.pool;
   const eligible = career ? sourcePool.filter((entry) => (fishById(entry.fishId)?.rarity ?? 1) <= career.toolTier || entry.fishId === tuning?.featuredFishId) : sourcePool;
@@ -182,7 +193,8 @@ export function weightedPool(location: FishingLocation, baitId: BaitId, chumId: 
     const multiplier = baitId === "star-bait" ? (rarity >= 4 ? 2.5 : rarity === 3 ? 1.5 : .8) : baitId === "jade-lure" ? (rarity >= 4 ? 1.7 : rarity === 3 ? 1.3 : .92) : 1;
     const chumMultiplier = chumId === "frost-chum" ? (entry.fishId.includes("frost") || entry.fishId.includes("moon") || rarity >= 4 ? 1.65 : .88) : chumId === "fire-chum" ? (entry.fishId.includes("blazing") || entry.fishId.includes("thunder") || location.mapId === "chixia" ? 1.75 : .86) : chumId === "jade-chum" ? (rarity <= 3 ? 1.32 : 1.08) : 1;
     const careerMultiplier = career ? 1 + Math.max(0, rarity - 1) * ((gatheringLevel(career.experience)-1)*.018 + (toolTrait === "affinity" ? .08 : 0)) : 1;
-    return { ...entry, adjustedWeight: entry.weight * multiplier * chumMultiplier * careerMultiplier };
+    const mealLuckMultiplier = rarity >= 4 ? 1 + Math.max(0, luckBonus) * .42 : rarity === 3 ? 1 + Math.max(0, luckBonus) * .16 : 1;
+    return { ...entry, adjustedWeight: entry.weight * multiplier * chumMultiplier * careerMultiplier * mealLuckMultiplier };
   });
   if (tuning && entries.some((entry) => entry.fishId === tuning.featuredFishId)) {
     const probability = Math.max(.01, Math.min(.95, tuning.featuredProbability));
@@ -193,8 +205,8 @@ export function weightedPool(location: FishingLocation, baitId: BaitId, chumId: 
   return entries.map((entry) => ({ ...entry, probability: entry.adjustedWeight / total }));
 }
 
-export function rollFish(location: FishingLocation, baitId: BaitId, seed: string, chumId: ChumId = "none", career?: GatheringCareerState) {
-  const pool = weightedPool(location, baitId, chumId, career);
+export function rollFish(location: FishingLocation, baitId: BaitId, seed: string, chumId: ChumId = "none", career?: GatheringCareerState, luckBonus = 0) {
+  const pool = weightedPool(location, baitId, chumId, career, luckBonus);
   let roll = hash(seed);
   for (const entry of pool) {
     roll -= entry.probability;
@@ -205,7 +217,7 @@ export function rollFish(location: FishingLocation, baitId: BaitId, seed: string
 
 // Mirrors the reference reducer order: validate the wharf, consume bait,
 // then persist the pending catch. Reeling is a separate transaction.
-export function castFishing(progress: FishingProgress, input: { day: number; tick: number; location: FishingLocation; baitId: BaitId; chumId?: ChumId; randomSpotId?: string; career?: GatheringCareerState }) {
+export function castFishing(progress: FishingProgress, input: { day: number; tick: number; location: FishingLocation; baitId: BaitId; chumId?: ChumId; randomSpotId?: string; career?: GatheringCareerState; luckBonus?: number }) {
   const { day, tick, location, baitId, randomSpotId, chumId = "none" } = input;
   const current = resetFishingDay(progress, day);
   if (current.pendingCast) return { progress: current, ok: false as const, message: "已有一竿尚未收线" };
@@ -213,7 +225,7 @@ export function castFishing(progress: FishingProgress, input: { day: number; tic
   if ((current.baits[baitId] ?? 0) <= 0) return { progress: current, ok: false as const, message: `没有${BAITS[baitId].name}了` };
   if (randomSpotId && !current.randomSpots.some((spot) => spot.id === randomSpotId)) return { progress: current, ok: false as const, message: "这处游光钓点已经消散" };
   const seed = `${day}:${tick}:${location.id}:${current.totalCaught}:${current.dailyAttempts}:${baitId}`;
-  const fish = rollFish(location, baitId, seed, chumId, input.career);
+  const fish = rollFish(location, baitId, seed, chumId, input.career, input.luckBonus);
   const pendingCast: PendingFishingCast = { locationId: location.id, randomSpotId, baitId, fishId: fish.id, castedAtTick: tick, seed, chumId };
   return { ok: true as const, catch: pendingCast, progress: { ...current, baits: { ...current.baits, [baitId]: current.baits[baitId] - 1 }, dailyAttempts: current.dailyAttempts + 1, pendingCast, lastEscape: null } };
 }

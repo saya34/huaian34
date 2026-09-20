@@ -10,10 +10,11 @@ import type {
   MapEventConfig,
   OpeningEffect,
   StageEffect,
+  StoryVfxId,
   TriggerType,
 } from "../types";
 
-const PORTRAIT = "/assets/characters/shen-qingshuang.webp";
+const PORTRAIT = "/assets/characters/portrait-refresh/shen-qingshuang.png";
 
 type StoryLine = {
   kind: "line";
@@ -21,6 +22,7 @@ type StoryLine = {
   text: string;
   mood?: string;
   stageEffect?: StageEffect;
+  storyEffect?: StoryVfxId;
   effects?: Effect[];
 };
 
@@ -28,6 +30,7 @@ type StoryChoice = {
   kind: "choice";
   prompt: string;
   stageEffect?: StageEffect;
+  storyEffect?: StoryVfxId;
   options: Array<{
     id: string;
     label: string;
@@ -50,6 +53,7 @@ type StoryEventSource = {
   conditions: Condition[];
   clue: string;
   openingEffect?: OpeningEffect;
+  defaultStoryEffect?: StoryVfxId;
   cardStyle?: EventDefinition["cardStyle"];
   inspection?: InspectionEventConfig;
   presenceMode?: EventDefinition["presenceMode"];
@@ -84,6 +88,7 @@ function compileEvent(source: StoryEventSource): EventDefinition {
         effects: entry.effects,
         portrait: PORTRAIT,
         stageEffect: entry.stageEffect,
+        storyEffect: entry.storyEffect,
       };
       return;
     }
@@ -93,6 +98,7 @@ function compileEvent(source: StoryEventSource): EventDefinition {
       prompt: entry.prompt,
       portrait: PORTRAIT,
       stageEffect: entry.stageEffect ?? "heartbeat",
+      storyEffect: entry.storyEffect,
       options: entry.options.map((option, optionIndex) => {
         const responseId = `${id}r${optionIndex + 1}`;
         nodes[responseId] = {
@@ -134,6 +140,7 @@ function compileEvent(source: StoryEventSource): EventDefinition {
     cardStyle: source.cardStyle ?? "special",
     openingEffect: source.openingEffect ?? "flash_white",
     defaultPortrait: PORTRAIT,
+    defaultStoryEffect: source.defaultStoryEffect,
     inspection: source.inspection,
     presenceMode: source.presenceMode,
     mapEvent: source.mapEvent,

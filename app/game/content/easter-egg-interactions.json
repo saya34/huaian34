@@ -1,0 +1,395 @@
+{
+  "items": [
+    {
+      "itemId": "egg-sleeping-paper-crane",
+      "sourceLabel": "半梦纸鹤",
+      "notes": [
+        { "id": "fold", "text": "折痕里夹着一根极细的霜色发丝。", "condition": { "type": "acquired" } },
+        { "id": "shen", "text": "沈清霜认得它，却坚持说纸鹤打呼与她无关。", "condition": { "type": "shown_to", "characterId": "shen" } },
+        { "id": "shimei", "text": "小师妹供出：这是师尊学折纸的第三只成品。", "condition": { "type": "shown_to", "characterId": "shimei" } }
+      ],
+      "showTo": [
+        { "characterId": "shen", "title": "纸鹤打了个小呼噜", "subtitle": "清冷峰主第一次败给自己的手艺", "relationshipReward": 2, "lines": [
+          { "speaker": "player", "text": "师尊，这只纸鹤似乎认得你。" },
+          { "speaker": "character", "text": "胡说。纸物无灵，更不会……打呼。", "mood": "慌乱" },
+          { "speaker": "narrator", "text": "纸鹤在她掌心翻了个身。她指尖一僵，悄悄把它往袖中藏。" },
+          { "speaker": "character", "text": "今日之事不许记入事件簿。尤其不许笑。", "mood": "羞恼" }
+        ] },
+        { "characterId": "shimei", "title": "谁教会了纸鹤睡觉", "subtitle": "小师妹知道太多师门旧事", "relationshipReward": 1, "lines": [
+          { "speaker": "player", "text": "你认得这只纸鹤吗？" },
+          { "speaker": "character", "text": "当然！师尊当年折坏两张符纸，第三只才勉强站稳。" },
+          { "speaker": "character", "text": "嘘——你若拿去问她，记得先替我留条逃跑的路。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-silent-bell-clapper",
+      "sourceLabel": "无声钟舌",
+      "notes": [
+        { "id": "echo", "text": "贴近耳边，能听见第四声钟响之后的一句叹息。", "condition": { "type": "acquired" } },
+        { "id": "shen", "text": "那句叹息来自沈清霜初任峰主的第一夜。", "condition": { "type": "shown_to", "characterId": "shen" } }
+      ],
+      "showTo": [
+        { "characterId": "shen", "title": "钟声留住的那一夜", "subtitle": "她不愿提起的初任峰主之夜", "relationshipReward": 2, "lines": [
+          { "speaker": "player", "text": "钟舌无声，可我听见有人叹气。" },
+          { "speaker": "character", "text": "那夜我以为，坐上峰主之位便不能再说累。" },
+          { "speaker": "character", "text": "如今倒不必了。你在时……偶尔说一句，也无妨。", "mood": "柔和" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-charred-cloud-cake",
+      "sourceLabel": "焦边云糕",
+      "notes": [
+        { "id": "fourth", "text": "背面的“第四次”不是炉次，而是某人第四次偷偷学做点心。", "condition": { "type": "acquired" } },
+        { "id": "yaoyao", "text": "陆夭夭承认前三盘都被她埋在了后山。", "condition": { "type": "shown_to", "characterId": "lu-yaoyao" } }
+      ],
+      "showTo": [
+        { "characterId": "lu-yaoyao", "title": "第四盘终于能吃", "subtitle": "师姐的灶火也有不听话的时候", "relationshipReward": 2, "lines": [
+          { "speaker": "player", "text": "这块云糕背面写着第四次。" },
+          { "speaker": "character", "text": "你、你从哪里翻出来的？那只是火候试验！" },
+          { "speaker": "narrator", "text": "她飞快掰下一角尝了尝，随后装作若无其事地把剩下的推给你。" },
+          { "speaker": "character", "text": "不许嫌焦。你若喜欢，我下次……可以只焦一边。", "mood": "慌乱" }
+        ] },
+        { "characterId": "shimei", "title": "后山埋糕案", "subtitle": "小师妹决定守住师姐的体面", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "原来第四盘在你这里！前三盘被师姐埋得可深了。" },
+          { "speaker": "character", "text": "我什么也没说。除非你分我一半。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-herb-scented-thread",
+      "sourceLabel": "药香红绳",
+      "notes": [
+        { "id": "herb", "text": "红绳以安神草汁浸过，原本应系在常年失眠之人的腕上。", "condition": { "type": "acquired" } },
+        { "id": "liu", "text": "柳知意辨出药方出自她早年遗失的手札。", "condition": { "type": "shown_to", "characterId": "liu" } }
+      ],
+      "showTo": [
+        { "characterId": "liu", "title": "药香里的旧方", "subtitle": "医师认出了自己没有送出的心意", "relationshipReward": 2, "lines": [
+          { "speaker": "character", "text": "这味安神草的配比……是我从前写给一位不肯好好睡觉的人。" },
+          { "speaker": "player", "text": "后来送出去了吗？" },
+          { "speaker": "character", "text": "没有。如今若重编一条，我想亲手替你系上。", "mood": "羞涩" }
+        ] },
+        { "characterId": "lu-yaoyao", "title": "只编了一半的结", "subtitle": "师姐对同心结的解释过于急促", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "同心结只编一半，当然是因为线不够，不是因为等人来续！" },
+          { "speaker": "narrator", "text": "她越解释，红绳便在指间缠得越紧。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-crooked-sword-manual",
+      "sourceLabel": "歪斜剑谱",
+      "notes": [
+        { "id": "figures", "text": "封底两个小人一高一矮，矮的那个头顶画着三撮翘发。", "condition": { "type": "acquired" } },
+        { "id": "shimei", "text": "小师妹承认矮的是她，高的却怎么也不肯说是谁。", "condition": { "type": "shown_to", "characterId": "shimei" } }
+      ],
+      "showTo": [
+        { "characterId": "shimei", "title": "歪剑也能画成双人谱", "subtitle": "封底的小人比招式更重要", "relationshipReward": 2, "lines": [
+          { "speaker": "player", "text": "这两个练剑的小人是谁？" },
+          { "speaker": "character", "text": "矮的是我。高的……高的是未来陪我练剑的人。" },
+          { "speaker": "character", "text": "你若非要对号入座，我也不是不能把名字补上。", "mood": "期待" }
+        ] },
+        { "characterId": "shen", "title": "峰主点评歪剑谱", "subtitle": "剑路正确，画技无救", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "运气路线尚可，步法错了两寸。至于这两个人……" },
+          { "speaker": "character", "text": "罢了。她难得肯认真画到最后，不必改。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-tomorrow-osmanthus-sugar",
+      "sourceLabel": "明日桂糖",
+      "notes": [
+        { "id": "wrapper", "text": "糖纸内侧写着：今日没做完的事，明日也可以有人陪。", "condition": { "type": "acquired" } },
+        { "id": "shimei", "text": "小师妹说这颗糖原本是她留给第一次下山前的自己。", "condition": { "type": "shown_to", "characterId": "shimei" } }
+      ],
+      "showTo": [
+        { "characterId": "shimei", "title": "明日也分你一半", "subtitle": "一颗被留下太久的桂糖", "relationshipReward": 2, "lines": [
+          { "speaker": "character", "text": "我总想等一个最值得的明天再吃。后来才发现，明天会一直往后躲。" },
+          { "speaker": "player", "text": "那今日吃？" },
+          { "speaker": "character", "text": "嗯。今日分你一半，明日就不必等了。" }
+        ] },
+        { "characterId": "bai-zhiwei", "title": "义妹的糖纸占卜", "subtitle": "她说甜味也能替人测吉凶", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "糖纸朝上，是今日宜同行；桂香朝你，是明日也宜。" },
+          { "speaker": "player", "text": "若两面都是？" },
+          { "speaker": "character", "text": "那便不许你找借口了。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-moonwhite-arrow-feather",
+      "sourceLabel": "月白箭羽",
+      "notes": [
+        { "id": "notch", "text": "羽轴上有一道浅浅牙印，像是谁紧张时咬出来的。", "condition": { "type": "acquired" } },
+        { "id": "hunter", "text": "谢寒山承认那一箭是为替迷路的你引向月升处。", "condition": { "type": "shown_to", "characterId": "lieren" } }
+      ],
+      "showTo": [
+        { "characterId": "lieren", "title": "那一箭原来认路", "subtitle": "猎人不肯承认的远途照看", "relationshipReward": 2, "lines": [
+          { "speaker": "player", "text": "这支箭羽总指向月升处。" },
+          { "speaker": "character", "text": "山里看不清路时，月升的方向就是回村的方向。" },
+          { "speaker": "character", "text": "我不是在等你，只是……不想少一个会来敲门的人。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-warm-ash-pawprint",
+      "sourceLabel": "暖灰兽印",
+      "notes": [
+        { "id": "shape", "text": "爪印只有三趾，却会在无人时多出第四趾。", "condition": { "type": "acquired" } },
+        { "id": "hunter", "text": "谢寒山说这是幼年踏火貂第一次靠近人类灶火留下的印。", "condition": { "type": "shown_to", "characterId": "lieren" } }
+      ],
+      "showTo": [
+        { "characterId": "lieren", "title": "不肯露面的踏火貂", "subtitle": "灰烬里还留着一团小小体温", "relationshipReward": 2, "lines": [
+          { "speaker": "character", "text": "它怕人，却每夜替我把将熄的炭推回炉心。" },
+          { "speaker": "character", "text": "若你愿常来，它或许会把你也算进要照看的那一类。" }
+        ] },
+        { "characterId": "nannan", "title": "会自己找火的兽印", "subtitle": "囡囡想给它搭一间小暖棚", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "它要是来田里，我给它留最暖的稻草窝！" },
+          { "speaker": "character", "text": "你也可以来。你的窝……不对，是你的椅子放旁边。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-windbell-seed",
+      "sourceLabel": "林风铃籽",
+      "notes": [
+        { "id": "sound", "text": "它只在听见真心话时发出第二声轻响。", "condition": { "type": "acquired" } },
+        { "id": "nannan", "text": "囡囡说第二声比开花更难等，也更值得等。", "condition": { "type": "shown_to", "characterId": "nannan" } }
+      ],
+      "showTo": [
+        { "characterId": "nannan", "title": "风铃籽响了两声", "subtitle": "第二声只替真心作证", "relationshipReward": 2, "lines": [
+          { "speaker": "player", "text": "它在你手里响了两声。" },
+          { "speaker": "character", "text": "第一声是风。第二声……是我刚才想说，你来了我很开心。" },
+          { "speaker": "narrator", "text": "种子又轻轻响了一下。她捂住它，也没能捂住笑。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-ticklish-spirit-bean",
+      "sourceLabel": "怕痒灵豆",
+      "notes": [
+        { "id": "sprout", "text": "豆脐旁有一枚笑脸似的天然纹路。", "condition": { "type": "acquired" } },
+        { "id": "nannan", "text": "囡囡发现它不是怕痒，只是在躲开不温柔的手。", "condition": { "type": "shown_to", "characterId": "nannan" } },
+        { "id": "mother", "text": "囡囡妈妈说它曾是女儿小时候最宝贝的一颗种子。", "condition": { "type": "shown_to_all", "characterIds": ["nannan", "nannan-ma"] } }
+      ],
+      "showTo": [
+        { "characterId": "nannan", "title": "灵豆不躲她的手", "subtitle": "怕痒只是它的小小借口", "relationshipReward": 2, "lines": [
+          { "speaker": "character", "text": "别追它，手掌摊平就好。" },
+          { "speaker": "narrator", "text": "灵豆迟疑片刻，滚进她掌心，又顺着手腕滚到你手里。" },
+          { "speaker": "character", "text": "你看，它也觉得你够温柔。" }
+        ] },
+        { "characterId": "nannan-ma", "title": "娘亲记得这颗豆", "subtitle": "田间小屋的一段旧年", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "囡囡小时候怕雷，便把这颗豆攥在手里，说两个人一起抖就不怕了。" },
+          { "speaker": "character", "text": "如今它肯跟着你，我也能少担心些。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-field-weather-slip",
+      "sourceLabel": "田风小签",
+      "notes": [
+        { "id": "forecast", "text": "背面连续七次写着：不宜晒被。", "condition": { "type": "acquired" } },
+        { "id": "mother", "text": "其实那七日都是囡囡妈妈想留女儿在屋里多睡一会儿。", "condition": { "type": "shown_to", "characterId": "nannan-ma" } }
+      ],
+      "showTo": [
+        { "characterId": "nannan-ma", "title": "不宜晒被的真正理由", "subtitle": "天气签也会替母亲撒一点小谎", "relationshipReward": 2, "lines": [
+          { "speaker": "player", "text": "这七日明明都是晴天。" },
+          { "speaker": "character", "text": "她天不亮就往田里跑。我只好托田风多留她一会儿。" },
+          { "speaker": "character", "text": "你若劝得动她，往后我给你多留一碗早饭。" }
+        ] },
+        { "characterId": "su", "title": "师叔把天气签当酒令", "subtitle": "风向被她解释得十分随意", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "签上说东风宜饮，西风也宜饮。无风？那更该饮。" },
+          { "speaker": "player", "text": "它只写了不宜晒被。" },
+          { "speaker": "character", "text": "所以我说嘛，正好留在屋里饮。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-upstream-silver-scale",
+      "sourceLabel": "逆流银鳞",
+      "notes": [
+        { "id": "water", "text": "银鳞沾水后总朝着灵气更清澈的方向游。", "condition": { "type": "acquired" } },
+        { "id": "hunter", "text": "谢寒山确认它来自一尾从未被钓起的月涧银鲤。", "condition": { "type": "shown_to", "characterId": "lieren" } }
+      ],
+      "showTo": [
+        { "characterId": "lieren", "title": "没有被钓起的银鲤", "subtitle": "猎人也敬重一条鱼的归途", "relationshipReward": 2, "lines": [
+          { "speaker": "character", "text": "它逆过三道瀑，最后还是回了出生的浅潭。" },
+          { "speaker": "character", "text": "有些归途不是退路。你想回哪里，我都可以送你一程。" }
+        ] },
+        { "characterId": "nannan", "title": "银鳞在水碗里认路", "subtitle": "它绕过了所有石子，只停在你面前", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "它选了你这边！看来你身上的灵气比水还干净。" },
+          { "speaker": "character", "text": "我、我只是替鱼说的，不是自己在夸你。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-reversed-plum-piece",
+      "sourceLabel": "翻面梅棋",
+      "notes": [
+        { "id": "edge", "text": "棋子边缘刻着极小的“让她赢一次”。", "condition": { "type": "acquired" } },
+        { "id": "qingyin", "text": "沈清音认出字迹属于她从不肯让棋的母亲。", "condition": { "type": "shown_to", "characterId": "shen-qingyin" } }
+      ],
+      "showTo": [
+        { "characterId": "shen-qingyin", "title": "母亲偷偷让过的一局", "subtitle": "棋面翻转，旧日胜负也翻了过来", "relationshipReward": 2, "lines": [
+          { "speaker": "character", "text": "我一直以为那局是自己赢的。" },
+          { "speaker": "player", "text": "高兴是真的，便不算假胜。" },
+          { "speaker": "character", "text": "那下一局你也让让我。只让一子……或者让一生。", "mood": "玩笑" }
+        ] },
+        { "characterId": "shen-wantang", "title": "家主不承认让棋", "subtitle": "她的目光却比棋面柔软", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "刻字之人未必是我。" },
+          { "speaker": "narrator", "text": "她说完便将棋子翻回刻字朝下，动作熟练得不像第一次。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-half-homecoming-score",
+      "sourceLabel": "半阙归音",
+      "notes": [
+        { "id": "blank", "text": "空白小节并非遗失，而是特意留给归家之人的脚步声。", "condition": { "type": "acquired" } },
+        { "id": "wantang", "text": "沈晚棠每年都会重抄前半阙，却从不补上结尾。", "condition": { "type": "shown_to", "characterId": "shen-wantang" } }
+      ],
+      "showTo": [
+        { "characterId": "shen-qingyin", "title": "琴谱等到了脚步声", "subtitle": "空白处终于有人停步", "relationshipReward": 2, "lines": [
+          { "speaker": "character", "text": "小时候我总在最后一拍推门，母亲便说这曲子完整了。" },
+          { "speaker": "character", "text": "今日你来得正好。坐下吧，替我补上这一拍。" }
+        ] },
+        { "characterId": "shen-wantang", "title": "她仍没有写完结尾", "subtitle": "因为归来本就不该有最后一次", "relationshipReward": 2, "lines": [
+          { "speaker": "character", "text": "写完，便像只等这一回。留白，才好等许多回。" },
+          { "speaker": "character", "text": "你若愿来，沈家的门声也可算进曲里。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-old-shen-kiln-mark",
+      "sourceLabel": "旧窑沈印",
+      "notes": [
+        { "id": "double", "text": "双层窑印意味着这只盏曾被两个沈家女子先后收入私库。", "condition": { "type": "acquired" } },
+        { "id": "all", "text": "被磨去的字是“霜”，剩下那个是“棠”。", "condition": { "type": "shown_to_all", "characterIds": ["shen", "shen-wantang"] } }
+      ],
+      "showTo": [
+        { "characterId": "shen-wantang", "title": "一只盏上的两个名字", "subtitle": "沈家旧物记得姐妹年少", "relationshipReward": 2, "lines": [
+          { "speaker": "character", "text": "她离家时把自己的字磨掉，说从此不借沈家的名。" },
+          { "speaker": "character", "text": "我却一直留着。人可以走，喝过的茶不能不算。" }
+        ] },
+        { "characterId": "shen", "title": "霜字为何被磨去", "subtitle": "她当年走得比话更决绝", "relationshipReward": 2, "lines": [
+          { "speaker": "character", "text": "年少时总以为，磨掉一个字便能割断来处。" },
+          { "speaker": "character", "text": "现在看来，盏还在，人也还会想起。你替我收好吧。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-haitang-undergarment",
+      "sourceLabel": "海棠绣兜",
+      "notes": [
+        { "id": "stitch", "text": "内侧海棠用醉月楼账本同色的绯线绣成，针脚忽快忽慢。", "condition": { "type": "acquired" } },
+        { "id": "hua", "text": "花照影慌乱时说漏了嘴：这是她十八岁时第一次学绣的贴身小衣。", "condition": { "type": "shown_to", "characterId": "hua" } },
+        { "id": "tinglan", "text": "顾听澜证实那年花照影连续三夜躲在灯后练针法。", "condition": { "type": "shown_to_all", "characterIds": ["hua", "gu-tinglan"] } }
+      ],
+      "showTo": [
+        { "characterId": "hua", "title": "老板娘忽然不会说话了", "subtitle": "海棠绣影落在她骤红的耳尖", "relationshipReward": 3, "lines": [
+          { "speaker": "player", "text": "照影，我在帘后捡到了这个。" },
+          { "speaker": "character", "text": "你——先收起来！现在，立刻，别让旁人看见。", "mood": "慌乱" },
+          { "speaker": "narrator", "text": "她伸手来抢，指尖碰到你便又缩回去，平日从容的笑意全乱了。" },
+          { "speaker": "character", "text": "不是我的。你若再问……我就说是特意给你绣的。", "mood": "羞恼" },
+          { "speaker": "player", "text": "那我当真了。" },
+          { "speaker": "character", "text": "不许当真！……至少等我把针脚改好再当真。", "mood": "羞涩" }
+        ] },
+        { "characterId": "gu-tinglan", "title": "琵琶娘认得旧针脚", "subtitle": "她笑得像听见了一支熟曲", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "这针脚我认得。那年掌柜白天笑人，夜里却对着灯扎了自己七回。" },
+          { "speaker": "character", "text": "你拿去逗她可以，可别逗得太狠。她脸红起来，真会扣你酒钱。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-tipsy-dream-gourd",
+      "sourceLabel": "醉梦小葫芦",
+      "notes": [
+        { "id": "scent", "text": "葫芦里没有酒，香气来自塞口的一小片桃木。", "condition": { "type": "acquired" } },
+        { "id": "hua", "text": "花照影说这是醉月楼第一坛酒封坛时留下的纪念。", "condition": { "type": "shown_to", "characterId": "hua" } }
+      ],
+      "showTo": [
+        { "characterId": "hua", "title": "第一坛酒的余香", "subtitle": "醉月楼开门那天，她其实很怕", "relationshipReward": 2, "lines": [
+          { "speaker": "character", "text": "开门那日一位客人都没有，我抱着它坐到天亮。" },
+          { "speaker": "character", "text": "如今楼里太吵，倒用不着它陪了。你若来，就更用不着。" }
+        ] },
+        { "characterId": "su", "title": "师叔闻香辨旧坛", "subtitle": "她对酒香的记性胜过正事", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "桃木、桂皮，还有一点新店开张时的心慌。好香。" },
+          { "speaker": "player", "text": "心慌也能闻出来？" },
+          { "speaker": "character", "text": "自然。与你靠得太近时，我身上也有。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-self-turning-spatula",
+      "sourceLabel": "认主木铲",
+      "notes": [
+        { "id": "handle", "text": "木柄上有两道握痕，一道属于王妈，另一道尚且很浅。", "condition": { "type": "acquired" } },
+        { "id": "wang", "text": "王妈发现第二道握痕与你掌心严丝合缝。", "condition": { "type": "shown_to", "characterId": "wang-ma" } }
+      ],
+      "showTo": [
+        { "characterId": "wang-ma", "title": "木铲偏偏听你的话", "subtitle": "灶火前多了一位被认下的人", "relationshipReward": 2, "lines": [
+          { "speaker": "character", "text": "它跟我十几年，也没替我多翻过一次锅。" },
+          { "speaker": "narrator", "text": "木铲在你手里轻轻一跳，稳稳把饼翻了个面。" },
+          { "speaker": "character", "text": "罢了。往后你来，我便少干一半活，多看你一会儿。" }
+        ] },
+        { "characterId": "lu-yaoyao", "title": "师姐与木铲较上了劲", "subtitle": "它在她手里坚决装死", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "凭什么你一拿它就动？我才是膳堂首席！" },
+          { "speaker": "narrator", "text": "她把木铲递回你手里。木铲立刻乖巧地翻了两下。" },
+          { "speaker": "character", "text": "……下次做饭你站我旁边，不许走。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-wangma-secret-menu",
+      "sourceLabel": "王妈秘菜单",
+      "notes": [
+        { "id": "dish", "text": "第十二道菜反复改名，最后只剩一个“等”字。", "condition": { "type": "acquired" } },
+        { "id": "wang", "text": "王妈承认第十二道是专为你试做的“归家汤”。", "condition": { "type": "shown_to", "characterId": "wang-ma" } }
+      ],
+      "showTo": [
+        { "characterId": "wang-ma", "title": "秘菜单被当场抓获", "subtitle": "第十二道菜终于有了名字", "relationshipReward": 3, "lines": [
+          { "speaker": "player", "text": "第十二道菜旁边画的小脸，很像我。" },
+          { "speaker": "character", "text": "胡说，锅盖上的烟熏出来的。" },
+          { "speaker": "narrator", "text": "她把菜单抽走，耳根却比灶火还红。" },
+          { "speaker": "character", "text": "叫归家汤。等你哪天肯按时回来，我就做。", "mood": "温柔" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "egg-hawking-copper-coin",
+      "sourceLabel": "会吆喝的铜钱",
+      "notes": [
+        { "id": "edge", "text": "铜钱边缘刻着“只替别人开价”。", "condition": { "type": "acquired" } },
+        { "id": "merchant", "text": "唐绯弦听懂了它的方言：它其实一直在替摊主招客。", "condition": { "type": "shown_to", "characterId": "tang-feixian" } }
+      ],
+      "showTo": [
+        { "characterId": "tang-feixian", "title": "铜钱唱起了行商调", "subtitle": "原来吆喝也是一首远路歌", "relationshipReward": 2, "lines": [
+          { "speaker": "character", "text": "它喊的不是跳楼价，是‘远客别急着走’。云州口音重，你听岔了。" },
+          { "speaker": "character", "text": "不过你别走这句，我也想说。" }
+        ] },
+        { "characterId": "ning", "title": "掌柜给铜钱估了个怪价", "subtitle": "值一文，也值一个愿意听的人", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "材质只值一文，故事可抵十枚灵石。若是你亲手递来——不估价。" },
+          { "speaker": "player", "text": "为何？" },
+          { "speaker": "character", "text": "私藏不入账。" }
+        ] }
+      ]
+    },
+    {
+      "itemId": "old-wine-token",
+      "sourceLabel": "海棠旧酒筹",
+      "notes": [
+        { "id": "carving", "text": "海棠刻痕下藏着极浅的“照”字。", "condition": { "type": "acquired" } },
+        { "id": "hua", "text": "这不是客人欠下的酒，而是花照影给自己留的第一杯。", "condition": { "type": "shown_to", "characterId": "hua" } }
+      ],
+      "showTo": [
+        { "characterId": "hua", "title": "旧酒筹并不属于客人", "subtitle": "老板娘把自己的故事算成了一笔旧账", "relationshipReward": 2, "lines": [
+          { "speaker": "player", "text": "背面刻着你的名字。" },
+          { "speaker": "character", "text": "开楼那天我给自己记了一杯，想着赚到第一百枚灵石再喝。" },
+          { "speaker": "character", "text": "后来忘了。今日找回来……不如与你分这杯迟到的酒。" }
+        ] },
+        { "characterId": "gu-tinglan", "title": "琵琶娘记得开楼第一夜", "subtitle": "没有客人，只有两个人和一支旧曲", "relationshipReward": 1, "lines": [
+          { "speaker": "character", "text": "那夜她守着空楼，我便弹到天亮。如今有你听，这枚酒筹也算等对了人。" }
+        ] }
+      ]
+    }
+  ]
+}

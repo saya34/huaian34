@@ -7,7 +7,7 @@
       "courtesy": "听澜娘子",
       "bio": "常在醉月楼临水的窗边调弦。她记得每位客人点过的酒，也能从一支曲子里听出未出口的心事。",
       "sceneId": "tavern",
-      "image": "/assets/characters/transparent-npcs/gu-tinglan.png",
+      "image": "/assets/characters/portrait-refresh/gu-tinglan.png",
       "accent": "#c88c62",
       "lovedGift": "peachWine",
       "relationshipAddresses": ["客人", "道友", "你", "曲中人"],
@@ -51,7 +51,7 @@
       "courtesy": "阿微",
       "bio": "幼时与你一同被宗门收留，如今暂住听云居养伤。她看似柔弱，却将许多无人留意的细节记得清清楚楚。",
       "sceneId": "bedroom",
-      "image": "/assets/characters/transparent-npcs/bai-zhiwei.png",
+      "image": "/assets/characters/portrait-refresh/bai-zhiwei.png",
       "accent": "#a8cdbc",
       "lovedGift": "herbSachet",
       "relationshipAddresses": ["师兄", "哥哥", "你", "最亲的人"],
@@ -73,7 +73,7 @@
       "courtesy": "夭夭师姐",
       "bio": "掌管宗门膳堂火候与灵膳配伍。她笑起来毫无戒心，却能凭一口汤判断灵植来自哪一畦田。",
       "sceneId": "lingxiao",
-      "image": "/assets/characters/transparent-npcs/lu-yaoyao.png",
+      "image": "/assets/characters/portrait-refresh/lu-yaoyao.png",
       "accent": "#d4b36f",
       "lovedGift": "osmanthusCake",
       "relationshipAddresses": ["小师弟", "尝味的", "你", "同席人"],
@@ -86,6 +86,36 @@
         "先别走，替我尝一口。放心，这锅没有炸过第二次。",
         "灵膳与炼丹一样讲究火候，只是失败以后至少还能蘸酱吃。",
         "你今日气色不对。坐下，这碗汤喝完之前不许去练剑。"
+      ],
+      "appearances": [
+        {
+          "sceneId": "lingxiao",
+          "mode": "random",
+          "guaranteedRules": [],
+          "randomRules": [
+            {
+              "id": "lu-yaoyao-day-at-sect",
+              "label": "白日在宗门照看膳堂",
+              "periods": ["清晨", "上午", "午后", "黄昏"],
+              "conditions": [],
+              "probability": 100
+            }
+          ]
+        },
+        {
+          "sceneId": "senior-sister-home",
+          "mode": "random",
+          "guaranteedRules": [],
+          "randomRules": [
+            {
+              "id": "lu-yaoyao-night-home",
+              "label": "夜晚回自己的住处",
+              "periods": ["夜晚", "深夜"],
+              "conditions": [],
+              "probability": 100
+            }
+          ]
+        }
       ]
     },
     {

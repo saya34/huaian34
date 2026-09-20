@@ -340,6 +340,16 @@ body {
 .result-title { position: absolute; z-index: 4; left: 50%; top: calc(50% - 277px); transform: translateX(-50%); text-align: center; text-shadow: 0 0 25px #ffbb38; animation: titleDrop .8s .25s both; }
 .result-title span { display: block; color: #b59a68; font-size: 10px; letter-spacing: .55em; margin-bottom: 5px; }
 .result-title strong { color: #ffe7a6; font-size: 25px; font-weight: 500; letter-spacing: .5em; padding-left: .5em; }
+.result-overlay.outcome-routine,.result-overlay.outcome-damaged{place-items:end center;padding:0 12px max(18px,env(safe-area-inset-bottom));background:linear-gradient(to top,rgba(1,8,7,.78),transparent 58%);backdrop-filter:none}
+.result-overlay.outcome-routine .result-rays,.result-overlay.outcome-damaged .result-rays{display:none}
+.result-overlay.outcome-routine .result-card,.result-overlay.outcome-damaged .result-card{width:min(560px,100%);height:auto;min-height:268px;grid-template-columns:34% 66%;border-color:rgba(199,160,90,.58);box-shadow:0 18px 55px #000b;animation:resultSheetIn .32s cubic-bezier(.2,.82,.25,1)}
+.result-overlay.outcome-routine .card-copy,.result-overlay.outcome-damaged .card-copy{padding:34px 26px 22px}
+.result-overlay.outcome-routine .result-title,.result-overlay.outcome-damaged .result-title{top:auto;bottom:300px;text-shadow:0 0 18px #000}
+.result-overlay.outcome-routine .result-title strong,.result-overlay.outcome-damaged .result-title strong{font-size:18px}
+.result-overlay.outcome-damaged .result-card{border-color:rgba(132,122,103,.64);filter:saturate(.58)}
+.result-overlay.outcome-damaged .result-title strong,.result-overlay.outcome-damaged .mutation-name{color:#c9bda6;text-shadow:none}
+.result-overlay.outcome-damaged .result-item-aura{filter:grayscale(1);opacity:.32}
+@keyframes resultSheetIn{from{opacity:0;transform:translateY(36px) scale(.98)}to{opacity:1;transform:none}}
 
 /* 星命神花：入炉、炼制、开炉三段命星异象。 */
 .fated-orbit { position: absolute; z-index: 2; left: 50%; top: 51%; width: 590px; height: 590px; pointer-events: none; border: 1px solid rgba(202, 167, 255, .28); border-radius: 50%; background: repeating-conic-gradient(from 14deg, transparent 0 19deg, rgba(207, 167, 255, .14) 20deg 21deg, transparent 22deg 41deg); box-shadow: 0 0 52px rgba(134, 84, 221, .22), inset 0 0 62px rgba(107, 181, 210, .09); transform: translate(-50%, -50%); animation: fatedOrbitDrift 18s linear infinite; }

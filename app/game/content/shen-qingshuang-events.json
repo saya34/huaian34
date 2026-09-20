@@ -47,7 +47,7 @@
       "summary": "从这天起，凌霄殿的厨房时常会“算错”一份早膳。"
     },
     {
-      "id": "shen.arc.03.sword-lesson", "order": 3, "phase": "一·仍是师徒", "title": "罚练三遍", "subtitle": "师尊的威严与偷偷放的水", "type": "闲谈", "trigger": "time_change", "priority": 176, "sceneId": "lingxiao",
+      "id": "shen.arc.03.sword-lesson", "order": 3, "phase": "一·仍是师徒", "title": "罚练三遍", "subtitle": "师尊的威严与偷偷放的水", "type": "闲谈", "trigger": "time_change", "priority": 176, "sceneId": "lingxiao", "defaultStoryEffect": "sword-arc",
       "conditions": [{ "type": "period", "value": "上午" }, { "type": "event_completed", "eventId": "shen.arc.02.extra-breakfast" }],
       "clue": "完成「多出来的早膳」后，在凌霄殿进入上午",
       "script": [
@@ -70,7 +70,7 @@
       "summary": "她在人前仍是严厉的峰主，人后却把罚练换成了热药。"
     },
     {
-      "id": "shen.arc.04.one-umbrella", "order": 4, "phase": "一·仍是师徒", "title": "一把伞的位置", "subtitle": "黄昏骤雨把两个人推得很近", "type": "心事", "trigger": "scene_enter", "priority": 174, "sceneId": "lingxiao",
+      "id": "shen.arc.04.one-umbrella", "order": 4, "phase": "一·仍是师徒", "title": "一把伞的位置", "subtitle": "黄昏骤雨把两个人推得很近", "type": "心事", "trigger": "scene_enter", "priority": 174, "sceneId": "lingxiao", "defaultStoryEffect": "pink-mist",
       "conditions": [{ "type": "scene", "value": "lingxiao" }, { "type": "period", "value": "黄昏" }, { "type": "event_completed", "eventId": "shen.arc.03.sword-lesson" }],
       "clue": "完成「罚练三遍」后，于黄昏回到凌霄殿",
       "script": [
@@ -137,7 +137,7 @@
       "summary": "那晚以后，你知道凌霄殿最后熄灭的灯通常在等谁。"
     },
     {
-      "id": "shen.arc.07.the-wrong-book", "order": 7, "phase": "二·渐渐亲近", "title": "拿错的书", "subtitle": "《如何让远行之人常回家》", "type": "闲谈", "trigger": "talk", "priority": 168, "sceneId": "lingxiao",
+      "id": "shen.arc.07.the-wrong-book", "order": 7, "phase": "二·渐渐亲近", "title": "拿错的书", "subtitle": "《如何让远行之人常回家》", "type": "闲谈", "trigger": "talk", "priority": 168, "sceneId": "lingxiao", "defaultStoryEffect": "memory-shards",
       "conditions": [{ "type": "character", "value": "shen" }, { "type": "relationship", "characterId": "shen", "min": 15 }, { "type": "event_completed", "eventId": "shen.arc.06.lamp-after-midnight" }],
       "clue": "缘分达到15并完成「灯为什么还亮着」后交谈",
       "script": [
@@ -393,7 +393,7 @@
       "summary": "她睡醒后第一件事是确认你还在，第二件事才是问那三封急信。"
     },
     {
-      "id": "shen.arc.18.market-disguise", "order": 18, "phase": "四·不再装作", "title": "宗主下山", "subtitle": "一场处处露馅的普通约会", "type": "闲谈", "trigger": "map_event", "priority": 146, "sceneId": "market", "mapEvent": { "mapId": "yunzhou", "windowDays": 6, "x": 47, "y": 56 },
+      "id": "shen.arc.18.market-disguise", "order": 18, "phase": "四·不再装作", "title": "宗主下山", "subtitle": "一场处处露馅的普通约会", "type": "闲谈", "trigger": "map_event", "priority": 146, "sceneId": "market", "mapEvent": { "mapId": "village", "windowDays": 6, "x": 51, "y": 43 },
       "conditions": [{ "type": "scene", "value": "market" }, { "type": "event_completed", "eventId": "shen.arc.17.fever-day" }],
       "clue": "完成「轮到她生病」后，在云州市集寻找戴斗笠的陌生女子",
       "script": [
@@ -513,7 +513,7 @@
       "summary": "那支海棠簪后来成了她最常用的一支，连重要议事也没有摘下。"
     },
     {
-      "id": "shen.arc.23.storm-shelter", "order": 23, "phase": "四·不再装作", "title": "山亭避雨", "subtitle": "暴雨让一段归途慢了下来", "type": "闲谈", "trigger": "map_event", "priority": 136, "sceneId": "market", "mapEvent": { "mapId": "yunzhou", "windowDays": 7, "x": 62, "y": 39 },
+      "id": "shen.arc.23.storm-shelter", "order": 23, "phase": "四·不再装作", "title": "山亭避雨", "subtitle": "暴雨让一段归途慢了下来", "type": "闲谈", "trigger": "map_event", "priority": 136, "sceneId": "market", "mapEvent": { "mapId": "village", "windowDays": 7, "x": 63, "y": 35 },
       "conditions": [{ "type": "event_completed", "eventId": "shen.arc.22.hairpin" }],
       "clue": "完成「发簪戴反了」后，在云州山路寻找避雨亭",
       "script": [
@@ -631,7 +631,7 @@
       "summary": "从这天起，听云居的清晨多了一张两个人轮流写的早饭单。"
     },
     {
-      "id": "shen.arc.28.ordinary-date", "order": 28, "phase": "五·往后日常", "title": "没有正事的一天", "subtitle": "她练习把陪伴本身当成理由", "type": "情缘", "trigger": "map_event", "priority": 126, "sceneId": "market", "mapEvent": { "mapId": "yunzhou", "windowDays": 8, "x": 33, "y": 64 },
+      "id": "shen.arc.28.ordinary-date", "order": 28, "phase": "五·往后日常", "title": "没有正事的一天", "subtitle": "她练习把陪伴本身当成理由", "type": "情缘", "trigger": "map_event", "priority": 126, "sceneId": "market", "mapEvent": { "mapId": "village", "windowDays": 8, "x": 35, "y": 61 },
       "conditions": [{ "type": "event_completed", "eventId": "shen.arc.27.shared-breakfast" }],
       "clue": "完成「今天谁做早饭」后，在云州地图寻找普通的一日",
       "script": [

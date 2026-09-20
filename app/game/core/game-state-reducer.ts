@@ -41,6 +41,24 @@ export function reduceGameEffect(next: UnifiedGameState, effect: GameEffect): Un
     const stamina = Math.max(0, next.shared.stamina - effect.amount);
     return { ...next, shared: { ...next.shared, stamina }, romance: { ...next.romance, stamina } };
   }
+  if (effect.type === "restore_stamina") {
+    const stamina = Math.min(10, Math.max(0, next.shared.stamina + effect.amount));
+    return { ...next, shared: { ...next.shared, stamina }, romance: { ...next.romance, stamina } };
+  }
+  if (effect.type === "add_luck") {
+    const current = next.shared.luck;
+    const luck = {
+      bonus: Math.max(current.bonus, effect.bonus),
+      charges: Math.min(9, current.charges + Math.max(0, effect.charges)),
+      source: effect.source,
+    };
+    return { ...next, shared: { ...next.shared, luck } };
+  }
+  if (effect.type === "consume_luck_charge") {
+    if (next.shared.luck.charges <= 0) return next;
+    const charges = next.shared.luck.charges - 1;
+    return { ...next, shared: { ...next.shared, luck: { ...next.shared.luck, charges, bonus: charges > 0 ? next.shared.luck.bonus : 0, source: charges > 0 ? next.shared.luck.source : "" } } };
+  }
   if (effect.type === "add_item") {
     const previous = next.shared.items[effect.item.itemId];
     const item = { ...effect.item, amount: (previous?.amount ?? 0) + effect.item.amount };
@@ -105,8 +123,11 @@ export function reduceGameEffect(next: UnifiedGameState, effect: GameEffect): Un
       battle: { ...next.battle, highestUnlockedWave: highestUnlocked },
     };
   }
-  if (effect.type === "record_activity") return { ...next, activity: { last: effect.receipt } };
-  if (effect.type === "clear_activity") return { ...next, activity: {} };
+  if (effect.type === "record_activity") {
+    const history = [effect.receipt, ...next.activity.history.filter((receipt) => receipt.id !== effect.receipt.id)].slice(0, 40);
+    return { ...next, activity: { last: effect.receipt, history } };
+  }
+  if (effect.type === "clear_activity") return { ...next, activity: { history: next.activity.history } };
   return next;
 }
 

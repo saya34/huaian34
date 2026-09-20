@@ -1,0 +1,142 @@
+{
+  "scene": {
+    "name": "烟火小灶",
+    "subtitle": "山门膳房 · 四时入味",
+    "description": "山泉绕过灶脚，田畴、灵兽苑与秘境带回的食材，都能在这一口旧铁锅里变成温养道体的灵膳。",
+    "stoveIdle": "灶膛尚温，王妈常把新做的料理留在竹罩下。",
+    "stoveSearched": "今日的竹罩已经揭过，明日再来看看。",
+    "openKitchen": "近灶掌勺",
+    "searchStove": "揭开温灶"
+  },
+  "ui": {
+    "eyebrow": "MOUNTAIN KITCHEN · 烟火入道",
+    "title": "王妈的小灶",
+    "subtitle": "择一味灵膳，让田畴、牧苑与秘境所得在锅中相逢。",
+    "recipeTab": "掌勺",
+    "pantryTab": "食盒",
+    "cook": "添柴起灶",
+    "cooking": "听火候",
+    "eat": "趁热尝一口",
+    "store": "收入食盒",
+    "close": "离开膳房",
+    "missing": "原料尚缺",
+    "ready": "火候可起",
+    "luck": "食运",
+    "stamina": "体力",
+    "experience": "修为"
+  },
+  "recipes": [
+    {
+      "id": "warm-herb-congee",
+      "name": "霜心灵卵粥",
+      "subtitle": "一碗暖胃，山路便不觉长",
+      "description": "霜心草压住燥意，月翎灵卵慢慢化入米汤，是王妈最常留给晚归弟子的夜食。",
+      "art": "/assets/kitchen/herb-chicken-congee.png",
+      "rarity": 2,
+      "ingredients": [
+        { "materialName": "霜心草", "amount": 1 },
+        { "itemId": "moonfeather-egg", "amount": 1 }
+      ],
+      "effects": { "stamina": 4, "experience": 6, "luckBonus": 0, "luckCharges": 0 }
+    },
+    {
+      "id": "crimson-braised-eggs",
+      "name": "赤霞焖灵卵",
+      "subtitle": "辛香醒神，火气化作一身暖意",
+      "description": "赤霄龙葵与血玉果熬成酱汁，慢煨月翎灵卵，入口温烈却不伤经脉。",
+      "art": "/assets/kitchen/nightshade-eggs.png",
+      "rarity": 3,
+      "ingredients": [
+        { "materialName": "赤霄龙葵", "amount": 1 },
+        { "materialName": "血玉果", "amount": 1 },
+        { "itemId": "moonfeather-egg", "amount": 1 }
+      ],
+      "effects": { "stamina": 3, "experience": 18, "luckBonus": 0, "luckCharges": 0 }
+    },
+    {
+      "id": "moon-lotus-steamed-fish",
+      "name": "月魄清蒸灵鲫",
+      "subtitle": "月露封鲜，澄心亦聚福",
+      "description": "醉月河鲜以月魄雪莲、玉髓香露同蒸，清鲜灵息能让寻珍时的心神更敏锐。",
+      "art": "/assets/kitchen/lotus-steamed-fish.png",
+      "rarity": 3,
+      "ingredients": [
+        { "itemId": "green-scale-crucian", "amount": 1 },
+        { "materialName": "月魄雪莲", "amount": 1 },
+        { "itemId": "jade-deer-dew", "amount": 1 }
+      ],
+      "effects": { "stamina": 4, "experience": 8, "luckBonus": 1, "luckCharges": 2 }
+    },
+    {
+      "id": "ginseng-lotus-cake",
+      "name": "金参雪莲糕",
+      "subtitle": "甜而不腻，最宜出行前分食",
+      "description": "金阳参提气，月魄雪莲定神，玉髓香露收住清甜，是少见的兼顾修为与食运的点心。",
+      "art": "/assets/kitchen/ginseng-lotus-cake.png",
+      "rarity": 4,
+      "ingredients": [
+        { "materialName": "金阳参", "amount": 1 },
+        { "materialName": "月魄雪莲", "amount": 1 },
+        { "itemId": "jade-deer-dew", "amount": 1 }
+      ],
+      "effects": { "stamina": 2, "experience": 28, "luckBonus": 2, "luckCharges": 2 }
+    },
+    {
+      "id": "jade-mushroom-soup",
+      "name": "碧芝厚土羹",
+      "subtitle": "山蔬成羹，气息沉稳绵长",
+      "description": "碧落灵芝与厚土莲细切入羹，以沧露蛙珠吊出清甜，适合劳作后温养。",
+      "art": "/assets/kitchen/herb-chicken-congee.png",
+      "rarity": 3,
+      "ingredients": [
+        { "materialName": "碧落灵芝", "amount": 1 },
+        { "materialName": "厚土莲", "amount": 1 },
+        { "itemId": "azure-dew-pearl", "amount": 1 }
+      ],
+      "effects": { "stamina": 5, "experience": 10, "luckBonus": 0, "luckCharges": 0 }
+    },
+    {
+      "id": "thunder-algae-fish",
+      "name": "紫电玄藻鱼脍",
+      "subtitle": "清冽脆鲜，雷息一闪即收",
+      "description": "玄水藻化去雷燥，紫电藤只取一缕麻香，与银尾灵鲤薄切同拌。",
+      "art": "/assets/kitchen/lotus-steamed-fish.png",
+      "rarity": 4,
+      "ingredients": [
+        { "materialName": "玄水藻", "amount": 1 },
+        { "materialName": "紫电藤", "amount": 1 },
+        { "itemId": "silver-tail-carp", "amount": 1 }
+      ],
+      "effects": { "stamina": 3, "experience": 22, "luckBonus": 2, "luckCharges": 1 }
+    },
+    {
+      "id": "cloud-sealed-steam",
+      "name": "风竹云封蒸",
+      "subtitle": "竹香锁在一屉云气里",
+      "description": "风隐竹节作蒸屉，云灵绒与云绒芯封住灵汽；两种灵材不入口，却决定整屉火候。",
+      "art": "/assets/kitchen/herb-chicken-congee.png",
+      "rarity": 4,
+      "ingredients": [
+        { "materialName": "风隐竹节", "amount": 1 },
+        { "itemId": "cloud-spirit-wool", "amount": 1 },
+        { "itemId": "cloud-core-fleece", "amount": 1 }
+      ],
+      "effects": { "stamina": 6, "experience": 20, "luckBonus": 1, "luckCharges": 1 }
+    },
+    {
+      "id": "sunwheel-fortune-cake",
+      "name": "日轮命星酥",
+      "subtitle": "一口酥香，福缘在眉间亮起",
+      "description": "日轮花与星命神花入酥，幻梦鳞粉调香，再借秘境妖丹温炉，是王妈压箱底的寻珍灵膳。",
+      "art": "/assets/kitchen/ginseng-lotus-cake.png",
+      "rarity": 5,
+      "ingredients": [
+        { "materialName": "日轮花", "amount": 1 },
+        { "materialName": "星命神花", "amount": 1 },
+        { "itemId": "dream-moth-dust", "amount": 1 },
+        { "itemId": "treasure:demon-core", "amount": 1 }
+      ],
+      "effects": { "stamina": 4, "experience": 45, "luckBonus": 3, "luckCharges": 3 }
+    }
+  ]
+}

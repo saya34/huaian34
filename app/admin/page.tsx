@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const tools = [
-  { href: "/em", eyebrow: "STORY PIPELINE", title: "剧情事件管理", mark: "事", image: "/assets/characters/shen-qingshuang.webp", description: "以事件脉络、人物档案和场景素材为核心，管理对话、礼物、传音与全局剧情状态。", features: ["事件树", "人物与场景", "条件发布"], tone: "jade" },
+  { href: "/em", eyebrow: "STORY PIPELINE", title: "剧情事件管理", mark: "事", image: "/assets/characters/portrait-refresh/shen-qingshuang.png", description: "以事件脉络、人物档案和场景素材为核心，管理对话、礼物、传音与全局剧情状态。", features: ["事件树", "人物与场景", "条件发布"], tone: "jade" },
   { href: "/item-manager", eyebrow: "ALCHEMY RULESET", title: "炼丹配方管理", mark: "丹", image: "/assets/xuanhuo-furnace.webp", description: "可视化组合指定材料、五行属性、品质门槛与权重，草稿确认后再发布到游戏。", features: ["配方映射", "规则预览", "版本发布"], tone: "gold" },
   { href: "/battle", eyebrow: "DUNGEON PREVIEW", title: "秘境战斗验收", mark: "战", image: "/assets/battle/secret-realm.webp", description: "从玩家视角检查卡牌、技能、装备、掉落与关卡图片是否已经正确进入融合流程。", features: ["战斗窗口", "技能卡组", "掉落联动"], tone: "red" },
 ];

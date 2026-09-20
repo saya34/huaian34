@@ -22,7 +22,7 @@ type Props = {
 };
 
 function newCharacter(scenes: SceneDefinition[]): CharacterDefinition {
-  return { id: "new-character", name: "新人物", role: "身份称谓", courtesy: "表字", bio: "填写人物简介与性格。", sceneId: scenes[0]?.id ?? "lingxiao", image: "/assets/characters/shen-qingshuang.webp", accent: "#9b6257", lovedGift: "osmanthusCake", ambientLines: ["填写人物的日常闲谈。"], relationshipStages:[{id:"stranger",min:0,name:"初识",addressing:"道友",description:"彼此尚守礼数。"},{id:"familiar",min:15,name:"相知",addressing:"你",description:"她开始记住你。"},{id:"close",min:35,name:"心悦",addressing:"名字",description:"牵挂已无需明言。"},{id:"devoted",min:65,name:"同心",addressing:"心上人",description:"愿与你共赴山海。"}], giftPreferences:[], seekingRules:[] };
+  return { id: "new-character", name: "新人物", role: "身份称谓", courtesy: "表字", bio: "填写人物简介与性格。", sceneId: scenes[0]?.id ?? "lingxiao", image: "/assets/characters/portrait-refresh/shen-qingshuang.png", accent: "#9b6257", lovedGift: "osmanthusCake", ambientLines: ["填写人物的日常闲谈。"], relationshipStages:[{id:"stranger",min:0,name:"初识",addressing:"道友",description:"彼此尚守礼数。"},{id:"familiar",min:15,name:"相知",addressing:"你",description:"她开始记住你。"},{id:"close",min:35,name:"心悦",addressing:"名字",description:"牵挂已无需明言。"},{id:"devoted",min:65,name:"同心",addressing:"心上人",description:"愿与你共赴山海。"}], giftPreferences:[], seekingRules:[] };
 }
 
 function newScene(): SceneDefinition {

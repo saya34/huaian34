@@ -34,7 +34,7 @@ import { canInspectPeriod, getInspectionHints, hasInspectedScene, inspectionSlot
 import type { CultivationEntry } from "./cultivation-engine";
 import { getAvailableActivities, isMarketReminderDay, marketReminderKey, type PeriodicActivityId } from "./periodic-activities";
 import { drawDailyFortune, FORTUNE_STORAGE_KEY, fortuneBoosts, fortuneEffectLabel, getFortuneSign, getLocalDateKey, type FortuneDrawRecord } from "./fortune-engine";
-import type { CharacterId, CharacterMessageDefinition, EventDefinition, GiftDefinition, GiftId, GameState, GlobalKeyDefinition, Period, RelationshipStageDefinition, SceneDefinition, SceneId, TriggerContext } from "./types";
+import type { CharacterId, CharacterMessageDefinition, EasterEggItemDefinition, EventDefinition, GiftDefinition, GiftId, GameState, GlobalKeyDefinition, Period, RelationshipStageDefinition, SceneDefinition, SceneId, TriggerContext } from "./types";
 import { useUnifiedGame } from "./core/UnifiedGameProvider";
 import { DUNGEONS, type DungeonDefinition } from "./core/dungeons";
 import FusionSystemPanel, { type FusionPanelId } from "./ui/FusionSystemPanel";
@@ -74,10 +74,19 @@ import TurnCombatModule, { TurnCombatPracticeEntry } from "./turn-combat/TurnCom
 import { TURN_COMBAT_SYSTEM, turnCombatInventory } from "./turn-combat/content";
 import { createPlayerTurnProfile } from "./turn-combat/stat-adapter";
 import type { TheftLoot, TurnCombatResult } from "./turn-combat/types";
+import KitchenScene from "./kitchen/KitchenScene";
+import KitchenModal from "./kitchen/KitchenModal";
+import EasterEggArtwork from "./easter-eggs/EasterEggArtwork";
+import { EASTER_EGG_PRESENTATIONS } from "./easter-eggs/content";
+import { availableEasterEggShowcases, buildEasterEggShowcaseEvent, isEasterEggItem, markEasterEggShown } from "./easter-eggs/system";
+import DaybreakTransition, { NightfallNotice, type DaybreakPresentation } from "./daybreak/DaybreakTransition";
+import { DAYBREAK_CONTENT, daybreakStoryForDay, markDaybreakStorySeen } from "./daybreak/content";
+import { sceneVfxFor, storyVfxFor } from "./vfx/content";
+import { SceneEffectsLayer, StoryEffectsLayer } from "./vfx/VfxLayers";
 
 const PERIODS: Period[] = WORLD_PERIODS;
 
-function advanceOneStage(state:GameState){const current=Math.max(0,PERIODS.indexOf(state.period)),wrapped=current===PERIODS.length-1;return{...state,period:PERIODS[(current+1)%PERIODS.length],day:state.day+(wrapped?1:0),shortRestDay:wrapped?state.day+1:state.shortRestDay,shortRestCount:wrapped?0:state.shortRestCount};}
+function advanceOneStage(state:GameState){const current=Math.max(0,PERIODS.indexOf(state.period)),wrapped=current===PERIODS.length-1;return{...state,period:PERIODS[(current+1)%PERIODS.length],day:state.day+(wrapped?1:0),sceneId:wrapped?DAYBREAK_CONTENT.homeSceneId:state.sceneId,shortRestDay:wrapped?state.day+1:state.shortRestDay,shortRestCount:wrapped?0:state.shortRestCount};}
 
 function bondFeeling(amount: number) {
   if (amount >= 8) return "十分开心";
@@ -107,6 +116,7 @@ export default function GameDemo() {
   const [fishingTarget, setFishingTarget] = useState<{ locationId: FishingLocationId; randomSpotId?: string } | null>(null);
   const [miningTarget, setMiningTarget] = useState<{ locationId: MiningLocationId; randomSpotId?: string } | null>(null);
   const [forumOpen,setForumOpen]=useState(false);
+  const [kitchenOpen,setKitchenOpen]=useState(false);
   const [projectOpen,setProjectOpen]=useState(false);
   const [farmQuickRequest, setFarmQuickRequest] = useState<{ module: "field" | "livestock"; token: number } | null>(null);
   const [currentFarmModule, setCurrentFarmModule] = useState<"field" | "livestock" | null>(null);
@@ -126,19 +136,23 @@ export default function GameDemo() {
   const [panel, setPanel] = useState<"characters" | "events" | null>(null);
   const [ledgerCharacterId, setLedgerCharacterId] = useState<CharacterId | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
-  const [collectionOpen,setCollectionOpen]=useState(false);
   const [explorePoints,setExplorePoints]=useState<ExplorePoint[]>([]);
   const [activeExploration,setActiveExploration]=useState<EventDefinition|null>(null);
-  const [eggRewardNotice,setEggRewardNotice]=useState<{name:string;image:string}|null>(null);
+  const [eggRewardNotice,setEggRewardNotice]=useState<EasterEggItemDefinition|null>(null);
   const [replayEvent, setReplayEvent] = useState<EventDefinition | null>(null);
   const [audioIndex, setAudioIndex] = useState(0);
   const [unlockNotice, setUnlockNotice] = useState("");
-  const [notice, setNotice] = useState("剧情系统已就绪");
+  const [notice, setNotice] = useState("");
   const [keyAnnouncementQueue, setKeyAnnouncementQueue] = useState<GlobalKeyDefinition[]>([]);
   const [messageQueue,setMessageQueue]=useState<CharacterMessageDefinition[]>([]);
+  const [messageOpen,setMessageOpen]=useState(false);
   const [storyDebugEnabled,setStoryDebugEnabled]=useState(false);
   const [storyDebugOpen,setStoryDebugOpen]=useState(false);
   const [turnCombatRequest,setTurnCombatRequest]=useState<{encounterId?:string}|null>(null);
+  const [nightfallDismissedKey,setNightfallDismissedKey]=useState("");
+  const nightfallKey=`${game.day}:${game.period}`;
+  const nightfallVisible=game.period==="夜晚"&&nightfallDismissedKey!==nightfallKey;
+  const daybreakPresentation=useMemo<DaybreakPresentation|null>(()=>game.day>1&&game.period==="清晨"&&!game.daybreakAcknowledgedDays.includes(game.day)?{day:game.day,story:daybreakStoryForDay(game.day,game.daybreakStoryRuns)}:null,[game.day,game.daybreakAcknowledgedDays,game.daybreakStoryRuns,game.period]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -149,6 +163,7 @@ export default function GameDemo() {
     if (!notice) return;
     feedback.toast({ titleKey: "system.dynamicMessage", params: { message: notice }, icon: "讯", dedupeKey: `scene-notice:${notice}` });
   }, [feedback, notice]);
+
   const [messageInboxOpen,setMessageInboxOpen]=useState(false);
   const [replayMessage,setReplayMessage]=useState<CharacterMessageDefinition|null>(null);
   const [stageNotice,setStageNotice]=useState<{characterId:CharacterId;stage:RelationshipStageDefinition}|null>(null);
@@ -163,10 +178,10 @@ export default function GameDemo() {
     const invasionPeriodIndex = Math.max(0, PERIODS.indexOf(TURN_COMBAT_SYSTEM.invasion.period as Period));
     const invasionDue = game.day > TURN_COMBAT_SYSTEM.invasion.day
       || (game.day === TURN_COMBAT_SYSTEM.invasion.day && currentPeriodIndex >= invasionPeriodIndex);
-    const anotherSurfaceOpen = Boolean(activeModule || activeActivity || activeExploration || battleReturnReceipt || inspectionReveal || mapOpen || questOpen || questOffer || calendarOpen || panel || systemPanel || giftOpen || shopOpen || cultivationOpen || drinkingOpen || fishingTarget || miningTarget || forumOpen || projectOpen || galleryOpen || collectionOpen || messageInboxOpen || messageQueue.length || keyAnnouncementQueue.length || stageNotice || storyDebugOpen || utilityOpen);
+    const anotherSurfaceOpen = Boolean(activeModule || activeActivity || activeExploration || battleReturnReceipt || inspectionReveal || mapOpen || questOpen || questOffer || calendarOpen || panel || systemPanel || giftOpen || shopOpen || cultivationOpen || drinkingOpen || fishingTarget || miningTarget || forumOpen || kitchenOpen || projectOpen || galleryOpen || messageInboxOpen || messageOpen || keyAnnouncementQueue.length || stageNotice || storyDebugOpen || utilityOpen || daybreakPresentation);
     if (!invasionDue || anotherSurfaceOpen) return;
     setTurnCombatRequest({ encounterId: "invasion-day-five" });
-  }, [activeActivity, activeExploration, activeModule, battleReturnReceipt, calendarOpen, collectionOpen, cultivationOpen, drinkingOpen, fishingTarget, forumOpen, galleryOpen, game.activeEvent, game.day, game.flags, game.period, giftOpen, hydrated, inspectionReveal, keyAnnouncementQueue.length, mapOpen, messageInboxOpen, messageQueue.length, miningTarget, panel, projectOpen, questOffer, questOpen, shopOpen, stageNotice, storyDebugOpen, systemPanel, turnCombatRequest, utilityOpen]);
+  }, [activeActivity, activeExploration, activeModule, battleReturnReceipt, calendarOpen, cultivationOpen, daybreakPresentation, drinkingOpen, fishingTarget, forumOpen, galleryOpen, game.activeEvent, game.day, game.flags, game.period, giftOpen, hydrated, inspectionReveal, keyAnnouncementQueue.length, kitchenOpen, mapOpen, messageInboxOpen, messageOpen, miningTarget, panel, projectOpen, questOffer, questOpen, shopOpen, stageNotice, storyDebugOpen, systemPanel, turnCombatRequest, utilityOpen]);
 
   useEffect(() => {
     if (!activeModule && !turnCombatRequest) return;
@@ -235,10 +250,12 @@ export default function GameDemo() {
   useEffect(()=>{
     if(!hydrated||game.activeEvent)return;
     const eligible=getEligibleMessages(game,messageDefinitions);
-    const available=messageDefinitions.filter((message)=>(game.receivedMessages.includes(message.id)||eligible.some((item)=>item.id===message.id))&&!game.claimedMessages.includes(message.id));
-    if(eligible.length)setGame((state)=>({...state,receivedMessages:[...new Set([...state.receivedMessages,...eligible.map((message)=>message.id)])]}));
-    if(available.length)setMessageQueue((queue)=>{const additions=available.filter((message)=>!queue.some((item)=>item.id===message.id));return additions.length?[...queue,...additions]:queue});
-  },[game,hydrated,messageDefinitions]);
+    const arrivals=eligible.filter((message)=>!game.receivedMessages.includes(message.id));
+    if(!arrivals.length)return;
+    setGame((state)=>({...state,receivedMessages:[...new Set([...state.receivedMessages,...arrivals.map((message)=>message.id)])]}));
+    const first=arrivals[0];
+    feedback.publish({variant:"world-announcement",level:"L2",titleKey:"system.dynamicMessage",params:{message:arrivals.length>1?`传音匣收到 ${arrivals.length} 封新笺`:`收到传音 · ${first.title}`},icon:"笺",dedupeKey:`message-arrival:${arrivals.map((message)=>message.id).join("-")}`,actions:[{labelKey:"system.details",tone:"primary",onSelect:()=>setMessageInboxOpen(true)}]});
+  },[feedback,game,hydrated,messageDefinitions]);
 
   useEffect(() => {
     if (!hydrated || !isMarketReminderDay(game.day)) return;
@@ -254,8 +271,8 @@ export default function GameDemo() {
     };
     setMessageQueue((queue) => queue.some((item) => item.id === reminderId) ? queue : [...queue, reminder]);
     setGame((state) => ({ ...state, activityNotices: [...state.activityNotices, reminderId] }));
-    setNotice("收到传音 · 明日云州市集开市");
-  }, [game.activityNotices, game.day, hydrated]);
+    feedback.publish({variant:"world-announcement",level:"L2",titleKey:"system.dynamicMessage",params:{message:"收到传音 · 明日云州市集开市"},icon:"笺",dedupeKey:reminderId,actions:[{labelKey:"system.details",tone:"primary",onSelect:()=>setMessageInboxOpen(true)}]});
+  }, [feedback,game.activityNotices, game.day, hydrated]);
 
   useEffect(() => {
     if (!hydrated || !definitionsReady || !contentReady || booted.current) return;
@@ -267,7 +284,7 @@ export default function GameDemo() {
       const selected=resolved.present[0]??state.selectedCharacterId;
       const ready={...resolved.state,selectedCharacterId:selected};
       const context:TriggerContext={trigger:"scene_enter",sceneId:state.sceneId,characterId:resolved.present[0]};
-      if(resolved.forcedEvent){setNotice(`人物事件触发 · ${resolved.forcedEvent.title}`);return startDefinition(ready,resolved.forcedEvent,context)}
+      if(resolved.forcedEvent)return startDefinition(ready,resolved.forcedEvent,context);
       const event=chooseEvent(getEligibleEvents(eventDefinitions,ready,context).filter((item)=>!isExplorationEvent(item)));
       return event?startDefinition(ready,event,context):ready;
     });
@@ -279,7 +296,6 @@ export default function GameDemo() {
       if (state.activeEvent) return state;
       const event = chooseEvent(getDueCalendarEvents(state, eventDefinitions));
       if (!event) return state;
-      queueMicrotask(() => setNotice(`日期事件触发 · ${event.title}`));
       const base = { ...state, sceneId: event.sceneId, selectedCharacterId: event.characterId };
       return startDefinition(base, event, { trigger: "calendar_event", sceneId: event.sceneId, characterId: event.characterId });
     });
@@ -292,10 +308,31 @@ export default function GameDemo() {
   const audioEvents = eventDefinitions.filter((event)=>event.cardStyle==="audio");
   const unlockedAudioEvents = audioEvents.filter((event)=>game.completedEvents.includes(event.id));
   const activeAudioEvent = activeDefinition?.cardStyle === "audio" ? activeDefinition : replayEvent;
+  useEffect(() => {
+    if (!stageNotice || stageNotice.stage.id === "devoted" || game.activeEvent || activeAudioEvent) return;
+    const timer = window.setTimeout(() => setStageNotice(null), 2800);
+    return () => window.clearTimeout(timer);
+  }, [activeAudioEvent, game.activeEvent, stageNotice]);
+  useEffect(() => {
+    const storyBusy = Boolean(game.activeEvent && activeDefinition?.cardStyle !== "audio");
+    feedback.setBusy("story", storyBusy);
+    return () => feedback.setBusy("story", false);
+  }, [activeDefinition?.cardStyle, feedback, game.activeEvent]);
+  useEffect(() => {
+    const audioBusy = Boolean(activeAudioEvent);
+    feedback.setBusy("audio", audioBusy);
+    return () => feedback.setBusy("audio", false);
+  }, [activeAudioEvent, feedback]);
+  useEffect(() => {
+    const turnBusy = Boolean(turnCombatRequest);
+    feedback.setBusy("turn-combat", turnBusy);
+    return () => feedback.setBusy("turn-combat", false);
+  }, [feedback, turnCombatRequest]);
   const activeAudioSegment = activeAudioEvent?.audioSegments?.[audioIndex];
   const activeAudioFrame = getAudioFrame(activeAudioEvent?.audioFrameId);
-  const easterEggEvents=eventDefinitions.filter((event)=>event.cardStyle==="easter_egg"&&event.exploration?.rewardItem);
-  const collectedEggItems=easterEggEvents.filter((event)=>game.collectedEasterEggs.includes(event.exploration!.rewardItem!.id)).map((event)=>({event,item:event.exploration!.rewardItem!}));
+  const easterEggItemMap=useMemo(()=>Object.fromEntries(eventDefinitions.flatMap((event)=>event.exploration?.rewardItem?[[event.exploration.rewardItem.id,event.exploration.rewardItem]]:[])),[eventDefinitions]);
+  const ownedEasterEggIds=useMemo(()=>Object.values(unifiedState.shared.items).filter((item)=>item.amount>0&&isEasterEggItem(item)).map((item)=>item.itemId),[unifiedState.shared.items]);
+  const giftEggShowcases=useMemo(()=>availableEasterEggShowcases(ownedEasterEggIds,character.id,game,EASTER_EGG_PRESENTATIONS),[character.id,game,ownedEasterEggIds]);
   const completedCount = eventDefinitions.filter((event) => event.journal && game.completedEvents.includes(event.id)).length;
   const totalEvents = eventDefinitions.filter((event) => event.journal).length;
   const isSpecialEvent = activeDefinition?.cardStyle === "special";
@@ -308,7 +345,8 @@ export default function GameDemo() {
   const drinkingCountKey=`${character.id}:drinking`;
   const drinkingProficiency=getProficiencyProfile(game.proficiencyExperience.drinking??0);
   const bondFeedback = bondQueue[0] ?? null;
-  const activeMessage=replayMessage??messageQueue[0]??null;
+  const activeMessage=messageOpen?(replayMessage??messageQueue[0]??null):null;
+  const inboxMessages=[...messageDefinitions.filter((message)=>game.receivedMessages.includes(message.id)),...messageQueue.filter((message)=>!messageDefinitions.some((definition)=>definition.id===message.id))];
   const calendarDate = getCalendarDate(game.day);
   const sceneEventHints = useMemo(() => getSceneEventHints(game, eventDefinitions, playableScenes.map((item) => item.id)), [eventDefinitions, game, playableScenes]);
   const visibleMapEvents = useMemo(() => getVisibleMapEvents(game, eventDefinitions), [eventDefinitions, game]);
@@ -317,6 +355,8 @@ export default function GameDemo() {
   const activeFortune=fortuneHistory[realDateKey];
   const activeFortuneSign=getFortuneSign(activeFortune);
   const weatherNow=getFarmWeather(game.day),weatherNext=getFarmWeather(game.day+1),weatherLater=getFarmWeather(game.day+2);
+  const sceneVfx=useMemo(()=>sceneVfxFor({sceneId:game.sceneId,period:game.period,day:game.day,weatherId:weatherNow.id}),[game.day,game.period,game.sceneId,weatherNow.id]);
+  const storyVfx=storyVfxFor(activeDefinition,node?.storyEffect??activeDefinition?.defaultStoryEffect);
   const claimableQuestCount=QUESTS.filter((quest)=>questView(quest,unifiedState.quests,unifiedState).status==="claimable").length;
   const availableQuestOffer=findQuestOffer(character.id,unifiedState.quests);
 
@@ -349,7 +389,6 @@ export default function GameDemo() {
     const chosen = chooseEvent(getEligibleEvents(eventDefinitions, base, context).filter((item)=>!isExplorationEvent(item)));
     if (chosen) {
       if(context.trigger==="gift"&&context.giftId)base=applyEffects(base,[{type:"consume_gift",giftId:context.giftId,amount:1}]);
-      setNotice(`事件触发 · ${chosen.title}`);
       return startDefinition(base, chosen, context);
     }
     if (fallback === "talk" && context.characterId) {
@@ -361,14 +400,12 @@ export default function GameDemo() {
       const rule = profile?.rules.filter((item) => item.period === base.period && (base.relationships[target.id] ?? 0) >= item.minRelationship && (base.relationships[target.id] ?? 0) <= item.maxRelationship).sort((a,b) => b.minRelationship - a.minRelationship)[0];
       const closing = Boolean(rule && nextCount > rule.closingAfter);
       const line = rule ? (closing ? rule.closingLine : rule.lines[(base.day + nextCount + (base.relationships[target.id] ?? 0)) % rule.lines.length]) : undefined;
-      setNotice(closing ? `${base.period}交谈已尽 · 触发结束语` : "触发日常闲谈");
       return startTransient(counted, buildAmbientEvent(target, nextCount, line, closing), context);
     }
     if (fallback === "gift" && context.characterId && context.giftId) {
       const target = characterMap[context.characterId];
       const gift = giftMap[context.giftId];
       const preference=target.giftPreferences?.find((item)=>item.giftId===gift.id);const tier=preference?.tier??(target.lovedGift===gift.id?"loved":"neutral");
-      setNotice(tier==="loved"?"正合她的心意":tier==="liked"?"她看起来很喜欢":tier==="disliked"?"这似乎并不合她心意":"她收下了礼物");
       const spent=applyEffects(advanceOneStage(base),[{type:"consume_gift",giftId:context.giftId,amount:1}]);
       return startTransient(spent, buildGiftFallback(target, gift.name, tier, preference?.reaction), context);
     }
@@ -385,12 +422,10 @@ export default function GameDemo() {
     if (sceneId !== "spirit-farm") { setFarmQuickRequest(null); setCurrentFarmModule(null); }
     setInteractionMenuOpen(false);
     setQuestConversationMenuOpen(false);
-    setNotice(`抵达 · ${destination.name}`);
     setGame((state)=>{
       const transition = prepareSceneTransition({ state, sceneId, destination, characters, events: eventDefinitions, globalKeys });
       const context: TriggerContext = { trigger:"scene_enter", sceneId, characterId: transition.selectedCharacterId };
       if (transition.forcedEvent) {
-        setNotice(`人物事件触发 · ${transition.forcedEvent.title}`);
         return startDefinition(transition.state, transition.forcedEvent, context);
       }
       return destination.id === "spirit-farm" ? transition.state : launch(context, transition.state);
@@ -400,7 +435,6 @@ export default function GameDemo() {
   function triggerMapEvent(eventId: string) {
     const event = eventDefinitions.find((item) => item.id === eventId && item.trigger === "map_event" && item.mapEvent);
     if (!event) return;
-    setNotice(`地图异闻触发 · ${event.title}`);
     setGame((state) => {
       const scheduledDay = state.mapEventSchedules?.[event.id];
       if (state.activeEvent || scheduledDay === undefined || scheduledDay > state.day || state.completedEvents.includes(event.id)) return state;
@@ -414,7 +448,6 @@ export default function GameDemo() {
     setGame((state) => ({ ...state, selectedCharacterId: id }));
     setInteractionMenuOpen(false);
     setQuestConversationMenuOpen(false);
-    setNotice(`正在与${characterMap[id].name}相处`);
   }
 
   function talk() {
@@ -422,7 +455,6 @@ export default function GameDemo() {
     if (availableQuestOffer) {
       setInteractionMenuOpen(false);
       setQuestConversationMenuOpen((open)=>!open);
-      setNotice(questText("notice.offered", { name: availableQuestOffer.name, giver: character.name }));
       return;
     }
     setQuestConversationMenuOpen(false);
@@ -440,7 +472,6 @@ export default function GameDemo() {
     if (!availableQuestOffer) return;
     setQuestConversationMenuOpen(false);
     setQuestOffer(availableQuestOffer);
-    setNotice(questText("notice.offered", { name: availableQuestOffer.name, giver: character.name }));
   }
 
   function giveGift(giftId: GiftId) {
@@ -448,7 +479,7 @@ export default function GameDemo() {
     setGiftOpen(false);
     const context: TriggerContext = { trigger: "gift", sceneId: game.sceneId, characterId: character.id, giftId };
     const preference=character.giftPreferences?.find((item)=>item.giftId===giftId);const known=(game.discoveredGiftPreferences[character.id]??[]).includes(giftId);
-    if(!known){const tier=preference?.tier??(character.lovedGift===giftId?"loved":"neutral");setPreferenceNotice(`发现偏好 · ${character.name}${PREFERENCE_LABELS[tier]}「${giftMap[giftId].name}」`);window.setTimeout(()=>setPreferenceNotice(""),2200)}
+    if(!known){const tier=preference?.tier??(character.lovedGift===giftId?"loved":"neutral");setPreferenceNotice(`记住了 · ${character.name}${PREFERENCE_LABELS[tier]}「${giftMap[giftId].name}」`);window.setTimeout(()=>setPreferenceNotice(""),1500)}
     setGame((state) => {const discovered=state.discoveredGiftPreferences[character.id]??[];const remembered={...state,discoveredGiftPreferences:{...state.discoveredGiftPreferences,[character.id]:discovered.includes(giftId)?discovered:[...discovered,giftId]}};return launch(context, remembered, "gift")});
   }
 
@@ -456,27 +487,34 @@ export default function GameDemo() {
     if (game.activeEvent) return;
     const preview = previewTimeAdvance(game, mode);
     setInteractionMenuOpen(false);setTimeMenuOpen(false);
-    setNotice(mode==="sleep"?`安睡至第${preview.day}日 · 体力恢复`:mode==="rest"?`短休一时段 · 体力 +${Math.min(preview.restGain,10-game.stamina)}`:preview.day>game.day?`第${preview.day}日 · ${preview.period}`:`等待至 · ${preview.period}`);
+    if(preview.day===game.day)setNotice(mode==="rest"?`短休一时段 · 体力 +${Math.min(preview.restGain,10-game.stamina)}`:`等待至 · ${preview.period}`);
     setGame((state)=>{
       const transition = prepareTimeTransition({ state, mode, characters, events: eventDefinitions, globalKeys });
+      const transitioned = transition.state;
       if (transition.forcedEvent) {
-        const eventContext: TriggerContext = { trigger:"scene_enter", sceneId:transition.state.sceneId, characterId:transition.state.selectedCharacterId };
-        setNotice(`人物事件触发 · ${transition.forcedEvent.title}`);
-        return startDefinition(transition.state, transition.forcedEvent, eventContext);
+        const eventContext: TriggerContext = { trigger:"scene_enter", sceneId:transitioned.sceneId, characterId:transitioned.selectedCharacterId };
+        return startDefinition(transitioned, transition.forcedEvent, eventContext);
       }
       if (transition.seeking) {
-        setNotice(`主动相遇 · ${transition.seeking.rule.intro}`);
-        const seekingContext: TriggerContext = { trigger:"time_change", sceneId:transition.state.sceneId, characterId:transition.seeking.character.id };
-        return transition.seeking.event ? startDefinition(transition.state, transition.seeking.event, seekingContext) : transition.state;
+        const seekingContext: TriggerContext = { trigger:"time_change", sceneId:transitioned.sceneId, characterId:transition.seeking.character.id };
+        return transition.seeking.event ? startDefinition(transitioned, transition.seeking.event, seekingContext) : transitioned;
       }
-      return launch({ trigger:"time_change", sceneId:transition.state.sceneId, characterId:transition.state.selectedCharacterId }, transition.state);
+      return launch({ trigger:"time_change", sceneId:transitioned.sceneId, characterId:transitioned.selectedCharacterId }, transitioned);
     });
+  }
+
+  function showEasterEgg(itemId: string) {
+    const entry=giftEggShowcases.find((item)=>item.definition.itemId===itemId);
+    if(!entry)return;
+    setGiftOpen(false);
+    const context:TriggerContext={trigger:"interaction",sceneId:game.sceneId,characterId:character.id,interactionId:`easter-showcase:${itemId}`};
+    const event=buildEasterEggShowcaseEvent(entry.definition,entry.showcase,context);
+    setGame((state)=>startTransient(markEasterEggShown(state,itemId,character.id),event,context));
   }
 
   function useQuickDestination(destination: QuickDestination) {
     if (destination.kind === "alchemy") {
       setActiveModule({ kind: "alchemy" });
-      setNotice("玄火已候 · 进入丹炉");
       return;
     }
     if (destination.kind === "farm" && destination.module) {
@@ -492,7 +530,7 @@ export default function GameDemo() {
   function currentInitialState(): GameState {
     const firstScene = playableScenes.find((item) => item.id === "lingxiao") ?? playableScenes[0] ?? scenes[0];
     const firstCharacter = firstScene?.characters[0] ?? characters[0]?.id ?? "shen";
-    return { ...INITIAL_STATE, sceneId: firstScene?.id ?? "lingxiao", selectedCharacterId: firstCharacter, spiritStones: 600, stamina:10, experience:0, marketTreasures: {}, activityNotices: [], relationships: Object.fromEntries(characters.map((item) => [item.id, 4])), inventory: Object.fromEntries(gifts.map((item) => [item.id, item.initialCount])), flags: Object.fromEntries(globalKeys.map((item)=>[item.id,item.initialValue])), announcedGlobalKeys: [], receivedMessages: [], claimedMessages: [], discoveredGiftPreferences: {}, seekingEncounterDays: {}, mapEventSchedules: {}, calendarEventRuns: {}, completedEvents: [], eventRuns: {}, talkCounts: {}, presentCharacters: {}, appearanceTriggersUsed: [], sceneVisits: {}, sceneInspectionDays:{}, sceneInspectionSlots:{}, interactionCounts:{}, proficiencyExperience:{}, activeEvent: null, lastContext: null };
+    return { ...INITIAL_STATE, sceneId: firstScene?.id ?? "lingxiao", selectedCharacterId: firstCharacter, spiritStones: 600, stamina:10, experience:0, marketTreasures: {}, activityNotices: [], relationships: Object.fromEntries(characters.map((item) => [item.id, 4])), inventory: Object.fromEntries(gifts.map((item) => [item.id, item.initialCount])), flags: Object.fromEntries(globalKeys.map((item)=>[item.id,item.initialValue])), announcedGlobalKeys: [], receivedMessages: [], claimedMessages: [], discoveredGiftPreferences: {}, seekingEncounterDays: {}, mapEventSchedules: {}, calendarEventRuns: {}, collectedEasterEggs:[], easterEggProgress:{}, daybreakStoryRuns:[], daybreakAcknowledgedDays:[], completedEvents: [], eventRuns: {}, talkCounts: {}, presentCharacters: {}, appearanceTriggersUsed: [], sceneVisits: {}, sceneInspectionDays:{}, sceneInspectionSlots:{}, interactionCounts:{}, proficiencyExperience:{}, activeEvent: null, lastContext: null };
   }
 
   function recoverGifts() {
@@ -509,8 +547,9 @@ export default function GameDemo() {
     setCalendarOpen(false);setTurnCombatRequest(null);
     setCultivationOpen(false);setInspectionReveal(null);
     setActiveActivity(null);
-    setGalleryOpen(false); setReplayEvent(null); setUnlockNotice(""); setAudioIndex(0);setCollectionOpen(false);setActiveExploration(null);setExplorePoints([]);setEggRewardNotice(null);
-    setKeyAnnouncementQueue([]);setMessageQueue([]);setReplayMessage(null);setMessageInboxOpen(false);setStageNotice(null);setPreferenceNotice("");setStoryDebugOpen(false);
+    setGalleryOpen(false); setReplayEvent(null); setUnlockNotice(""); setAudioIndex(0);setActiveExploration(null);setExplorePoints([]);setEggRewardNotice(null);
+    setKeyAnnouncementQueue([]);setMessageQueue([]);setMessageOpen(false);setReplayMessage(null);setMessageInboxOpen(false);setStageNotice(null);setPreferenceNotice("");setStoryDebugOpen(false);
+    setNightfallDismissedKey("");
     const resetState = currentInitialState();
     setGame(resetState);
     setNotice("篇章已经重新开始");
@@ -520,8 +559,6 @@ export default function GameDemo() {
   }
 
   function advance(optionId?: string) {
-    const title = activeDefinition?.title;
-    const willClose = Boolean(node && (node.type === "end" || (node.type === "line" && activeDefinition?.nodes[node.next]?.type === "end")));
     setGame((state) => {
       let next = advanceEvent(state, eventDefinitions, optionId);
       if (state.activeEvent && !next.activeEvent && activeDefinition?.trigger === "calendar_event") next = markCalendarEventCompleted(next, activeDefinition, state.day);
@@ -534,7 +571,7 @@ export default function GameDemo() {
       if(promotion)queueMicrotask(()=>setStageNotice(promotion));
       return next;
     });
-    if (willClose && title) setNotice(`事件完成 · ${title}`);
+    // Closing an authored scene is already visible. Only concrete unlocks emit feedback.
   }
 
   function advanceAudioStory() {
@@ -542,8 +579,8 @@ export default function GameDemo() {
     if(audioIndex<segments.length-1){setAudioIndex((value)=>value+1);return}
     if(replayEvent){setReplayEvent(null);setGalleryOpen(true);setAudioIndex(0);return}
     setGame((state)=>{const next=advanceEvent(state,eventDefinitions);return activeAudioEvent.trigger==="calendar_event"?markCalendarEventCompleted(next,activeAudioEvent,state.day):next});
-    const title=activeAudioEvent.unlockTitle||activeAudioEvent.title;setUnlockNotice(`解锁「${title}」事件`);setNotice(`音画事件解锁 · ${title}`);
-    window.setTimeout(()=>{setUnlockNotice("");setGalleryOpen(true)},1800);
+    const title=activeAudioEvent.unlockTitle||activeAudioEvent.title;setUnlockNotice(`回忆已珍藏 · ${title}`);
+    window.setTimeout(()=>setUnlockNotice(""),2500);
   }
 
   function resolveExploration(){
@@ -552,35 +589,35 @@ export default function GameDemo() {
     setExplorePoints((points)=>points.filter((point)=>point.eventId!==event.id));
     setActiveExploration(null);
     if(event.cardStyle==="trigger_point"){
-      setGame((state)=>startDefinition(state,event,context));setNotice(`触发隐秘剧情 · ${event.title}`);return;
+      setGame((state)=>startDefinition(state,event,context));return;
     }
     const item=config.rewardItem;if(!item)return;
-    setGame((state)=>({...state,completedEvents:(event.journal||event.once)&&!state.completedEvents.includes(event.id)?[...state.completedEvents,event.id]:state.completedEvents,eventRuns:{...state.eventRuns,[event.id]:(state.eventRuns[event.id]??0)+1},collectedEasterEggs:[...new Set([...state.collectedEasterEggs,item.id])]}));
-    applyUnifiedEffects([{ type: "add_item", item: { itemId: item.id, itemType: "quest", rarity: 4, amount: 1, sourceTags: ["剧情", "藏珍录"], locked: true } }]);
-    setEggRewardNotice({name:item.name,image:item.image});setNotice(`获得彩蛋物品 · ${item.name}`);window.setTimeout(()=>setEggRewardNotice(null),2200);
+    setGame((state)=>({...state,completedEvents:(event.journal||event.once)&&!state.completedEvents.includes(event.id)?[...state.completedEvents,event.id]:state.completedEvents,eventRuns:{...state.eventRuns,[event.id]:(state.eventRuns[event.id]??0)+1},collectedEasterEggs:[...new Set([...state.collectedEasterEggs,item.id])],easterEggProgress:{...state.easterEggProgress,[item.id]:state.easterEggProgress[item.id]??{acquiredDay:state.day,shownTo:[],unlockedNoteIds:[]}}}));
+    applyUnifiedEffects([{ type: "add_item", item: { itemId: item.id, templateId:item.id, displayName:item.name, itemType: "quest", rarity: 4, amount: 1, sourceTags: ["剧情", "藏珍录"], locked: true } }]);
+    setEggRewardNotice(item);window.setTimeout(()=>setEggRewardNotice(null),2200);
   }
 
   function closeMessage(){
     if(!activeMessage)return;
-    if(replayMessage){setReplayMessage(null);return}
+    if(replayMessage){setReplayMessage(null);setMessageOpen(false);return}
     setGame((state)=>{
       const sender=characterMap[activeMessage.senderCharacterId]??characters[0];const before=relationshipStage(sender,state.relationships[sender.id]??0);const amount=activeMessage.relationshipAmount??0;const relationship=Math.min(100,(state.relationships[sender.id]??0)+amount);const after=relationshipStage(sender,relationship);
       if(before.id!==after.id)queueMicrotask(()=>setStageNotice({characterId:sender.id,stage:after}));
       return {...state,claimedMessages:[...new Set([...state.claimedMessages,activeMessage.id])],relationships:{...state.relationships,[sender.id]:relationship},inventory:activeMessage.giftId?{...state.inventory,[activeMessage.giftId]:(state.inventory[activeMessage.giftId]??0)+(activeMessage.giftAmount??1)}:state.inventory,flags:activeMessage.setFlagKey?{...state.flags,[activeMessage.setFlagKey]:true}:state.flags};
     });
     setMessageQueue((queue)=>queue.filter((message)=>message.id!==activeMessage.id));
-    setNotice(`收到传音 · ${activeMessage.title}`);
+    setMessageOpen(false);
   }
 
   function spendSpiritStones(amount: number) {
     if (game.spiritStones < amount) { setNotice(`灵石不足 · 还需 ${amount - game.spiritStones} 枚`); return false; }
     setGame((state) => ({ ...state, spiritStones: Math.max(0, state.spiritStones - amount) }));
-    setNotice(`支出灵石 ${amount} 枚`); return true;
+    return true;
   }
 
   function spendStamina(amount:number,label:string){
     if(game.stamina<amount){setNotice(`体力不足 · ${label}需要 ${amount} 点体力`);return false}
-    setGame((state)=>({...state,stamina:Math.max(0,state.stamina-amount)}));setNotice(`${label} · 体力 -${amount}`);return true;
+    setGame((state)=>({...state,stamina:Math.max(0,state.stamina-amount)}));return true;
   }
 
   function eatGift(giftId:GiftId){
@@ -601,7 +638,6 @@ export default function GameDemo() {
 
   function recordDrinkingWin(wins:number){
     setGame((state)=>({...state,interactionCounts:{...state.interactionCounts,[drinkingCountKey]:Math.max(state.interactionCounts[drinkingCountKey]??0,wins)}}));
-    setNotice(`共饮成功 · ${character.name}酒兴 ${wins}`);
   }
 
   function practiceDrinking(amount:number){
@@ -616,7 +652,7 @@ export default function GameDemo() {
       const base={...state,interactionCounts:{...state.interactionCounts,[drinkingCountKey]:Math.max(state.interactionCounts[drinkingCountKey]??0,wins)}};
       const event=getEligibleEvents(eventDefinitions,base,context).find((item)=>item.id===config.specialEventId);
       if(!event){queueMicrotask(()=>setNotice(`共饮达成 · ${character.name}酒兴 ${wins}`));return base}
-      queueMicrotask(()=>setNotice(`共饮特殊事件 · ${event.title}`));return startDefinition(base,event,context);
+      return startDefinition(base,event,context);
     });
   }
 
@@ -626,17 +662,17 @@ export default function GameDemo() {
     const target=sceneMap[sceneId];if(!target)return;
     const event=rollInspectionEvent(game,eventDefinitions,sceneId);
     setGame((state)=>({...state,sceneInspectionDays:{...state.sceneInspectionDays,[sceneId]:state.day},sceneInspectionSlots:{...state.sceneInspectionSlots,[sceneId]:inspectionSlot(state.day,state.period)}}));
-    setInspectionReveal({scene:resolveSceneVariant(target,{...game,sceneId}),event});setNotice(`夜间检视 · ${target.name}`);
+    setInspectionReveal({scene:resolveSceneVariant(target,{...game,sceneId}),event});
   }
 
   function enterInspectionEvent(event:EventDefinition){
-    setInspectionReveal(null);setNotice(`检视事件触发 · ${event.title}`);
+    setInspectionReveal(null);
     setGame((state)=>startDefinition(applyAutomaticGlobalKeys({...state,sceneId:event.sceneId,selectedCharacterId:event.characterId},globalKeys),event,{trigger:"inspection",sceneId:event.sceneId,characterId:event.characterId}));
   }
 
   function gainSpiritStones(amount: number, message: string) {
     setGame((state) => ({ ...state, spiritStones: state.spiritStones + amount }));
-    setNotice(`${message} · 灵石 +${amount}`);
+    void message;
   }
 
   function gainHuaBond(amount: number) {
@@ -644,23 +680,20 @@ export default function GameDemo() {
     setBondQueue((queue) => [...queue, { id: ++bondId.current, characterId: "hua", amount }]);
   }
 
-  function collectMarketTreasure(item: { id: string; name: string }, source: string) {
+  function collectMarketTreasure(item: { id: string; name: string }, _source: string) {
     setGame((state) => ({ ...state, marketTreasures: { ...state.marketTreasures, [item.id]: (state.marketTreasures[item.id] ?? 0) + 1 } }));
-    setNotice(`获得宝物 · ${item.name}（${source}）`);
   }
 
-  function buyMarketGift(giftId: GiftId, name: string) {
+  function buyMarketGift(giftId: GiftId, _name: string) {
     setGame((state) => ({ ...state, inventory: { ...state.inventory, [giftId]: (state.inventory[giftId] ?? 0) + 1 } }));
-    setNotice(`购得 ${name} · 已收入礼物行囊`);
   }
 
   function openActivity(id: PeriodicActivityId) {
     if (!availableActivities.some((activity) => activity.id === id)) return;
     setActiveActivity(id);
-    setNotice(id === "tavern-gambling" ? "周期活动开启 · 醉月赌局" : id === "monthly-market" ? "周期活动开启 · 云州市集" : fortuneHistory[realDateKey] ? "查看今日签文 · 悬壶问卦" : "每日活动开启 · 悬壶问卦");
   }
 
-  function drawFortuneToday(){const existing=fortuneHistory[realDateKey];if(existing)return existing;const record=drawDailyFortune(realDateKey);setFortuneHistory((history)=>({...history,[realDateKey]:record}));setNotice(`今日签文 · ${getFortuneSign(record)?.rank}「${getFortuneSign(record)?.title}」`);return record}
+  function drawFortuneToday(){const existing=fortuneHistory[realDateKey];if(existing)return existing;const record=drawDailyFortune(realDateKey);setFortuneHistory((history)=>({...history,[realDateKey]:record}));return record}
 
   function navigateToQuest(definition:QuestDefinition,purpose:"objective"|"giver"="objective"){
     setQuestOpen(false);setMapOpen(false);setSystemPanel(null);setActiveModule(null);
@@ -671,7 +704,7 @@ export default function GameDemo() {
         const present=state.presentCharacters[giver.sceneId]??[];
         return{...state,sceneId:giver.sceneId,selectedCharacterId:giver.characterId,presentCharacters:{...state.presentCharacters,[giver.sceneId]:[giver.characterId,...present.filter((id)=>id!==giver.characterId)]}};
       });
-      setInteractionMenuOpen(false);setNotice(questText("notice.meeting",{name:definition.name,giver:giver.name}));return;
+      setInteractionMenuOpen(false);return;
     }
     const target=definition.destination;
     if(target.kind==="alchemy"){setActiveModule({kind:"alchemy"});return}
@@ -713,7 +746,6 @@ export default function GameDemo() {
         return { ...state, sceneId, selectedCharacterId: characterId, presentCharacters: { ...state.presentCharacters, [sceneId]: [characterId, ...present.filter((id) => id !== characterId)] } };
       });
       setInteractionMenuOpen(false);
-      setNotice("已抵达悬壶谷 · 柳知意正在等你");
     }
   }
 
@@ -723,6 +755,7 @@ export default function GameDemo() {
     else if (target === "tasks") setQuestOpen(true);
     else if (target === "alchemy") setActiveModule({ kind: "alchemy" });
     else if (target === "farm") enterScene("spirit-farm");
+    else if (target === "kitchen") { enterScene("kitchen"); setKitchenOpen(true); }
     else if (target === "battle" || target === "fishing" || target === "mining") setMapOpen(true);
     applyUnifiedEffects([{ type: "clear_activity" }]);
   }
@@ -769,9 +802,7 @@ export default function GameDemo() {
       }
       applyUnifiedEffects(effects);
       setGame((state) => advanceOneStage(state));
-      setNotice(victory ? `山门来犯已平定 · ${result.actionCount} 式制胜` : "山门防线暂时收缩 · 可在听云居继续试招");
     } else {
-      setNotice(result.outcome === "victory" ? `演武完成 · 共用 ${result.actionCount} 式` : result.outcome === "retreated" ? "已从木人阵中收势" : "演武未成 · 可重新布阵再试");
     }
     setTurnCombatRequest(null);
   }
@@ -792,7 +823,7 @@ export default function GameDemo() {
     } }]);
   }
 
-  const worldHudVisible = !mapOpen && !questOpen && !calendarOpen && !panel && !systemPanel && !activeModule && !turnCombatRequest && !giftOpen && !shopOpen && !cultivationOpen && !drinkingOpen && !fishingTarget && !miningTarget && !forumOpen && !projectOpen && !galleryOpen && !collectionOpen && !messageInboxOpen;
+  const worldHudVisible = !mapOpen && !questOpen && !calendarOpen && !panel && !systemPanel && !activeModule && !turnCombatRequest && !giftOpen && !shopOpen && !cultivationOpen && !drinkingOpen && !fishingTarget && !miningTarget && !forumOpen && !projectOpen && !galleryOpen && !messageInboxOpen && !daybreakPresentation;
 
   return (
     <main className="game-shell huaian-phone-viewport">
@@ -820,7 +851,6 @@ export default function GameDemo() {
           <button type="button" onClick={() => setPanel("events")}>事件簿 <b>{completedCount}/{totalEvents}</b></button>
           <button type="button" onClick={()=>setMessageInboxOpen(true)}>传音 <b>{game.receivedMessages.length}</b></button>
           <button type="button" onClick={() => setGalleryOpen(true)}>展馆 <b>{unlockedAudioEvents.length}/{audioEvents.length}</b></button>
-          <button type="button" onClick={()=>setCollectionOpen(true)}>藏珍 <b>{game.collectedEasterEggs.length}/{easterEggEvents.length}</b></button>
           <button type="button" onClick={()=>setGiftOpen(true)}>行囊</button>
           <button type="button" onClick={feedback.openHistory}>讯息录</button>
           <button type="button" className="path-project-entry" onClick={()=>setQuestOpen(true)}>{questText("panelTitle")} {claimableQuestCount>0&&<b>{claimableQuestCount}</b>}</button>
@@ -838,16 +868,18 @@ export default function GameDemo() {
         ))}
       </section>
 
-      <section className={`stage ${scene.id === "spirit-farm" ? "farm-stage" : ""} ${scene.id === "intelligence-bureau" ? "bureau-stage" : ""} ${isSpecialEvent ? "special-event-active" : ""} stage-fx-${stageEffect}`} style={{ backgroundImage: `url(${scene.image})` }}>
+      <section className={`stage ${scene.id === "spirit-farm" ? "farm-stage" : ""} ${scene.id === "intelligence-bureau" ? "bureau-stage" : ""} ${scene.id === "kitchen" ? "kitchen-stage" : ""} ${isSpecialEvent ? "special-event-active" : ""} stage-fx-${stageEffect}`} style={{ backgroundImage: `url(${scene.image})` }}>
         {isSpecialEvent && <div key={`${activeDefinition?.id}-${activeDefinition?.openingEffect}`} className={`special-opening special-opening-${activeDefinition?.openingEffect ?? "none"}`} aria-hidden="true" />}
         <div className="stage-wash" aria-hidden="true" />
+        <SceneEffectsLayer effects={sceneVfx} />
+        {game.activeEvent && <StoryEffectsLayer effect={storyVfx} eventKey={`${game.activeEvent.eventId}-${game.activeEvent.nodeId}`} />}
         {worldHudVisible && !game.activeEvent && <WorldQuickDock currentSceneId={game.sceneId} currentFarmModule={currentFarmModule} period={game.period} nextPeriod={PERIODS[(Math.max(0, PERIODS.indexOf(game.period)) + 1) % PERIODS.length]} onDestination={useQuickDestination} onAdvanceTime={() => advanceTime("wait")} />}
         <div className="scene-title"><p>{scene.atmosphere}</p><h2>{scene.name}</h2><span>{scene.description}</span></div>
         {!game.activeEvent && !unifiedState.activity.last && <CurrentQuestCard onOpen={()=>setQuestOpen(true)} onNavigate={navigateToQuest}/>}
-        {!game.activeEvent && !questOpen && !activeModule && !projectOpen && unifiedState.activity.last && <RecentOutcomeCard receipt={unifiedState.activity.last} onNext={() => navigateFromOutcome(unifiedState.activity.last!.nextStep.target)} onDismiss={() => applyUnifiedEffects([{ type: "clear_activity" }])} />}
+          {!game.activeEvent && !questOpen && !activeModule && !projectOpen && unifiedState.activity.last && <RecentOutcomeCard receipt={unifiedState.activity.last} history={unifiedState.activity.history} onNext={() => navigateFromOutcome(unifiedState.activity.last!.nextStep.target)} onDismiss={() => applyUnifiedEffects([{ type: "clear_activity" }])} />}
         {restoredClinic&&!game.activeEvent&&<div className="clinic-restored-chip"><i>医</i><span><small>{feedbackText("projects.worldResultKicker")}</small><strong>{feedbackText("projects.worldResultClinic")}</strong></span></div>}
         {activeFortuneSign&&activeFortuneSign.effect!=="none"&&<div className="fortune-buff-chip"><i>✦</i><span><small>今日金运 · {activeFortuneSign.rank}</small><strong>{activeFortuneSign.title}</strong><em>{fortuneEffectLabel(activeFortuneSign.effect).replace("金运 · ","")}</em></span></div>}
-        {!game.activeEvent&&!activeExploration&&explorePoints.map((point)=>{const event=eventDefinitions.find((item)=>item.id===point.eventId);if(!event)return null;const egg=event.cardStyle==="easter_egg";return <button type="button" key={event.id} className={`explore-light ${egg?"easter-light":"trigger-light"}`} style={{left:`${point.x}%`,top:`${point.y}%`}} onClick={()=>setActiveExploration(event)} aria-label={egg?"发现彩蛋光点":"发现剧情光点"}><i/><span>{egg?"拾":"寻"}</span></button>})}
+        {!game.activeEvent&&!activeExploration&&explorePoints.map((point)=>{const event=eventDefinitions.find((item)=>item.id===point.eventId);if(!event)return null;const egg=event.cardStyle==="easter_egg";const config=event.exploration;return <button type="button" key={event.id} className={`explore-light ${egg?"easter-light":"trigger-light"}`} style={{left:`${point.x}%`,top:`${point.y}%`,"--egg-accent":config?.accent??"#f4cf72"} as CSSProperties} onClick={()=>setActiveExploration(event)} aria-label={egg?`${config?.interactionLabel??"发现彩蛋"}：${event.title}`:"发现剧情光点"}><i/><b className="explore-glyph">{egg?(config?.icon??"拾"):"寻"}</b><span>{egg?(config?.interactionLabel??"拾取"):"循光"}</span></button>})}
         {!game.activeEvent && !activeExploration && residentFishingLocation && <button type="button" className="resident-fishing-point" onClick={() => setFishingTarget({ locationId: residentFishingLocation.id })} aria-label={`在${residentFishingLocation.name}钓鱼`}><span><b>钓</b><i /></span><em><strong>{residentFishingLocation.name}</strong><small>常驻钓点 · 今日可钓 {Math.max(0, 6 - (unifiedState.fishing.dailyDay === game.day ? unifiedState.fishing.dailyAttempts : 0))} 竿</small></em></button>}
         {scene.id !== "spirit-farm" && <aside className="present-characters" aria-label="当前在场人物">
           <p>此间人物</p>
@@ -865,15 +897,15 @@ export default function GameDemo() {
           <img className="main-portrait" src={character.image} alt={`${character.name}人物立绘`} />
           {availableQuestOffer&&<span className="npc-quest-marker"><b>!</b><em>{questText("offerAvailable")}</em></span>}
         </div>}
-        {isSpecialEvent && <div className="special-portrait-wrap" key={`${game.activeEvent?.eventId}-${game.activeEvent?.nodeId}`}><div className="special-portrait-aura" /><img src={specialPortrait} alt={`${character.name}特殊事件立绘`} /></div>}
+        {isSpecialEvent && <div className="special-portrait-wrap" key={`${game.activeEvent?.eventId}-${character.id}`}><div className="special-portrait-aura" /><img className="special-portrait-image" key={specialPortrait} src={specialPortrait} alt={`${character.name}特殊事件立绘`} /></div>}
         {hasPresentCharacter && <Inspectable className="character-plaque" aria-label={`查看${character.name}详情`} feedback={{ titleKey:"relationship.profileTitle", icon:"缘", imageSrc:character.image, bodyKey:"relationship.stageBody", params:{name:character.name,stage:currentStage.name,description:currentStage.description}, details:[{labelKey:"relationship.nameLabel",value:character.name,emphasis:true},{labelKey:"relationship.roleLabel",value:character.role},{labelKey:"relationship.stageLabel",value:currentStage.name},{labelKey:"relationship.valueLabel",value:relationship},{labelKey:"relationship.addressLabel",value:`「${currentStage.addressing}」`}] }}><p>{character.role}</p><h3>{character.name}</h3><span>{currentStage.name} · 唤你「{currentStage.addressing}」</span></Inspectable>}
         {!game.activeEvent&&scene.id==="bedroom"&&<div className={`bedroom-practice-card ${hasPresentCharacter?"with-resident":""}`}><div className="bedroom-formation"><i/><i/><span>炁</span></div><p>PRIVATE CULTIVATION · 静室</p><h3>聚灵阵已启</h3><span>每次练功消耗 {ACTION_COSTS.cultivation.stamina} 点体力，运转一周天需 1 秒。</span><div><b>修为 {game.experience}</b><b>体力 {game.stamina}/10</b></div><button type="button" disabled={game.stamina<ACTION_COSTS.cultivation.stamina} onClick={()=>setCultivationOpen(true)}>{game.stamina<ACTION_COSTS.cultivation.stamina?"体力不足":`入阵练功 · ${actionCostLabel("cultivation")}`}</button></div>}
         {!game.activeEvent&&scene.id==="bedroom"&&!turnCombatRequest&&<TurnCombatPracticeEntry onOpen={()=>setTurnCombatRequest({})}/>}
         {!game.activeEvent&&scene.id==="spirit-farm"&&<SpiritFarmScene day={game.day} period={game.period} requestedModule={farmQuickRequest} onModuleOpened={setCurrentFarmModule} onNotice={setNotice}/>}
         {!game.activeEvent&&scene.id==="intelligence-bureau"&&<IntelligenceBureauScene day={game.day} period={game.period} onNotice={setNotice} onOpenForum={()=>setForumOpen(true)}/>}
+        {!game.activeEvent&&scene.id==="kitchen"&&<KitchenScene day={game.day} onOpen={()=>setKitchenOpen(true)} onNotice={setNotice}/>}
 
-        {bondFeedback && bondFeedback.amount === 1 && <div key={bondFeedback.id} className="bond-gain-mini"><span>♥</span> 好感度 +1</div>}
-        {bondFeedback && bondFeedback.amount > 1 && <div key={bondFeedback.id} className={`bond-gain-card ${bondFeedback.source?"fortune-boosted":""}`}><img src={characterMap[bondFeedback.characterId]?.image ?? character.image} alt="" /><div><p><strong>{characterMap[bondFeedback.characterId]?.name ?? bondFeedback.characterId}</strong>{bondFeeling(bondFeedback.amount)}</p><span>好感度提升</span>{bondFeedback.source&&<em>{bondFeedback.source}</em>}</div><b>+{bondFeedback.amount}</b><i>♥</i></div>}
+        {bondFeedback && <div key={bondFeedback.id} className={`bond-gain-mini ${bondFeedback.source?"fortune-boosted":""}`}><span>♥</span><strong>{characterMap[bondFeedback.characterId]?.name ?? bondFeedback.characterId}</strong> 好感度 +{bondFeedback.amount}{bondFeedback.source&&<em>{bondFeedback.source}</em>}</div>}
 
         {!game.activeEvent && hasPresentCharacter && (
           <div className={`interaction-dock ${character.id === "ning" || character.id === "huo" ? "has-shop" : ""}`}>
@@ -939,13 +971,12 @@ export default function GameDemo() {
         <button type="button" className={utilityOpen ? "active" : ""} onClick={() => setUtilityOpen(true)}><i>匣</i><span>百宝匣</span><b>{game.receivedMessages.length}</b></button>
       </nav>
 
-      <MobileUtilityDrawer open={utilityOpen} stamina={game.stamina} stones={game.spiritStones} cardCount={unifiedState.shared.cards.length} messageCount={game.receivedMessages.length} galleryCount={unlockedAudioEvents.length} collectionCount={game.collectedEasterEggs.length} onClose={() => setUtilityOpen(false)} onAction={(id) => {
+      <MobileUtilityDrawer open={utilityOpen} stamina={game.stamina} stones={game.spiritStones} cardCount={unifiedState.shared.cards.length} messageCount={game.receivedMessages.length} galleryCount={unlockedAudioEvents.length} onClose={() => setUtilityOpen(false)} onAction={(id) => {
         setUtilityOpen(false);
         if (id === "inventory" || id === "equipment" || id === "cards" || id === "skills") setSystemPanel(id);
         else if (id === "events") setPanel("events");
         else if (id === "messages") setMessageInboxOpen(true);
         else if (id === "gallery") setGalleryOpen(true);
-        else if (id === "collection") setCollectionOpen(true);
         else if (id === "history") feedback.openHistory();
         else if (id === "wait") advanceTime("wait");
         else if (id === "rest") advanceTime("rest");
@@ -957,6 +988,7 @@ export default function GameDemo() {
       {questOffer&&<QuestOfferDialogue definition={questOffer} onClose={()=>setQuestOffer(null)}/>}
       {projectOpen&&<PathProjectPanel onClose={()=>setProjectOpen(false)} onNotice={setNotice} onNavigate={navigateFromProject}/>}
       {forumOpen&&<ForumModal day={game.day} period={game.period} onClose={()=>setForumOpen(false)} player={{name:"槐安行者",title:"云州新秀",level:unifiedState.shared.playerLevel,cultivation:game.experience,dungeons:unifiedState.dungeons.completed.length,bondName:characters.reduce((best,item)=>(game.relationships[item.id]??0)>(game.relationships[best.id]??0)?item:best,characters[0]).name,bond:Math.max(...characters.map(item=>game.relationships[item.id]??0))}}/>}
+      {kitchenOpen&&<KitchenModal onClose={()=>setKitchenOpen(false)} onNotice={setNotice}/>}
       {fishingTarget && <FishingModal locationId={fishingTarget.locationId} randomSpotId={fishingTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setFishingTarget(null)} onNotice={setNotice} />}
       {miningTarget && <MiningModal locationId={miningTarget.locationId} randomSpotId={miningTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setMiningTarget(null)} onNotice={setNotice} />}
       {turnCombatRequest && <TurnCombatModule
@@ -972,35 +1004,35 @@ export default function GameDemo() {
       {activeModule && <div className={`fusion-module-backdrop module-${activeModule.kind}`} role="presentation"><section className="fusion-module-window" role="dialog" aria-modal="true" aria-label={activeModule.kind === "battle" ? `${activeModule.dungeon.name}秘境战斗` : "玄火丹炉"}>
         <button type="button" className="fusion-module-close" onClick={() => setActiveModule(null)} aria-label={feedbackText("system.close")}>‹</button>
         <div className="fusion-module-native">
-          {activeModule.kind === "alchemy" ? <AlchemyGame embedded initialSurface={activeModule.surface} onExit={() => { setActiveModule(null); setNotice("已返回当前场景。"); }} /> : <MowingGame initialWaveId={activeModule.dungeon.waveId} embedded autoStart={activeModule.prepared === true} onExit={(receipt) => { setActiveModule(null); if (receipt) setBattleReturnReceipt(receipt); setNotice(receipt ? "秘境结算已归入乾坤行囊，时辰随之推移。" : "已返回当前场景。"); }} />}
+          {activeModule.kind === "alchemy" ? <AlchemyGame embedded initialSurface={activeModule.surface} onExit={() => setActiveModule(null)} /> : <MowingGame initialWaveId={activeModule.dungeon.waveId} embedded autoStart={activeModule.prepared === true} onExit={(receipt) => { setActiveModule(null); if (receipt) setBattleReturnReceipt(receipt); }} />}
         </div>
       </section></div>}
       {battleReturnReceipt && <BattleReturnPanel receipt={battleReturnReceipt} onOpenTasks={() => { setBattleReturnReceipt(null); setQuestOpen(true); }} onOpenPanel={(panel) => { setBattleReturnReceipt(null); setSystemPanel(panel); }} onClose={() => setBattleReturnReceipt(null)} />}
+      {nightfallVisible&&!game.activeEvent&&!daybreakPresentation&&<NightfallNotice onSleep={()=>{setNightfallDismissedKey(nightfallKey);advanceTime("sleep")}} onDismiss={()=>setNightfallDismissedKey(nightfallKey)}/>}
+      {daybreakPresentation&&<DaybreakTransition key={daybreakPresentation.day} presentation={daybreakPresentation} onComplete={()=>setGame((state)=>{const story=daybreakStoryForDay(state.day,state.daybreakStoryRuns);const homeScene=scenes.find((item)=>item.id===DAYBREAK_CONTENT.homeSceneId);return{...state,sceneId:DAYBREAK_CONTENT.homeSceneId,selectedCharacterId:homeScene?.characters[0]??state.selectedCharacterId,daybreakStoryRuns:markDaybreakStorySeen(state.daybreakStoryRuns,story?.id),daybreakAcknowledgedDays:[...new Set([...state.daybreakAcknowledgedDays,state.day])].slice(-60)}})}/>}
       {calendarOpen && <CalendarModal state={game} events={eventDefinitions} onClose={() => setCalendarOpen(false)} />}
       {activeActivity === "tavern-gambling" && <GamblingModal stones={game.spiritStones} stamina={game.stamina} portrait={characterMap.hua?.image ?? "/assets/characters/hua-zhaoying.webp"} onClose={() => setActiveActivity(null)} onSpend={spendSpiritStones} onSpendStamina={spendStamina} onPayout={gainSpiritStones} onBond={gainHuaBond} />}
       {activeActivity === "monthly-market" && <MarketModal stones={game.spiritStones} stamina={game.stamina} treasures={game.marketTreasures} onClose={() => setActiveActivity(null)} onSpend={spendSpiritStones} onSpendStamina={spendStamina} onTreasure={collectMarketTreasure} onBuyGift={buyMarketGift} />}
-      {activeActivity === "daily-divination" && <FortuneModal dateKey={realDateKey} portrait={characterMap.liu?.image ?? "/assets/characters/liu-zhiyi.webp"} initialRecord={fortuneHistory[realDateKey]} onClose={()=>setActiveActivity(null)} onDraw={drawFortuneToday}/>}
+      {activeActivity === "daily-divination" && <FortuneModal dateKey={realDateKey} portrait={characterMap.liu?.image ?? "/assets/characters/portrait-refresh/liu-zhiyi.png"} initialRecord={fortuneHistory[realDateKey]} onClose={()=>setActiveActivity(null)} onDraw={drawFortuneToday}/>}
       {cultivationOpen&&<CultivationModal stamina={game.stamina} experience={game.experience} onClose={()=>setCultivationOpen(false)} onComplete={completeCultivation}/>}
       {inspectionReveal&&<InspectionModal scene={inspectionReveal.scene} event={inspectionReveal.event} onClose={()=>setInspectionReveal(null)} onEnterEvent={enterInspectionEvent}/>}
       {drinkingOpen&&drinkingConfig&&<DrinkingModal character={character} config={drinkingConfig} stamina={game.stamina} initialWins={game.interactionCounts[drinkingCountKey]??0} sceneDifficulty={sceneMap[game.sceneId]?.minigameDifficulty?.drinking??4} proficiencyExperience={game.proficiencyExperience.drinking??0} specialCompleted={Boolean(drinkingConfig.specialEventId&&game.completedEvents.includes(drinkingConfig.specialEventId))} onClose={()=>setDrinkingOpen(false)} onSpendStamina={spendStamina} onPractice={practiceDrinking} onWin={recordDrinkingWin} onSpecial={triggerDrinkingSpecial}/>}
       {shopOpen&&characterMap.ning&&<ShopModal gifts={gifts} events={eventDefinitions} relationship={game.relationships.ning??4} initialDepartment={character.id === "huo" ? "weapons" : "treasure"} onClose={()=>setShopOpen(false)} onNotice={setNotice}/>}
 
-      {activeExploration?.exploration&&<div className="exploration-backdrop"><section className={`exploration-card ${activeExploration.cardStyle}`} role="dialog" aria-modal="true" aria-label={activeExploration.title}><button type="button" className="exploration-close" onClick={()=>setActiveExploration(null)}>×</button><div className="exploration-image"><img src={activeExploration.exploration.image} alt=""/><span>{activeExploration.cardStyle==="easter_egg"?"偶得":"异光"}</span></div><div className="exploration-content"><p>{activeExploration.cardStyle==="easter_egg"?"HIDDEN TREASURE · 彩蛋发现":"STORY TRACE · 剧情触发"}</p><h3>{activeExploration.title}</h3><blockquote>{activeExploration.exploration.text}</blockquote>{activeExploration.cardStyle==="easter_egg"&&activeExploration.exploration.rewardItem&&<small>发现物品 · {activeExploration.exploration.rewardItem.name}</small>}<button type="button" className="exploration-resolve" onClick={resolveExploration}>{activeExploration.cardStyle==="easter_egg"?`收入藏珍录 · ${activeExploration.exploration.rewardItem?.name??"彩蛋"}`:"循光而入 · 进入剧情"}</button></div></section></div>}
-      {eggRewardNotice&&<div className="egg-obtained"><img src={eggRewardNotice.image} alt=""/><span><small>EASTER EGG OBTAINED</small><strong>获得彩蛋物品 · {eggRewardNotice.name}</strong></span></div>}
-
-      {collectionOpen&&<div className="modal-backdrop collection-backdrop" onMouseDown={()=>setCollectionOpen(false)}><section className="collection-sheet" role="dialog" aria-modal="true" aria-label="藏珍录" onMouseDown={(event)=>event.stopPropagation()}><div className="sheet-heading"><div><p>HIDDEN TREASURES · {game.collectedEasterEggs.length}/{easterEggEvents.length}</p><h3>藏珍录</h3></div><button type="button" onClick={()=>setCollectionOpen(false)}>×</button></div><p className="collection-intro">散落于各处的微小旧物。每一件都记着一段旁人未曾留意的故事。</p><div className="collection-grid">{collectedEggItems.map(({event,item})=><article key={item.id}><img src={item.image} alt=""/><div><small>{event.chapter}</small><h4>{item.name}</h4><p>{item.description}</p><i>发现于 · {sceneMap[event.sceneId]?.name??event.sceneId}</i></div></article>)}{!collectedEggItems.length&&<div className="em-empty">尚未发现彩蛋。留意场景中如呼吸般明灭的金色微光。</div>}</div></section></div>}
+      {activeExploration?.exploration&&<div className="exploration-backdrop"><section className={`exploration-card ${activeExploration.cardStyle}`} role="dialog" aria-modal="true" aria-label={activeExploration.title} style={{"--egg-accent":activeExploration.exploration.accent??"#d5b066"} as CSSProperties}><button type="button" className="exploration-close" onClick={()=>setActiveExploration(null)}>×</button><div className={`exploration-image ${activeExploration.cardStyle==="easter_egg"?"with-treasure":""}`}><img src={activeExploration.exploration.image} alt=""/>{activeExploration.cardStyle==="easter_egg"&&activeExploration.exploration.rewardItem&&<EasterEggArtwork item={activeExploration.exploration.rewardItem} className="exploration-treasure-art"/>}<span>{activeExploration.cardStyle==="easter_egg"?(activeExploration.exploration.icon??"偶得"):"异光"}</span></div><div className="exploration-content"><p>{activeExploration.cardStyle==="easter_egg"?"HIDDEN TREASURE · 彩蛋发现":"STORY TRACE · 剧情触发"}</p><h3>{activeExploration.title}</h3><blockquote>{activeExploration.exploration.text}</blockquote>{activeExploration.cardStyle==="easter_egg"&&activeExploration.exploration.rewardItem&&<small>发现物品 · {activeExploration.exploration.rewardItem.name}</small>}<button type="button" className="exploration-resolve" onClick={resolveExploration}>{activeExploration.cardStyle==="easter_egg"?`收入藏珍录 · ${activeExploration.exploration.rewardItem?.name??"彩蛋"}`:"循光而入 · 进入剧情"}</button></div></section></div>}
+      {eggRewardNotice&&<div className="egg-obtained"><EasterEggArtwork item={eggRewardNotice}/><span><small>EASTER EGG OBTAINED</small><strong>获得彩蛋物品 · {eggRewardNotice.name}</strong></span></div>}
 
       {activeAudioEvent&&activeAudioSegment&&<div className="audio-story-overlay" role="dialog" aria-modal="true" aria-label={activeAudioEvent.title} onClick={advanceAudioStory}><div className="audio-story-heading"><span>{replayEvent?"展馆 · 回忆模式":"音画事件"}</span><strong>{activeAudioEvent.title}</strong><i>{audioIndex+1} / {activeAudioEvent.audioSegments?.length}</i></div><div className="audio-story-art"><img className="audio-story-picture" src={activeAudioSegment.image} alt=""/><img className="audio-story-frame" src={activeAudioFrame.src} alt=""/></div><p>{activeAudioSegment.subtitle}</p><audio key={`${activeAudioEvent.id}-${audioIndex}`} src={activeAudioSegment.audio} autoPlay controls onClick={event=>event.stopPropagation()}/><small>点击画面进入下一段</small></div>}
-      {unlockNotice&&<div className="audio-unlock-banner"><span>✦</span><p>{unlockNotice}</p><small>已收入展馆，可随时回放</small></div>}
+      {unlockNotice&&<button type="button" className="audio-unlock-banner" onClick={()=>{setUnlockNotice("");setGalleryOpen(true)}} aria-label={`${unlockNotice}，打开云上展馆`}><span>✦</span><span className="audio-unlock-copy"><strong>{unlockNotice}</strong><small>已收入展馆 · 点击查看</small></span></button>}
 
-      {keyAnnouncementQueue[0]&&<div className="global-announcement-backdrop"><section className="global-announcement" role="dialog" aria-modal="true" aria-label="游戏公告"><div className="announcement-seal">告</div><p>WORLD NOTICE · 游戏公告</p><h3>{keyAnnouncementQueue[0].announcement?.title||keyAnnouncementQueue[0].name}</h3><div className="announcement-rule"><i/><span>◆</span><i/></div><div className="announcement-message">{keyAnnouncementQueue[0].announcement?.message||keyAnnouncementQueue[0].description}</div><small>{keyAnnouncementQueue[0].category} · {keyAnnouncementQueue[0].name}</small><button type="button" onClick={()=>setKeyAnnouncementQueue((queue)=>queue.slice(1))}>知晓</button></section></div>}
+      {keyAnnouncementQueue[0]&&!game.activeEvent&&!activeAudioEvent&&!daybreakPresentation&&<div className="global-announcement-backdrop"><section className="global-announcement" role="dialog" aria-modal="true" aria-label="游戏公告"><div className="announcement-seal">告</div><p>WORLD NOTICE · 游戏公告</p><h3>{keyAnnouncementQueue[0].announcement?.title||keyAnnouncementQueue[0].name}</h3><div className="announcement-rule"><i/><span>◆</span><i/></div><div className="announcement-message">{keyAnnouncementQueue[0].announcement?.message||keyAnnouncementQueue[0].description}</div><small>{keyAnnouncementQueue[0].category} · {keyAnnouncementQueue[0].name}</small><button type="button" onClick={()=>setKeyAnnouncementQueue((queue)=>queue.slice(1))}>知晓</button></section></div>}
 
       {preferenceNotice&&<div className="preference-discovery"><span>✦</span>{preferenceNotice}</div>}
-      {stageNotice&&<div className="stage-notice-backdrop"><section className="stage-notice" role="dialog" aria-modal="true"><img src={characterMap[stageNotice.characterId]?.image} alt=""/><div><p>RELATIONSHIP ADVANCED · 关系进展</p><h3>{characterMap[stageNotice.characterId]?.name} · {stageNotice.stage.name}</h3><blockquote>{stageNotice.stage.description}</blockquote><span>从今往后，她会唤你「{stageNotice.stage.addressing}」</span><button type="button" onClick={()=>setStageNotice(null)}>记下此刻</button></div></section></div>}
+      {stageNotice&&!game.activeEvent&&!activeAudioEvent&&<div className={`stage-notice-backdrop ${stageNotice.stage.id==="devoted"?"stage-notice-major":""}`}><section className="stage-notice" role="dialog" aria-modal="true"><img src={characterMap[stageNotice.characterId]?.image} alt=""/><div><p>RELATIONSHIP ADVANCED · 关系进展</p><h3>{characterMap[stageNotice.characterId]?.name} · {stageNotice.stage.name}</h3><blockquote>{stageNotice.stage.description}</blockquote><span>从今往后，她会唤你「{stageNotice.stage.addressing}」</span><button type="button" onClick={()=>setStageNotice(null)}>记下此刻</button></div></section></div>}
 
       {activeMessage&&<div className="message-backdrop"><section className="character-message" role="dialog" aria-modal="true" aria-label={activeMessage.title}><img src={characterMap[activeMessage.senderCharacterId]?.image} alt=""/><div><p>CHARACTER LETTER · {characterMap[activeMessage.senderCharacterId]?.name}</p><h3>{activeMessage.title}</h3><blockquote>{activeMessage.body}</blockquote><span>—— {activeMessage.signature}</span>{!replayMessage&&(activeMessage.giftId||activeMessage.relationshipAmount)&&<small>{activeMessage.giftId?`随信附赠：${giftMap[activeMessage.giftId]?.name} × ${activeMessage.giftAmount??1}`:""}{activeMessage.giftId&&activeMessage.relationshipAmount?" · ":""}{activeMessage.relationshipAmount?`缘分 +${activeMessage.relationshipAmount}`:""}</small>}<button type="button" onClick={closeMessage}>{replayMessage?"收起旧笺":"收下传音"}</button></div></section></div>}
 
-      {messageInboxOpen&&!activeMessage&&<div className="modal-backdrop message-inbox-backdrop" onMouseDown={()=>setMessageInboxOpen(false)}><section className="message-inbox" role="dialog" aria-modal="true" onMouseDown={(event)=>event.stopPropagation()}><div className="sheet-heading"><div><p>LETTERS & WHISPERS</p><h3>传音匣</h3></div><button type="button" onClick={()=>setMessageInboxOpen(false)}>×</button></div><div className="message-list">{messageDefinitions.filter((message)=>game.receivedMessages.includes(message.id)).map((message)=><button type="button" key={message.id} onClick={()=>{setMessageInboxOpen(false);setReplayMessage(message)}}><img src={characterMap[message.senderCharacterId]?.image} alt=""/><span><small>{characterMap[message.senderCharacterId]?.name}</small><strong>{message.title}</strong><p>{message.body}</p></span><i>重读</i></button>)}{!game.receivedMessages.length&&<div className="em-empty">传音匣尚空。随着关系与时间推进，她们会主动写信给你。</div>}</div></section></div>}
+      {messageInboxOpen&&!activeMessage&&<div className="modal-backdrop message-inbox-backdrop" onMouseDown={()=>setMessageInboxOpen(false)}><section className="message-inbox" role="dialog" aria-modal="true" onMouseDown={(event)=>event.stopPropagation()}><div className="sheet-heading"><div><p>LETTERS & WHISPERS</p><h3>传音匣</h3></div><button type="button" onClick={()=>setMessageInboxOpen(false)}>×</button></div><div className="message-list">{inboxMessages.map((message)=>{const claimed=game.claimedMessages.includes(message.id);return <button type="button" className={claimed?"claimed":"unread"} key={message.id} onClick={()=>{setMessageInboxOpen(false);if(claimed)setReplayMessage(message);else setMessageQueue((queue)=>[message,...queue.filter((item)=>item.id!==message.id)]);setMessageOpen(true)}}><img src={characterMap[message.senderCharacterId]?.image} alt=""/><span><small>{characterMap[message.senderCharacterId]?.name}</small><strong>{message.title}</strong><p>{message.body}</p></span><i>{claimed?"重读":"未读"}</i></button>})}{!inboxMessages.length&&<div className="em-empty">传音匣尚空。随着关系与时间推进，她们会主动写信给你。</div>}</div></section></div>}
 
       {galleryOpen&&!replayEvent&&<div className="modal-backdrop gallery-backdrop" role="presentation" onMouseDown={()=>setGalleryOpen(false)}><section className="memory-gallery" role="dialog" aria-modal="true" aria-label="音画展馆" onMouseDown={event=>event.stopPropagation()}><div className="sheet-heading"><div><p>COLLECTED MEMORIES</p><h3>云上展馆</h3></div><button type="button" onClick={()=>setGalleryOpen(false)}>×</button></div><p className="gallery-intro">已解锁的音画事件会成为回忆卡片。点击卡片进入回忆模式，从第一段重新播放。</p><div className="gallery-card-grid">{audioEvents.map((event,index)=>{const unlocked=game.completedEvents.includes(event.id);const cover=event.audioSegments?.[0]?.image;return <button type="button" key={event.id} className={unlocked?"unlocked":"locked"} disabled={!unlocked} onClick={()=>{setGalleryOpen(false);setReplayEvent(event);setAudioIndex(0)}}><span className="gallery-card-art" style={{backgroundImage:cover?`url(${cover})`:undefined}}><img src={getAudioFrame(event.audioFrameId).src} alt=""/></span><small>{String(index+1).padStart(2,"0")} · {event.chapter}</small><strong>{unlocked?(event.unlockTitle||event.title):"未解锁回忆"}</strong><i>{unlocked?`${event.audioSegments?.length??0} 段音画 · 点击回放`:event.clue}</i></button>})}{!audioEvents.length&&<div className="em-empty">尚未发布音画事件。可在 EM 中创建第一张音画事件卡。</div>}</div></section></div>}
 
@@ -1008,6 +1040,7 @@ export default function GameDemo() {
         <div className="modal-backdrop" role="presentation" onMouseDown={() => setGiftOpen(false)}>
           <section className="gift-sheet" role="dialog" aria-modal="true" aria-label="选择礼物" onMouseDown={(event) => event.stopPropagation()}>
             <div className="sheet-heading"><div><p>INVENTORY · 行囊</p><h3>{hasPresentCharacter?`挑一份心意赠予${character.name}`:"查看随身物品"}</h3></div><button type="button" onClick={() => setGiftOpen(false)} aria-label="关闭">×</button></div>
+            {hasPresentCharacter&&giftEggShowcases.length>0&&<section className="gift-easter-showcase"><header><span>✦</span><div><small>PERSONAL CLUE · 可向此人展示</small><strong>有些旧物，只会让特定的人开口</strong></div></header><div>{giftEggShowcases.map(({definition,showcase})=>{const item=easterEggItemMap[definition.itemId];if(!item)return null;return <article key={definition.itemId}><EasterEggArtwork item={item}/><span><small>藏珍 · 置顶线索</small><strong>{item.name}</strong><p>{showcase.subtitle}</p></span><button type="button" onClick={()=>showEasterEgg(definition.itemId)}>展示</button></article>})}</div></section>}
             <div className="gift-grid">
               {gifts.map((gift) => {
                 const count = game.inventory[gift.id];

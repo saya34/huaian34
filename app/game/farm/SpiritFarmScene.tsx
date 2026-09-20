@@ -16,7 +16,7 @@ const NPCS = {
   seed: {
     name: "叶青禾",
     role: "司圃灵植师",
-    image: "/assets/commission-npcs/shen-qingluo.webp",
+    image: "/assets/characters/portrait-refresh/ye-qinghe.png",
     greeting: "每一粒种子都有自己的时辰。你若肯常来，我便把压箱底的灵种也交给你。",
     talk: ["今晨东畦的露水最清，水行仙草会格外舒展。", "别只盯着成熟的花叶，根须安不安稳，也要听土说话。", "你来得正好，我刚从行脚商手里换到一批异种灵籽。"],
   },
@@ -49,7 +49,8 @@ function FarmMerchant({ kind, day, period, onClose, onNotice }: { kind: Merchant
   const permanent = kind === "seed" ? HERB_CROPS.filter((entry) => entry.stockType === "resident") : SPIRIT_BEASTS.filter((entry) => entry.stockType === "resident");
   const rotating = kind === "seed" ? rotatingHerbStock(day) : rotatingBeastStock(day);
 
-  function announce(copy: string) { setMessage(copy); onNotice(copy); }
+  void onNotice;
+  function announce(copy: string) { setMessage(copy); }
 
   function talk() {
     const alreadyTalked = state.farm.npcTalkDays[kind] === day;

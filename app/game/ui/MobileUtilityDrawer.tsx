@@ -11,14 +11,13 @@ type MobileUtilityDrawerProps = {
   cardCount: number;
   messageCount: number;
   galleryCount: number;
-  collectionCount: number;
   onClose: () => void;
   onAction: (id: ActionId) => void;
 };
 
 const GROUPS: { id: keyof typeof content.sections; actions: ActionId[] }[] = [
   { id: "prepare", actions: ["inventory", "equipment", "cards", "skills"] },
-  { id: "records", actions: ["events", "messages", "gallery", "collection", "history"] },
+  { id: "records", actions: ["events", "messages", "gallery", "history"] },
   { id: "schedule", actions: ["wait", "rest", "sleep"] },
 ];
 
@@ -28,7 +27,6 @@ export default function MobileUtilityDrawer(props: MobileUtilityDrawerProps) {
     cards: props.cardCount,
     messages: props.messageCount,
     gallery: props.galleryCount,
-    collection: props.collectionCount,
   };
   return <div className="mobile-utility-backdrop" role="presentation" onMouseDown={props.onClose}>
     <section className="mobile-utility-drawer" role="dialog" aria-modal="true" aria-label={content.drawerTitle} onMouseDown={(event) => event.stopPropagation()}>

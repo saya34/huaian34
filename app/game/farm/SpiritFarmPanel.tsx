@@ -52,6 +52,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
   const [livestockOpen, setLivestockOpen] = useState(initialView === "livestock");
   const [mobileSheet, setMobileSheet] = useState<"seeds" | "career" | null>(null);
   const readyRef = useRef(new Set<string>());
+  const readyInitializedRef = useRef(false);
   const tick = gameTick(day, period);
   const weather = getFarmWeather(day);
   const farmEvent = getFarmEvent(day);
@@ -75,16 +76,19 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
 
   useEffect(() => {
     const ready = new Set(farm.plots.filter((plot) => plot.cropId && plotGrowth(plot, tick, weather).ready).map((plot) => plot.id));
-    for (const id of ready) if (!readyRef.current.has(id)) {
-      const plot = farm.plots.find((entry) => entry.id === id);
-      if (plot?.cropId) feedback.publish({ variant:"progression-milestone", priority:2, titleKey:"farm.matureTitle", bodyKey:"farm.matureBody", params:{name:cropById(plot.cropId).materialName}, icon:"熟", dedupeKey:`farm:mature:${id}:${plot.plantedAtTick}` });
+    if (!readyInitializedRef.current) { readyRef.current = ready; readyInitializedRef.current = true; return; }
+    const newlyReady = [...ready].filter((id) => !readyRef.current.has(id));
+    if (newlyReady.length) {
+      const firstPlot = farm.plots.find((entry) => entry.id === newlyReady[0]);
+      const firstName = firstPlot?.cropId ? cropById(firstPlot.cropId).materialName : "灵植";
+      feedback.toast({ titleKey:"farm.matureTitle", bodyKey:"farm.matureBody", params:{name:newlyReady.length > 1 ? `${firstName}等 ${newlyReady.length} 畦` : firstName}, icon:"熟", dedupeKey:`farm:mature:${tick}:${newlyReady.sort().join("-")}` });
     }
     readyRef.current = ready;
   }, [farm.plots, feedback, tick, weather]);
 
+  void onNotice;
   function announce(copy: string) {
     setMessage(copy);
-    onNotice(copy);
   }
 
   function pulsePlot(id: string, kind: "plant" | "harvest" | "fertilize") {
@@ -101,20 +105,19 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
     const result = plantPlot(farm, plotId, selectedCropId, tick, farmingCareer.toolTier);
     if (!result.ok) { setMessage(result.message); return; }
     setFarm(result.farm); pulsePlot(plotId, "plant"); floatPlot(plotId, `播种 · ${selectedCrop.materialName}`, "green");
-    feedback.float({ titleKey:"farm.sowFloat", params:{name:selectedCrop.materialName}, icon:"芽", tone:"jade", dedupeKey:`farm:sow:${plotId}:${tick}` });
     announce(`${result.message} · ${selectedCrop.growTicks} 时辰内成熟`);
   }
 
   function fertilize(plotId: string) {
     const result = fertilizePlot(farm, plotId, selectedFertilizer);
     if (!result.ok) { announce(result.message); return; }
-    setFarm(result.farm); pulsePlot(plotId, "fertilize"); floatPlot(plotId, `${FERTILIZERS[selectedFertilizer].name} -1`, "blue"); feedback.float({titleKey:"farm.fertilizeFloat",params:{name:FERTILIZERS[selectedFertilizer].name},icon:"沃",tone:"jade",dedupeKey:`farm:fertilize:${plotId}:${tick}`}); announce(result.message);
+    setFarm(result.farm); pulsePlot(plotId, "fertilize"); floatPlot(plotId, `${FERTILIZERS[selectedFertilizer].name} -1`, "blue"); announce(result.message);
   }
 
   function water(plotId: string) {
     const result = waterPlot(farm, plotId, day);
     if (!result.ok) { announce(result.message); return; }
-    setFarm(result.farm); pulsePlot(plotId, "fertilize"); floatPlot(plotId, "灵泉润畦 · 生长加速", "blue"); feedback.float({titleKey:"farm.waterFloat",icon:"泉",tone:"jade",dedupeKey:`farm:water:${plotId}:${day}`}); announce(result.message);
+    setFarm(result.farm); pulsePlot(plotId, "fertilize"); floatPlot(plotId, "灵泉润畦 · 生长加速", "blue"); announce(result.message);
   }
 
   function harvest(plotId: string) {
@@ -124,8 +127,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
     const careerResult=resolveGatheringOutcome(state.gathering,{professionId:"farming",itemId:result.reward.itemId,name:harvestedCrop.materialName,rarity:result.reward.rarity,art:material.image,location:"云岫灵圃",tick,seed:`farm:${day}:${plotId}:${farm.harvestSerial}`,tags:["农产",harvestedCrop.element,"炼丹"]});
     setGathering(careerResult.progress);
     setFarm({...result.farm,seeds:{...result.farm.seeds,[harvestedCrop.id]:(result.farm.seeds[harvestedCrop.id]??0)+1}}); pulsePlot(plotId, "harvest"); floatPlot(plotId, result.message, "gold");
-    feedback.float({ titleKey:"farm.harvestFloat", params:{name:harvestedCrop.materialName,amount:result.reward.amount}, icon:"收", tone:"gold", dedupeKey:`farm:harvest:${plotId}:${tick}` });
-    if (!state.shared.items[result.reward.itemId]) feedback.toast({titleKey:"farm.firstCodex",bodyKey:"farm.firstCodexBody",params:{name:cropById(farm.plots.find((entry)=>entry.id===plotId)?.cropId ?? selectedCropId).materialName},icon:"录",tone:"gold",dedupeKey:`farm:first:${result.reward.itemId}`});
+    if (!state.shared.items[result.reward.itemId]) feedback.publish({variant:"progression-milestone",level:"L2",titleKey:"farm.firstCodex",bodyKey:"farm.firstCodexBody",params:{name:cropById(farm.plots.find((entry)=>entry.id===plotId)?.cropId ?? selectedCropId).materialName},icon:"录",tone:"gold",dedupeKey:`farm:first:${result.reward.itemId}`});
     if (result.mutated) feedback.publish({variant:"rare-reward",priority:0,tone:"gold",titleKey:"farm.mutationTitle",bodyKey:"farm.mutationBody",params:{name:cropById(farm.plots.find((entry)=>entry.id===plotId)?.cropId ?? selectedCropId).materialName},icon:"变",dedupeKey:`farm:mutation:${plotId}:${tick}`});
     const effects:Parameters<typeof applyEffects>[0]=[{ type: "add_item", item: {...result.reward,sourceTags:[...result.reward.sourceTags,"农产",harvestedCrop.element]} }, { type: "add_player_exp", amount: Math.max(1, Math.floor(result.experience / 2)) }];
     if(careerResult.companion)effects.push({type:"add_item",item:{itemId:careerResult.companion.id,itemType:careerResult.companion.itemType,rarity:careerResult.companion.rarity as 1|2|3|4|5,amount:1,sourceTags:["灵圃伴生",...careerResult.companion.tags],locked:careerResult.companion.locked}});

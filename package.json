@@ -16,7 +16,9 @@
     "test:feedback-stress": "node scripts/stress-feedback.mjs",
     "check:quests": "node scripts/check-quests.mjs",
     "check:shen-story": "node scripts/check-shen-content.mjs",
-    "check:turn-combat": "node scripts/check-turn-combat.mjs"
+    "check:turn-combat": "node scripts/check-turn-combat.mjs",
+    "check:daybreak": "node scripts/check-daybreak.mjs",
+    "check:vfx": "node scripts/check-vfx.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

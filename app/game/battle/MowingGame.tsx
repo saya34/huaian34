@@ -161,8 +161,10 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
     const bossName = snapshot.boss?.name ?? null;
     if (!bossName || announcedBossRef.current === bossName) return;
     announcedBossRef.current = bossName;
-    feedback.publish({ variant: "world-announcement", scope: "combat", priority: 0, tone: "danger", titleKey: "battle.bossTitle", bodyKey: "battle.bossBody", params: { name: bossName }, icon: "劫", dedupeKey: `battle-boss:${waveId}:${bossName}` });
-  }, [feedback, snapshot.boss?.name, waveId]);
+    setPhaseAlert({name:bossName,subtitle:"强敌现身 · 留意血条与阶段招式"});
+    if (phaseTimer.current) clearTimeout(phaseTimer.current);
+    phaseTimer.current=setTimeout(()=>setPhaseAlert(null),2400);
+  }, [snapshot.boss?.name]);
 
   useEffect(() => {
     if (!heldTreasure) return;
@@ -214,10 +216,9 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
 
   const showToast = useCallback((message: string) => {
     setToast(message);
-    feedback.toast({ scope: "combat", priority: 2, titleKey: "system.dynamicMessage", params: { message }, dedupeKey: `battle-toast:${message}` });
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(""), 1800);
-  }, [feedback]);
+    toastTimer.current = setTimeout(() => setToast(""), 1500);
+  }, []);
 
   const requestCardSummon = useCallback(() => {
     const equippedIds = new Set(meta.cardSlots.slice(0, meta.cardSlotCount).filter(Boolean));
@@ -254,6 +255,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
     setHeldTreasure(null);
     setBattleCeremony(null);
     if (ceremonyTimer.current) clearTimeout(ceremonyTimer.current);
+    const mealLuckBonus = unifiedState.shared.luck.charges > 0 ? unifiedState.shared.luck.bonus : 0;
     const settings: GameSettings = {
       heroId,
       waveId,
@@ -261,7 +263,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
       backpackSize: backpackSize(meta.backpackLevel),
       safeSize: safeSize(meta.safeLevel),
       baseAttributes: preparedAttributes,
-      combatTraits: permanentTraits,
+      combatTraits: { ...permanentTraits, lootLuck: permanentTraits.lootLuck + mealLuckBonus },
       wmConfig: meta.wmPublished,
       availableSkillIds: learnedSkillIds(meta.skillMastery),
       skillDamageBonuses: skillDamageBonuses(meta.skillMastery),
@@ -292,32 +294,17 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
         setMeta(settlement.nextMeta);
         applyEffects(settlement.effects);
         setResult(settlement.result);
-        feedback.publish({
-          variant: kind === "victory" ? "progression-milestone" : "world-announcement",
-          scope: "combat",
-          priority: kind === "victory" ? 0 : 1,
-          tone: kind === "victory" ? "gold" : "jade",
-          titleKey: kind === "victory" ? "battle.victoryTitle" : "battle.extractTitle",
-          bodyKey: kind === "victory" ? "battle.victoryBody" : "battle.extractBody",
-          icon: kind === "victory" ? "胜" : "归",
-          details: [
-            { labelKey: "battle.settlementAccepted", value: settlement.result.accepted.length, emphasis: true },
-            { labelKey: "battle.settlementOverflow", value: settlement.result.overflow.length + settlement.result.equipmentOverflow.length },
-            { labelKey: "battle.settlementCost", value: finalSnapshot.kills },
-            { labelKey: "battle.settlementProject", value: kind === "victory" ? 1 : 0 },
-          ],
-          dedupeKey: `battle-result:${waveId}:${kind}:${Date.now()}`,
-        });
         const endingCopy = kind === "victory"
           ? { eyebrow: "妖王伏诛", title: "秘境镇压", subtitle: "一念斩群妖 · 清气复山河", seal: "胜" }
           : kind === "extracted"
             ? { eyebrow: "归途既现", title: "全身而退", subtitle: "守住所得 · 来日再问长生", seal: "归" }
             : { eyebrow: "道心未泯", title: "暂退此境", subtitle: "胜败如云烟 · 重整亦是修行", seal: "修" };
         setBattleCeremony({ phase: "ending", tone: kind, ...endingCopy });
+        const endingDuration=kind==="victory"&&!unifiedState.dungeons.completed.includes(waveId)?2600:1200;
         ceremonyTimer.current = setTimeout(() => {
           setBattleCeremony(null);
           setScreen("result");
-        }, 3300);
+        }, endingDuration);
       },
       onToast: showToast,
       onPhase: (phase) => {
@@ -330,13 +317,18 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
       onPartner: (partner, resonance) => {
         setPartnerCast({ partner, resonance });
         if (partnerTimer.current) clearTimeout(partnerTimer.current);
-        partnerTimer.current = setTimeout(() => setPartnerCast(null), 7000);
+        partnerTimer.current = setTimeout(() => setPartnerCast(null), resonance ? 2400 : 1200);
       },
     });
     engineRef.current = engine;
     try {
       await engine.prepare();
-      if (supplyStack?.amount && supplyDefinition) applyEffects([{ type: "remove_item", itemId: supplyStack.itemId, amount: 1 }]);
+      const openingEffects = [
+        ...(supplyStack?.amount && supplyDefinition ? [{ type: "remove_item" as const, itemId: supplyStack.itemId, amount: 1 }] : []),
+        ...(mealLuckBonus > 0 ? [{ type: "consume_luck_charge" as const }] : []),
+      ];
+      if (openingEffects.length) applyEffects(openingEffects);
+      if (mealLuckBonus > 0) showToast(`${unifiedState.shared.luck.source}食运护佑 · 战利品品质权重提升`);
       setScreen("battle");
       const mapName = data.maps.find((map) => Number(map.id) === mapId)?.name ?? "无名秘境";
       const waveName = data.waves.find((wave) => Number(wave.id) === waveId)?.name ?? `第 ${waveId} 重试炼`;
@@ -348,16 +340,17 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
         subtitle: "灵台清明 · 妖潮将至",
         seal: "战",
       });
+      const openingDuration=unifiedState.dungeons.completed.includes(waveId)?1100:2600;
       ceremonyTimer.current = setTimeout(() => {
         setBattleCeremony(null);
         if (engineRef.current === engine) engine.start();
-      }, 3700);
+      }, openingDuration);
     } catch (reason) {
       setBattleCeremony(null);
       setError(reason instanceof Error ? reason.message : "战场初始化失败");
       setScreen("menu");
     }
-  }, [applyEffects, data, feedback, heroId, mapId, meta, permanentAttributes, permanentTraits, requestCardSummon, setMeta, showToast, unifiedState.shared.items, waveId]);
+  }, [applyEffects, data, feedback, heroId, mapId, meta, permanentAttributes, permanentTraits, requestCardSummon, setMeta, showToast, unifiedState.shared.items, unifiedState.shared.luck, waveId]);
 
   useEffect(() => {
     if (screen === "preparing") {

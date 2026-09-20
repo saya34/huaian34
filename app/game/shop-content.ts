@@ -49,7 +49,7 @@ export const SHOP_CHARACTERS: CharacterDefinition[] = [{
   courtesy: "宁老板",
   bio: "能替万物定价，却总在与你有关的账目上少算一笔。她说做生意最忌心软，却从未真正做到。",
   sceneId: "treasure-shop",
-  image: "/assets/shop/ning-yanshu.svg",
+  image: "/assets/characters/portrait-refresh/ning-yanshu.png",
   accent: "#2f9b8f",
   lovedGift: "jadeAbacusCharm",
   relationshipStages: stages,

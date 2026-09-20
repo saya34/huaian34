@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties, type DragEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent } from "react";
 import { RARITY_META } from "./battle/expedition";
 import { CULTIVATOR_PACK_SIZE, canPlaceEquipment, findEquipmentPosition, moveOrSwapEquipment, organizeEquipment } from "./battle/inventorySystem";
 import { identifyEquipment } from "./battle/meta";
 import { equipmentAttributeBonus, equipmentById, equipmentRequirements, equipmentSize, equipmentValue, formatBonus, type EquipmentItem, type EquipmentPosition } from "./battle/progression";
-import { ensureWeeklyWeaponShop, nextWeaponShopRefreshDay, publicWeaponRarity, WEAPON_SHOP_GRID_SIZE, weaponGridPositions, weaponPurchasePrice, weaponSellPrice, weaponShopWeekNumber } from "./battle/weaponShop";
+import { ensureWeeklyWeaponShop, nextWeaponShopRefreshDay, publicWeaponRarity, rarityRank, WEAPON_SHOP_GRID_SIZE, weaponGridPositions, weaponPurchasePrice, weaponSellPrice, weaponShopWeekNumber } from "./battle/weaponShop";
 import { useUnifiedGame } from "./core/UnifiedGameProvider";
 import { useFeedback } from "./feedback/FeedbackProvider";
 
@@ -32,14 +32,14 @@ function identificationCost(item: EquipmentItem) {
   return Math.max(80, Math.round(equipmentValue(item) * .08));
 }
 
-export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: string) => void }) {
+export default function WeaponMerchantPanel({ onNotice: _onNotice }: { onNotice: (message: string) => void }) {
   const { state, setBattle } = useUnifiedGame();
   const feedback = useFeedback();
   const [shelf, setShelf] = useState<"weekly" | "buyback" | "identify">("weekly");
   const [selection, setSelection] = useState<Selection>(null);
   const [mobileBoard, setMobileBoard] = useState<"store" | "pack">("store");
   const [message, setMessage] = useState("左边是本周兵架，右边是你的法器背包。拖过去，买卖就算成了。");
-  const [seenWeek,setSeenWeek]=useState(()=>weaponShopWeekNumber(state.romance.day));
+  const seenWeek=useRef(weaponShopWeekNumber(state.romance.day));
 
   useEffect(() => {
     setBattle((current) => {
@@ -48,7 +48,7 @@ export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: 
     });
   }, [setBattle, state.romance.day]);
 
-  useEffect(()=>{const week=weaponShopWeekNumber(state.romance.day);if(week===seenWeek)return;setSeenWeek(week);feedback.publish({variant:"world-announcement",priority:1,titleKey:"shop.refreshTitle",bodyKey:"shop.refreshBody",icon:"新",dedupeKey:`weapon-week:${week}`});},[feedback,seenWeek,state.romance.day]);
+  useEffect(()=>{const week=weaponShopWeekNumber(state.romance.day);if(week===seenWeek.current)return;seenWeek.current=week;feedback.toast({priority:2,titleKey:"shop.refreshTitle",bodyKey:"shop.refreshBody",icon:"新",dedupeKey:`weapon-week:${week}`});},[feedback,state.romance.day]);
 
   const battle = state.battle;
   const unidentifiedItems = useMemo(() => battle.equipmentBag.filter((item) => battle.equipmentPositions[item.uid] && item.identified === false), [battle.equipmentBag, battle.equipmentPositions]);
@@ -92,8 +92,8 @@ export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: 
     const copy = revealed ? `买下封匣，揭出「${purchased.name ?? base.name}」` : `购得「${purchased.name ?? base.name}」`;
     setSelection({ source: "player", uid: purchased.uid });
     setMessage(`${copy}，花费 ${price.toLocaleString()} 灵石。`);
-    onNotice(copy);
-    if(revealed)feedback.publish({variant:"identification-reveal",priority:0,tone:"gold",titleKey:"items.identifiedTitle",bodyKey:"items.identifiedBody",params:{name:purchased.name??base.name},icon:"鉴",imageSrc:base.art,details:[{labelKey:"items.rarityLabel",value:RARITY_META[publicWeaponRarity(purchased)??base.rarity].name},{labelKey:"items.bonusLabel",value:formatBonus(equipmentAttributeBonus(purchased)).join(" · ")},{labelKey:"items.gridLabel",value:`${equipmentSize(purchased).width}×${equipmentSize(purchased).height}`}],dedupeKey:`weapon-reveal:${purchased.uid}`});
+    if(revealed)feedback.publish({variant:"identification-reveal",level:rarityRank(publicWeaponRarity(purchased)??base.rarity)>=4?"L3":"L2",priority:1,tone:"gold",titleKey:"items.identifiedTitle",bodyKey:"items.identifiedBody",params:{name:purchased.name??base.name},icon:"鉴",imageSrc:base.art,details:[{labelKey:"items.rarityLabel",value:RARITY_META[publicWeaponRarity(purchased)??base.rarity].name},{labelKey:"items.bonusLabel",value:formatBonus(equipmentAttributeBonus(purchased)).join(" · ")},{labelKey:"items.gridLabel",value:`${equipmentSize(purchased).width}×${equipmentSize(purchased).height}`}],eventId:`weapon-reveal:${purchased.uid}`,outcome:"discovered",firstObtain:true,costs:[`灵石 -${price.toLocaleString()}`],rewards:[purchased.name??base.name]});
+    else feedback.toast({titleKey:"shop.purchaseTitle",bodyKey:"shop.purchaseBody",params:{name:purchased.name??base.name,value:price.toLocaleString()},icon:"购",dedupeKey:`weapon-buy:${purchased.uid}`});
   }
 
   function sell(uid: string) {
@@ -118,8 +118,7 @@ export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: 
     setShelf("buyback");
     setSelection({ source: "store", uid });
     setMessage(`${copy}；在本周结束前可按原收购价赎回。`);
-    onNotice(copy);
-    feedback.publish({variant:"identification-reveal",priority:1,tone:"gold",titleKey:"items.identifiedTitle",bodyKey:"items.identifiedBody",params:{name:item.name??base.name},icon:"鉴",imageSrc:base.art,details:[{labelKey:"items.rarityLabel",value:RARITY_META[publicWeaponRarity(item)??base.rarity].name},{labelKey:"items.bonusLabel",value:formatBonus(equipmentAttributeBonus(item)).join(" · ")},{labelKey:"items.valueLabel",value:gain}],dedupeKey:`weapon-sale:${uid}`});
+    feedback.toast({titleKey:"shop.saleTitle",bodyKey:"shop.saleBody",params:{name:item.name??base.name,value:gain.toLocaleString()},icon:"售",tone:"gold",dedupeKey:`weapon-sale:${uid}`});
   }
 
   function identify(uid: string) {
@@ -130,10 +129,9 @@ export default function WeaponMerchantPanel({ onNotice }: { onNotice: (message: 
     if (!result.ok) { setMessage(result.message); return; }
     setBattle(result.meta);
     const base = equipmentById(item.equipmentId);
-    const copy = `鉴定「${item.name ?? base.name}」，花费 ${cost.toLocaleString()} 灵石`;
     setSelection({ source: "player", uid });
     setMessage(`${result.message}。霍青翎以灵火照出法器的全部词条。`);
-    onNotice(copy);
+    feedback.publish({variant:"identification-reveal",level:rarityRank(publicWeaponRarity(result.meta.equipmentBag.find((entry)=>entry.uid===uid)??item)??base.rarity)>=4?"L3":"L2",priority:1,tone:"gold",titleKey:"items.identifiedTitle",bodyKey:"items.identifiedBody",params:{name:item.name??base.name},icon:"鉴",imageSrc:base.art,eventId:`weapon-identify:${uid}`,outcome:"discovered",costs:[`灵石 -${cost.toLocaleString()}`]});
   }
 
   function movePlayerItem(uid: string, x: number, y: number) {

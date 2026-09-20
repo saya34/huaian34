@@ -105,9 +105,11 @@ export function BattlePreparation({ dungeon, mapImage, rewards, heroName = copy.
     onStart();
   };
 
-  return <div className="battle-preparation">
+  return <div className={`battle-preparation ${power >= dungeon.recommendedPower ? "is-ready" : "is-warning"} ${dungeon.kind === "random" ? "is-random" : "is-permanent"}`}>
+    <div className="battle-preparation-atmosphere" aria-hidden="true"><i /><i /><i /><i /></div>
     <header className="battle-preparation-hero" style={{ backgroundImage: `linear-gradient(90deg,rgba(5,19,16,.98),rgba(7,24,19,.58),rgba(5,17,14,.92)),url(${mapImage})` }}>
-      <div><small>{copy.eyebrow}</small><h2>{dungeon.name}</h2><p>{copy.title}</p></div>
+      <div className="battle-preparation-sigil" aria-hidden="true"><i /><b>{dungeon.kind === "random" ? "异" : String(dungeon.waveId).padStart(2, "0")}</b></div>
+      <div className="battle-preparation-title"><small>{copy.eyebrow}</small><h2>{dungeon.name}</h2><p>{copy.title}</p></div>
       <span className={power >= dungeon.recommendedPower ? "ready" : "warning"}><small>{copy.powerLabel}</small><strong>{power}</strong><em>{power >= dungeon.recommendedPower ? copy.ready : copy.underpowered}</em></span>
       {onClose && <button type="button" className="battle-preparation-close" onClick={onClose} aria-label={copy.closeLabel}>×</button>}
     </header>

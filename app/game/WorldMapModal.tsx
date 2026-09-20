@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { canInspectPeriod, inspectionSlot } from "./inspection-engine";
-import { WORLD_MAP_BY_ID, WORLD_MAPS, type WorldMapId } from "./world-maps";
+import { isWorldMapUnlocked, WORLD_MAP_BY_ID, WORLD_MAPS, worldMapForScene, type WorldMapId } from "./world-maps";
 import type { EventDefinition, Period, SceneId } from "./types";
 import { DUNGEONS, type DungeonDefinition } from "./core/dungeons";
 import { useUnifiedGame } from "./core/UnifiedGameProvider";
@@ -34,13 +34,13 @@ type Props = {
 export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, period, day, inspectionHints, inspectionSlots, onClose, onEnterScene, onTriggerMapEvent, onInspectScene, onEnterDungeon, onOpenBattlePreparation, onEnterAlchemy, onEnterFishing, onEnterMining }: Props) {
   const { state } = useUnifiedGame();
   const feedback=useFeedback();
-  const [currentMapId, setCurrentMapId] = useState<WorldMapId>("yunzhou");
+  const [currentMapId, setCurrentMapId] = useState<WorldMapId>(() => worldMapForScene(sceneId)?.id ?? "yunzhou");
   const [notice, setNotice] = useState("");
   const [inspectionMode,setInspectionMode]=useState(false);
   const [selectedDungeon, setSelectedDungeon] = useState<DungeonDefinition | null>(null);
   const map = WORLD_MAP_BY_ID[currentMapId];
   const visibleMapEvents = mapEvents.filter((event) => event.mapEvent?.mapId === currentMapId);
-  const mapDungeons = DUNGEONS.filter((dungeon) => dungeon.regionId === currentMapId);
+  const mapDungeons = map.dungeonRegionId ? DUNGEONS.filter((dungeon) => dungeon.regionId === map.dungeonRegionId) : [];
   const rewardPool = useMemo(() => MATERIALS.slice(0, 36), []);
 
   function dungeonIsVisible(dungeon: DungeonDefinition) {
@@ -59,8 +59,7 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
 
   function choose(location: (typeof map.locations)[number]) {
     if (location.targetMapId) {
-      const firstWave = WORLD_MAPS.findIndex((entry) => entry.id === location.targetMapId) * 7 + 1;
-      if (firstWave > state.dungeons.highestUnlocked) { setNotice(`${WORLD_MAP_BY_ID[location.targetMapId].name}尚被灵障封锁，请先推进区域主线。`); return; }
+      if (!isWorldMapUnlocked(location.targetMapId, state.dungeons.highestUnlocked)) { setNotice(`${WORLD_MAP_BY_ID[location.targetMapId].name}尚被灵障封锁，请先推进区域主线。`); return; }
       setCurrentMapId(location.targetMapId); setNotice(""); return;
     }
     if (!location.unlocked || !location.sceneId) { setNotice(`${location.name}尚未解锁，待后续章节开放。`); return; }
@@ -92,7 +91,7 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
         <span className="system-location-art"><img src="/assets/xuanhuo-furnace.webp" alt="" /></span>
         <em><strong>玄火丹炉</strong><small>炼丹 · 委托 · 太虚显化</small></em><b>炉</b>
       </button>}
-      {!inspectionMode && currentMapId === "yunzhou" && <button type="button" className="map-system-location mining-location" style={{ left: "84%", top: "60%" }} onClick={(event) => feedback.popover({titleKey:"mining.pointTitle",bodyKey:"world.changeBody",params:{message:"常驻矿洞可逐层下探，岩层、墙壁与宝箱构成连通迷宫。"},icon:"矿",anchor:{x:event.clientX,y:event.clientY},details:[{labelKey:"fishing.kindLabel",value:"常驻地宫"},{labelKey:"mining.depthLabel",value:state.mining.residentFloor},{labelKey:"mining.pickaxeLabel",value:`${state.mining.pickaxeDurability}/${state.mining.pickaxeMaxDurability}`}],actions:[{labelKey:"world.enterAction",tone:"primary",onSelect:()=>onEnterMining?.("yunzhou-mine")}],dedupeKey:`map-mine-resident:${day}`})}>
+      {!inspectionMode && currentMapId === "wilds" && <button type="button" className="map-system-location mining-location" style={{ left: "82%", top: "25%" }} onClick={(event) => feedback.popover({titleKey:"mining.pointTitle",bodyKey:"world.changeBody",params:{message:"常驻矿洞可逐层下探，岩层、墙壁与宝箱构成连通迷宫。"},icon:"矿",anchor:{x:event.clientX,y:event.clientY},details:[{labelKey:"fishing.kindLabel",value:"常驻地宫"},{labelKey:"mining.depthLabel",value:state.mining.residentFloor},{labelKey:"mining.pickaxeLabel",value:`${state.mining.pickaxeDurability}/${state.mining.pickaxeMaxDurability}`}],actions:[{labelKey:"world.enterAction",tone:"primary",onSelect:()=>onEnterMining?.("yunzhou-mine")}],dedupeKey:`map-mine-resident:${day}`})}>
         <span className="system-location-art mining-location-art"><img src="/assets/item-atlases/atlas-ores.webp" alt="" /></span><em><strong>玄铁常明矿窟</strong><small>常驻地宫 · 逐层开掘秘藏</small></em><b>矿</b>
       </button>}
       {!inspectionMode && mapDungeons.filter(dungeonIsVisible).map((dungeon) => {
@@ -114,6 +113,6 @@ export default function WorldMapModal({ sceneId, sceneEventHints, mapEvents, per
       <div className="map-compass"><i>北</i><span>✦</span><i>南</i></div>
     </div>
     {!inspectionMode && selectedDungeon && <aside className="dungeon-brief dungeon-preparation-shell" aria-label={`${selectedDungeon.name}战前整备`}><BattlePreparation dungeon={selectedDungeon} mapImage={map.image} rewards={dungeonRewards(selectedDungeon)} onClose={() => setSelectedDungeon(null)} onOpenPanel={(panel) => onOpenBattlePreparation?.(panel)} onStart={() => onEnterDungeon?.(selectedDungeon)} /></aside>}
-    <footer><div className="world-map-tabs">{WORLD_MAPS.map((item, index) => { const locked = index * 7 + 1 > state.dungeons.highestUnlocked; return <button type="button" key={item.id} className={item.id === currentMapId ? "active" : ""} disabled={locked} onClick={() => { setCurrentMapId(item.id); setNotice(""); }}><span>{item.id === "yunzhou" ? "壹" : item.id === "canglan" ? "贰" : "叁"}</span>{locked ? `${item.name}·未启` : item.name}</button>; })}</div><button type="button" className={`inspection-toggle ${inspectionMode?"active":""}`} onClick={()=>{if(!canInspectPeriod(period)){setNotice("检视可在夜晚或深夜进行。");return}setSelectedDungeon(null);setInspectionMode(value=>!value);setNotice(inspectionMode?"已退出检视模式":"检视模式已开启：地图仅显现本夜确有异动之处")}}><span>眼</span>{inspectionMode?"退出检视":"夜间检视"}</button><p>{notice || (inspectionMode?(inspectionHints.size ? `神识捕捉到 ${inspectionHints.size} 处异动；其余地点本夜不再显示。` : "本夜山河寂静，未发现可检视事件。") : visibleMapEvents.length ? `此域有 ${visibleMapEvents.length} 处待完成异闻，完成剧情前不会消失。` : map.description)}</p></footer>
+    <footer><div className="world-map-tabs">{WORLD_MAPS.map((item) => { const locked = !isWorldMapUnlocked(item.id, state.dungeons.highestUnlocked); return <button type="button" key={item.id} className={item.id === currentMapId ? "active" : ""} disabled={locked} onClick={() => { setCurrentMapId(item.id); setNotice(""); }}><span>{item.chapterMark}</span>{locked ? `${item.name}·未启` : item.name}</button>; })}</div><button type="button" className={`inspection-toggle ${inspectionMode?"active":""}`} onClick={()=>{if(!canInspectPeriod(period)){setNotice("检视可在夜晚或深夜进行。");return}setSelectedDungeon(null);setInspectionMode(value=>!value);setNotice(inspectionMode?"已退出检视模式":"检视模式已开启：地图仅显现本夜确有异动之处")}}><span>眼</span>{inspectionMode?"退出检视":"夜间检视"}</button><p>{notice || (inspectionMode?(inspectionHints.size ? `神识捕捉到 ${inspectionHints.size} 处异动；其余地点本夜不再显示。` : "本夜山河寂静，未发现可检视事件。") : visibleMapEvents.length ? `此域有 ${visibleMapEvents.length} 处待完成异闻，完成剧情前不会消失。` : map.description)}</p></footer>
   </section></div>;
 }

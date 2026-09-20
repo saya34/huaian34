@@ -8,6 +8,7 @@
   "world.dungeonName": "第 {wave} 重秘境",
   "world.randomPointTitle": "异象浮现",
   "world.randomPointBody": "{scene}出现了新的{kind}，异象不会长久停留。",
+  "world.randomPointSummary": "今日共出现 {count} 处{kind}，位置已标在地图。",
   "world.randomPointGone": "{scene}的{kind}已经消散。",
   "world.weatherLabel": "天象",
   "world.locationLabel": "所在",

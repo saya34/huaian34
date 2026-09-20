@@ -163,7 +163,7 @@ export default function EventManager() {
   const allGlobalKeys = useMemo(() => { const ids=new Set(globalKeyRecords.map(item=>item.id)); return [...GLOBAL_KEYS.filter(item=>!ids.has(item.id)),...globalKeyRecords.map(item=>item.definition)]; }, [globalKeyRecords]);
 
   function changeCardStyle(cardStyle:EventCardStyle){
-    const characterImage=characterMap[draft.characterId]?.image??"/assets/characters/shen-qingshuang.webp";
+    const characterImage=characterMap[draft.characterId]?.image??"/assets/characters/portrait-refresh/shen-qingshuang.png";
     const isExploration=cardStyle==="easter_egg"||cardStyle==="trigger_point";
     const hasStory=Object.keys(draft.nodes).some((id)=>id!=="end");
     const storyNodes=hasStory?draft.nodes:{a:{id:"a",type:"line",speaker:"narrator",text:"微光被触碰后，一段故事在眼前展开。",next:"b"},b:{id:"b",type:"line",speaker:draft.characterId,text:"你终于发现这里了。",mood:"意外",next:"end"},end:{id:"end",type:"end",summary:"这段隐秘的相遇被收入事件簿。"}} as EventDefinition["nodes"];
@@ -189,7 +189,7 @@ export default function EventManager() {
       return;
     }
     if (trigger !== "map_event") { setDraft({ ...draft, trigger }); return; }
-    const characterImage=characterMap[draft.characterId]?.image??"/assets/characters/shen-qingshuang.webp";
+    const characterImage=characterMap[draft.characterId]?.image??"/assets/characters/portrait-refresh/shen-qingshuang.png";
     const cardStyle=draft.cardStyle==="audio"?"audio":"special";
     setDraft({ ...draft, trigger, cardStyle, once:true, openingEffect:cardStyle==="special"?(draft.openingEffect??"flash_white"):draft.openingEffect, defaultPortrait:cardStyle==="special"?(draft.defaultPortrait||characterImage):draft.defaultPortrait, conditions:draft.conditions.filter((item)=>item.type!=="character"&&item.type!=="gift"), mapEvent:draft.mapEvent??{mapId:"yunzhou",windowDays:10,x:50,y:50} });
   }

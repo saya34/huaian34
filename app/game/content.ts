@@ -1,6 +1,8 @@
 import type { CharacterDefinition, CharacterMessageDefinition, DialogueProfileDefinition, EventDefinition, GiftDefinition, GlobalKeyDefinition, SceneDefinition } from "./types";
 import { SHOP_CHARACTERS, SHOP_EVENTS, SHOP_GIFTS, SHOP_MESSAGES, SHOP_SCENES } from "./shop-content";
 import transparentNpcContent from "./content/transparent-npcs.json";
+import mapExpansionContent from "./content/map-expansion.json";
+import { EASTER_EGG_EVENTS } from "./easter-eggs/content";
 import { SHEN_QINGSHUANG_CHARACTER, SHEN_QINGSHUANG_DIALOGUE, SHEN_QINGSHUANG_EVENTS } from "./content/shen-qingshuang-content";
 
 export const DIALOGUE_PROFILES: DialogueProfileDefinition[] = [SHEN_QINGSHUANG_DIALOGUE];
@@ -19,7 +21,7 @@ export const SCENES: SceneDefinition[] = [
     description: "云海之上的宗主府，今日殿中有淡淡松香。",
     atmosphere: "云静 · 香寒",
     image: "/assets/scenes/lingxiao-hall.webp",
-    characters: ["shen", "su", "lu-yaoyao"],
+    characters: ["shen", "su", "lu-yaoyao", "shimei"],
   },
   {
     id: "tavern",
@@ -36,10 +38,10 @@ export const SCENES: SceneDefinition[] = [
   },
   {
     id: "market",
-    name: "云州市集",
+    name: "山下集市",
     shortName: "市集",
-    description: "浮云托起百家铺面，灵石、宝器与甜香都在此处流转。",
-    atmosphere: "云开 · 市喧",
+    description: "山脚长街每逢集日便支起百家摊棚，灵石、宝器与甜香都在此处流转。",
+    atmosphere: "日暖 · 市喧",
     image: "/assets/scenes/yunzhou-market.webp",
     characters: ["hua", "tang-feixian"],
   },
@@ -56,10 +58,19 @@ export const SCENES: SceneDefinition[] = [
     id: "spirit-farm",
     name: "云岫灵圃",
     shortName: "灵圃",
-    description: "宗门东麓的十二畦灵田，以山泉、天时与灵壤培育炼丹仙草。",
+    description: "山下村庄的十二畦灵田与牧苑，以山泉、天时与灵壤供养宗门烟火。",
     atmosphere: "土润 · 药香",
-    image: "/assets/maps/yunzhou-realm.webp",
+    image: "/assets/maps/mountain-village.jpg",
     characters: [],
+  },
+  {
+    id: "kitchen",
+    name: "烟火小灶",
+    shortName: "膳房",
+    description: "山门里最有人间气的一方旧灶。田畴、牧苑与秘境带回的食材，在这里都能变成温养道体的灵膳。",
+    atmosphere: "柴暖 · 饭香",
+    image: "/assets/kitchen/rustic-kitchen.jpg",
+    characters: ["wang-ma"],
   },
   {
     id: "intelligence-bureau",
@@ -100,7 +111,39 @@ const TRANSPARENT_NPCS: CharacterDefinition[] = (
   relationshipStages: relationshipStages(relationshipAddresses),
 }));
 
+const MAP_EXPANSION_SCENES = (mapExpansionContent as unknown as { scenes: SceneDefinition[] }).scenes;
+const MAP_EXPANSION_CHARACTERS: CharacterDefinition[] = (
+  mapExpansionContent as unknown as { characters: TransparentNpcRecord[] }
+).characters.map(({ relationshipAddresses, ...character }) => ({
+  ...character,
+  relationshipStages: relationshipStages(relationshipAddresses),
+}));
+
 export const CHARACTERS: CharacterDefinition[] = [
+  {
+    id: "wang-ma",
+    name: "王妈",
+    role: "烟火小灶掌勺人",
+    courtesy: "王娘子",
+    bio: "掌着山门里最不起眼、也最离不开的一口灶。她从不追问弟子从哪里带伤回来，只会把热汤往近处推一推。",
+    sceneId: "kitchen",
+    image: "/assets/characters/portrait-refresh/wang-ma.png",
+    accent: "#c78954",
+    lovedGift: "herbSachet",
+    relationshipStages: relationshipStages(["小修士", "孩子", "你呀", "归家人"]),
+    giftPreferences: [
+      { giftId: "herbSachet", tier: "loved", reaction: "她把香囊系在灶边，说这样连熬夜看火都能安稳些。" },
+      { giftId: "osmanthusCake", tier: "liked", reaction: "她尝了一小块，又掰下更大的一半塞回你手里。" },
+      { giftId: "snowTea", tier: "liked", reaction: "她添了两片晒干的橘皮，说这一壶得两个人喝才暖。" },
+      { giftId: "goldHairpin", tier: "neutral", reaction: "她仔细收进木匣，笑说掌勺时可舍不得戴。" }
+    ],
+    ambientLines: [
+      "别站在风口。灶上还有半锅热粥，盛一碗再走。",
+      "仙草入药讲君臣佐使，入菜也一样。只是菜做坏了，最多被我念叨两句。",
+      "秘境里的东西先给我瞧瞧，能下锅的下锅，不能下锅的垫灶脚。",
+      "你今日眉心发沉，别逞强。吃饱了再去问道，天塌不下来。"
+    ],
+  },
   {
     id: "wenren-fei",
     name: "闻人绯",
@@ -126,7 +169,7 @@ export const CHARACTERS: CharacterDefinition[] = [
     courtesy: "清衡真人",
     bio: SHEN_QINGSHUANG_CHARACTER.bio,
     sceneId: "lingxiao",
-    image: "/assets/characters/shen-qingshuang.webp",
+    image: "/assets/characters/portrait-refresh/shen-qingshuang.png",
     accent: "#9bb7c9",
     lovedGift: "snowTea",
     relationshipStages: relationshipStages(["弟子", "你", "名字", "心上人"]),
@@ -160,7 +203,7 @@ export const CHARACTERS: CharacterDefinition[] = [
     courtesy: "青蘅",
     bio: "受邀暂居醉月楼。她辨药极准，却不太擅长辨认自己的心事。",
     sceneId: "tavern",
-    image: "/assets/characters/liu-zhiyi.webp",
+    image: "/assets/characters/portrait-refresh/liu-zhiyi.png",
     accent: "#89a79b",
     lovedGift: "herbSachet",
     relationshipStages: relationshipStages(["仙长", "你", "名字", "此生所念"]),
@@ -291,7 +334,7 @@ export const EVENTS: EventDefinition[] = [
     journal: true,
     cardStyle: "special",
     openingEffect: "flash_white",
-    defaultPortrait: "/assets/characters/shen-qingshuang.webp",
+    defaultPortrait: "/assets/characters/portrait-refresh/shen-qingshuang.png",
     sceneId: "lingxiao",
     characterId: "shen",
     conditions: [
@@ -303,21 +346,21 @@ export const EVENTS: EventDefinition[] = [
     clue: "与沈清霜缘分达到16，再与她交谈",
     start: "a",
     nodes: {
-      a: { id: "a", type: "line", speaker: "shen", text: "今夜不讲剑诀。陪我坐一会儿。", mood: "柔和", next: "b", portrait: "/assets/characters/shen-qingshuang.webp", stageEffect: "soft_glow" },
-      b: { id: "b", type: "line", speaker: "narrator", text: "她把两只茶盏放在石案上。你送的雪芽已经泡开，月色浮在杯沿。", next: "c", portrait: "/assets/characters/shen-qingshuang.webp", stageEffect: "soft_glow" },
+      a: { id: "a", type: "line", speaker: "shen", text: "今夜不讲剑诀。陪我坐一会儿。", mood: "柔和", next: "b", portrait: "/assets/characters/portrait-refresh/shen-qingshuang.png", stageEffect: "soft_glow" },
+      b: { id: "b", type: "line", speaker: "narrator", text: "她把两只茶盏放在石案上。你送的雪芽已经泡开，月色浮在杯沿。", next: "c", portrait: "/assets/characters/portrait-refresh/shen-qingshuang.png", stageEffect: "soft_glow" },
       c: {
         id: "c",
         type: "choice",
-        portrait: "/assets/characters/shen-qingshuang.webp",
+        portrait: "/assets/characters/portrait-refresh/shen-qingshuang.png",
         stageEffect: "heartbeat",
         options: [
           { id: "stay", label: "安静陪她看完月落", next: "d", effects: [{ type: "relationship", characterId: "shen", amount: 8 }] },
           { id: "ask", label: "问她方才想起了谁", next: "e", effects: [{ type: "relationship", characterId: "shen", amount: 4 }] },
         ],
       },
-      d: { id: "d", type: "line", speaker: "shen", text: "你不问，我反而愿意说了。往后有些旧事，慢慢讲给你听。", next: "end", portrait: "/assets/characters/shen-qingshuang.webp", stageEffect: "heartbeat" },
-      e: { id: "e", type: "line", speaker: "shen", text: "从前的自己。幸好，如今不必只想从前。", next: "end", portrait: "/assets/characters/shen-qingshuang.webp", stageEffect: "soft_glow" },
-      end: { id: "end", type: "end", summary: "问剑峰的月色不再显得冷清。", portrait: "/assets/characters/shen-qingshuang.webp", stageEffect: "soft_glow" },
+      d: { id: "d", type: "line", speaker: "shen", text: "你不问，我反而愿意说了。往后有些旧事，慢慢讲给你听。", next: "end", portrait: "/assets/characters/portrait-refresh/shen-qingshuang.png", stageEffect: "heartbeat" },
+      e: { id: "e", type: "line", speaker: "shen", text: "从前的自己。幸好，如今不必只想从前。", next: "end", portrait: "/assets/characters/portrait-refresh/shen-qingshuang.png", stageEffect: "soft_glow" },
+      end: { id: "end", type: "end", summary: "问剑峰的月色不再显得冷清。", portrait: "/assets/characters/portrait-refresh/shen-qingshuang.png", stageEffect: "soft_glow" },
     },
   },
   {
@@ -557,7 +600,7 @@ export const EVENTS: EventDefinition[] = [
   {
     id:"hua.egg.old-wine-token",title:"柜脚下的旧酒筹",subtitle:"醉月楼里没人认领的一段小秘密",chapter:"花照影 · 彩蛋",type:"闲谈",trigger:"scene_enter",priority:42,weight:1,once:true,journal:true,cardStyle:"easter_egg",sceneId:"tavern",characterId:"hua",
     conditions:[{type:"scene",value:"tavern"},{type:"event_completed",eventId:"hua.first.welcome"}],clue:"进入醉月楼后，留意柜台附近偶尔亮起的金色微光",start:"end",
-    exploration:{chance:80,positionMode:"random",image:"/assets/scenes/drunken-moon-tavern.webp",text:"柜脚与地板的缝隙里压着一枚旧酒筹，背面刻着一朵极小的海棠。花照影看见后只笑了笑，说这是某位客人许多年前欠下的一杯酒。",rewardItem:{id:"old-wine-token",name:"海棠旧酒筹",image:"/assets/scenes/drunken-moon-tavern.webp",description:"边缘已经磨得圆润。背面的海棠刻痕，似乎与老板娘从不提起的往事有关。"}},
+    exploration:{chance:80,positionMode:"random",image:"/assets/scenes/drunken-moon-tavern.webp",text:"柜脚与地板的缝隙里压着一枚旧酒筹，背面刻着一朵极小的海棠。花照影看见后只笑了笑，说这是某位客人许多年前欠下的一杯酒。",rewardItem:{id:"old-wine-token",name:"海棠旧酒筹",image:"/assets/easter-eggs/old-wine-token-v2.webp",description:"边缘已经磨得圆润。背面的海棠刻痕，似乎与老板娘从不提起的往事有关。"}},
     nodes:{end:{id:"end",type:"end",summary:"海棠旧酒筹已经收入藏珍录。"}},
   },
   {
@@ -573,13 +616,13 @@ export const EVENTS: EventDefinition[] = [
   },
   {
     id:"hua.map.crimson-lantern",title:"赤灯照旧约",subtitle:"一盏不属于今夜的灯在山河图上亮起",chapter:"花照影 · 地图异闻",type:"心事",trigger:"map_event",priority:100,once:true,journal:true,cardStyle:"special",openingEffect:"flash_black",defaultPortrait:"/assets/characters/hua-zhaoying.webp",sceneId:"tavern",characterId:"hua",
-    mapEvent:{mapId:"yunzhou",windowDays:10,x:47,y:65},conditions:[{type:"relationship",characterId:"hua",min:4}],clue:"前置条件达成后，未来十日内留意云州地图上的金红异光",start:"a",
+    mapEvent:{mapId:"village",windowDays:10,x:47,y:54},conditions:[{type:"relationship",characterId:"hua",min:4}],clue:"前置条件达成后，未来十日内留意山下村庄地图上的金红异光",start:"a",
     nodes:{a:{id:"a",type:"line",speaker:"narrator",text:"你触到山河图上的赤色光标，眼前骤然一暗。再睁眼时，醉月楼已经打烊，檐下一盏旧灯却仍在等人。",next:"b",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"soft_glow"},b:{id:"b",type:"line",speaker:"hua",text:"这盏灯十年前就该熄了。既然被你看见，便替我陪它等完今夜吧。",mood:"怀念",next:"c",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"heartbeat"},c:{id:"c",type:"choice",prompt:"你望向灯下的她。",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"heartbeat",options:[{id:"stay",label:"不问旧事，只陪她守灯",next:"d",effects:[{type:"relationship",characterId:"hua",amount:6}]},{id:"promise",label:"若那人不来，往后的灯由我来点",next:"e",effects:[{type:"relationship",characterId:"hua",amount:8}]}]},d:{id:"d",type:"line",speaker:"hua",text:"你安静的时候，倒比会说话时更讨人喜欢。",mood:"释然",next:"end",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"soft_glow"},e:{id:"e",type:"line",speaker:"hua",text:"这话我记下了。山下人的承诺，可没有反悔这一说。",mood:"动容",next:"end",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"heartbeat"},end:{id:"end",type:"end",summary:"天明前，旧灯终于熄灭；她却将新的灯芯交到了你手中。",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"soft_glow"}},
   },
   {
-    id:"shen.calendar.birthday",title:"霜华生辰",subtitle:"师尊从不提起的生辰，被你记在了云和历上",chapter:"沈清霜 · 生辰",type:"情缘",trigger:"calendar_event",priority:120,once:false,journal:true,cardStyle:"special",openingEffect:"flash_white",defaultPortrait:"/assets/characters/shen-qingshuang.webp",sceneId:"lingxiao",characterId:"shen",
+    id:"shen.calendar.birthday",title:"霜华生辰",subtitle:"师尊从不提起的生辰，被你记在了云和历上",chapter:"沈清霜 · 生辰",type:"情缘",trigger:"calendar_event",priority:120,once:false,journal:true,cardStyle:"special",openingEffect:"flash_white",defaultPortrait:"/assets/characters/portrait-refresh/shen-qingshuang.png",sceneId:"lingxiao",characterId:"shen",
     calendarEvent:{mode:"fixed",month:1,day:8,doodle:"birthday"},conditions:[{type:"relationship",characterId:"shen",min:4}],clue:"每年正月初八，沈清霜缘分达到4后触发",start:"a",
-    nodes:{a:{id:"a",type:"line",speaker:"narrator",text:"正月初八，问剑峰的雪比往日更静。你在石案上放下一碗亲手做的长寿面。",next:"b",portrait:"/assets/characters/shen-qingshuang.webp",stageEffect:"soft_glow"},b:{id:"b",type:"line",speaker:"shen",text:"修行之人不重生辰。只是……既然你记得，便坐下一同吃吧。",mood:"动容",next:"end",portrait:"/assets/characters/shen-qingshuang.webp",stageEffect:"heartbeat",effects:[{type:"relationship",characterId:"shen",amount:5}]},end:{id:"end",type:"end",summary:"雪落无声，她却把这一天留在了心里。",portrait:"/assets/characters/shen-qingshuang.webp",stageEffect:"soft_glow"}},
+    nodes:{a:{id:"a",type:"line",speaker:"narrator",text:"正月初八，问剑峰的雪比往日更静。你在石案上放下一碗亲手做的长寿面。",next:"b",portrait:"/assets/characters/portrait-refresh/shen-qingshuang.png",stageEffect:"soft_glow"},b:{id:"b",type:"line",speaker:"shen",text:"修行之人不重生辰。只是……既然你记得，便坐下一同吃吧。",mood:"动容",next:"end",portrait:"/assets/characters/portrait-refresh/shen-qingshuang.png",stageEffect:"heartbeat",effects:[{type:"relationship",characterId:"shen",amount:5}]},end:{id:"end",type:"end",summary:"雪落无声，她却把这一天留在了心里。",portrait:"/assets/characters/portrait-refresh/shen-qingshuang.png",stageEffect:"soft_glow"}},
   },
   {
     id:"hua.calendar.qiqiao",title:"乞巧灯约",subtitle:"七月七日，山下灯河照见未说出口的心愿",chapter:"花照影 · 乞巧",type:"情缘",trigger:"calendar_event",priority:110,once:false,journal:true,cardStyle:"special",openingEffect:"flash_black",defaultPortrait:"/assets/characters/hua-zhaoying.webp",sceneId:"tavern",characterId:"hua",
@@ -587,7 +630,7 @@ export const EVENTS: EventDefinition[] = [
     nodes:{a:{id:"a",type:"line",speaker:"hua",text:"今夜的灯不能收钱，只能拿愿望来换。你若肯说一个，我便陪你放一盏。",mood:"含笑",next:"b",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"soft_glow"},b:{id:"b",type:"line",speaker:"player",text:"愿明年今日，仍有人与我并肩看灯。",next:"c",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"heartbeat"},c:{id:"c",type:"line",speaker:"hua",text:"这愿望太贪心。不过，我准了。",mood:"温柔",next:"end",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"heartbeat",effects:[{type:"relationship",characterId:"hua",amount:6}]},end:{id:"end",type:"end",summary:"两盏灯并在一处，顺着长河漂向远方。",portrait:"/assets/characters/hua-zhaoying.webp",stageEffect:"soft_glow"}},
   },
   {
-    id:"shen.inspect.sword-shadow",title:"月下剑影",subtitle:"夜色里多出了一道不属于你的剑影",chapter:"沈清霜 · 检视",type:"心事",trigger:"inspection",priority:90,once:true,journal:true,cardStyle:"special",openingEffect:"flash_white",defaultPortrait:"/assets/characters/shen-qingshuang.webp",inspection:{chance:65,hint:true},sceneId:"lingxiao",characterId:"shen",
+    id:"shen.inspect.sword-shadow",title:"月下剑影",subtitle:"夜色里多出了一道不属于你的剑影",chapter:"沈清霜 · 检视",type:"心事",trigger:"inspection",priority:90,once:true,journal:true,cardStyle:"special",openingEffect:"flash_white",defaultPortrait:"/assets/characters/portrait-refresh/shen-qingshuang.png",inspection:{chance:65,hint:true},sceneId:"lingxiao",characterId:"shen",
     conditions:[{type:"relationship",characterId:"shen",min:8},{type:"event_completed",eventId:"shen.first.snow-in-hall"}],clue:"夜晚检视凌霄殿；地图上会显出眼睛提示",start:"a",
     nodes:{a:{id:"a",type:"line",speaker:"narrator",text:"云雾从石阶两侧退开，一道清寒剑影恰好收势。沈清霜本不该在这个时辰仍留在殿前。",next:"b",stageEffect:"soft_glow"},b:{id:"b",type:"line",speaker:"shen",text:"睡不着，便来走一遍旧剑式。你既看见了，就替我守住这个秘密。",mood:"稍显疲惫",next:"end",effects:[{type:"relationship",characterId:"shen",amount:4}],stageEffect:"heartbeat"},end:{id:"end",type:"end",summary:"月下剑影被重新收进了夜色。"}},
   },
@@ -608,16 +651,16 @@ export const EVENTS: EventDefinition[] = [
   },
 ];
 
-SCENES.push(...SHOP_SCENES);
+SCENES.push(...SHOP_SCENES, ...MAP_EXPANSION_SCENES);
 GIFTS.push(...SHOP_GIFTS);
-CHARACTERS.push(...SHOP_CHARACTERS);
+CHARACTERS.push(...SHOP_CHARACTERS, ...MAP_EXPANSION_CHARACTERS);
 CHARACTER_MESSAGES.push(...SHOP_MESSAGES);
 EVENTS.push(...SHOP_EVENTS);
 // Redesigned Shen Qingshuang content is authored in one staged source. Remove the
 // superseded short prototypes so runtime triggers, journal counts and debug QA all
 // refer to the same 32-event relationship arc.
 const activeEvents = EVENTS.filter((event) => event.characterId !== "shen" || event.id.startsWith("shen.arc."));
-EVENTS.splice(0, EVENTS.length, ...activeEvents);
+EVENTS.splice(0, EVENTS.length, ...activeEvents, ...EASTER_EGG_EVENTS);
 
 export const CHARACTER_MAP = Object.fromEntries(CHARACTERS.map((character) => [character.id, character])) as Record<(typeof CHARACTERS)[number]["id"], CharacterDefinition>;
 export const SCENE_MAP = Object.fromEntries(SCENES.map((scene) => [scene.id, scene])) as Record<(typeof SCENES)[number]["id"], SceneDefinition>;

@@ -14,11 +14,11 @@
 @media(prefers-reduced-motion:reduce){.mobile-world-hud-exp>i{transition:none}}
 
 .recent-outcome-card{position:absolute;z-index:19;right:clamp(18px,4vw,54px);bottom:112px;width:min(340px,calc(100vw - 28px));padding:13px 14px;border:1px solid rgba(218,180,94,.48);border-radius:18px 5px 18px 5px;color:#f2e8cf;background:linear-gradient(145deg,rgba(9,37,29,.96),rgba(7,22,18,.96));box-shadow:0 16px 42px #0009,inset 0 0 28px rgba(110,176,135,.07);backdrop-filter:blur(12px);animation:recent-outcome-in .34s cubic-bezier(.2,.8,.2,1)}
-.recent-outcome-card>header{display:flex;align-items:center;justify-content:space-between;color:#cdb373;font-size:8px;letter-spacing:.15em}.recent-outcome-card>header button{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:50%;background:rgba(255,255,255,.06);color:#c6c9bd;font-size:18px}.recent-outcome-card h3{margin:2px 0 3px;font-size:18px;letter-spacing:.08em}.recent-outcome-card>p{margin:0;color:#aebdb1;font-size:10px;line-height:1.5}
-.recent-outcome-flow{display:grid;grid-template-columns:1fr 16px 1fr;align-items:center;gap:4px;margin:10px 0}.recent-outcome-flow>i{text-align:center;color:#bd9a53;font-style:normal}.recent-outcome-flow section{min-height:42px;padding:6px 8px;border:1px solid rgba(174,193,176,.16);border-radius:9px;background:rgba(0,0,0,.13)}.recent-outcome-flow small,.recent-outcome-flow b{display:block}.recent-outcome-flow small{color:#86998d;font-size:8px}.recent-outcome-flow b{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;font-weight:500}
+.recent-outcome-card>header{display:flex;align-items:center;justify-content:space-between;color:#cdb373;font-size:8px;letter-spacing:.15em}.recent-outcome-card>header nav{display:flex;gap:5px}.recent-outcome-card>header button{display:grid;place-items:center;min-width:28px;height:28px;padding:0 8px;border:0;border-radius:14px;background:rgba(255,255,255,.06);color:#c6c9bd;font-size:11px}.recent-outcome-card h3{margin:2px 0 3px;font-size:18px;letter-spacing:.08em}.recent-outcome-card>p{margin:0;color:#aebdb1;font-size:10px;line-height:1.5}.recent-outcome-capsule{position:absolute;z-index:19;right:clamp(18px,4vw,54px);bottom:112px;display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:9px;width:min(270px,calc(100vw - 28px));min-height:52px;padding:7px 10px;border:1px solid rgba(218,180,94,.52);border-radius:28px 8px 28px 8px;color:#f2e8cf;background:linear-gradient(145deg,rgba(9,37,29,.96),rgba(7,22,18,.96));box-shadow:0 12px 32px #0008;text-align:left;animation:recent-outcome-in .34s ease both}.recent-outcome-capsule>i{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#886529;color:#fff1c0;font-style:normal}.recent-outcome-capsule span{min-width:0}.recent-outcome-capsule small,.recent-outcome-capsule strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recent-outcome-capsule small{color:#a99970;font-size:7px;letter-spacing:.12em}.recent-outcome-capsule strong{font-size:11px}.recent-outcome-capsule>b{color:#d2bb80;font-size:9px;font-weight:500}.recent-outcome-history{display:grid;gap:6px;max-height:260px;margin-top:8px;overflow:auto}.recent-outcome-history article{display:grid;grid-template-columns:48px 1fr;gap:2px 8px;padding:7px 8px;border-left:2px solid #9d7a3f;background:rgba(255,255,255,.045)}.recent-outcome-history small{grid-row:1/3;color:#84958a;font-size:7px}.recent-outcome-history strong{font-size:10px}.recent-outcome-history p{margin:0;color:#aab4ac;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recent-outcome-flow{display:grid;grid-template-columns:1fr 16px 1fr;align-items:center;gap:4px;margin:10px 0}.recent-outcome-flow>i{text-align:center;color:#bd9a53;font-style:normal}.recent-outcome-flow section{min-height:42px;max-height:112px;padding:6px 8px;border:1px solid rgba(174,193,176,.16);border-radius:9px;background:rgba(0,0,0,.13);overflow:auto}.recent-outcome-flow small,.recent-outcome-flow b{display:block}.recent-outcome-flow small{color:#86998d;font-size:8px}.recent-outcome-flow b{margin-top:2px;font-size:9px;font-weight:500;line-height:1.35}
 .recent-outcome-next{width:100%;min-height:48px;display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;align-items:center;padding:7px 12px;border:1px solid rgba(228,193,112,.55);border-radius:11px;background:linear-gradient(90deg,#6d4a25,#a97935);color:#fff3d2;text-align:left;box-shadow:0 6px 16px #0005;transition:transform .16s ease,filter .16s ease}.recent-outcome-next small{font-size:8px;opacity:.76}.recent-outcome-next strong{font-size:12px}.recent-outcome-next i{grid-column:2;grid-row:1/3;font-size:20px;font-style:normal}.recent-outcome-next:active{transform:scale(.98);filter:brightness(1.14)}
 @keyframes recent-outcome-in{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
-@media(max-width:760px){.recent-outcome-card{left:10px;right:10px;bottom:72px;width:auto;padding:10px 11px}.recent-outcome-card h3{font-size:15px}.recent-outcome-flow{margin:7px 0}.recent-outcome-next{min-height:46px}}
+@media(max-width:760px){.recent-outcome-card{left:10px;right:10px;bottom:72px;width:auto;padding:10px 11px}.recent-outcome-capsule{left:10px;right:auto;bottom:74px;width:min(260px,calc(100vw - 86px))}.recent-outcome-card h3{font-size:15px}.recent-outcome-flow{margin:7px 0}.recent-outcome-next{min-height:46px}}
 @media(prefers-reduced-motion:reduce){.recent-outcome-card{animation:none}.recent-outcome-next{transition:none}}
 
 :root {
@@ -413,6 +413,8 @@ button:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px
   background: #eee6d5;
   box-shadow: 0 30px 90px rgba(0,0,0,.5), inset 0 0 0 5px rgba(99,72,38,.06);
   animation: sheet-rise .3s cubic-bezier(.18,.75,.2,1) both;
+  max-height: min(90vh, 860px);
+  overflow-y: auto;
 }
 @keyframes sheet-rise { from { transform: translateY(35px); opacity: 0; } to { transform: none; opacity: 1; } }
 .sheet-heading { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
@@ -432,6 +434,13 @@ button:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px
 .gift-item-actions button { flex:1; border:1px solid rgba(132,94,49,.32); background:#49372b; color:#fff5dc; padding:7px 4px; cursor:pointer; font-size:11px; }
 .gift-item-actions button.eat-action { background:linear-gradient(135deg,#567359,#263f34); color:#ecf5da; }
 .gift-item-actions button:disabled { opacity:.35; cursor:not-allowed; }
+.gift-easter-showcase{margin:14px 0 2px;padding:10px;border:1px solid rgba(171,125,54,.42);background:linear-gradient(110deg,rgba(96,57,35,.09),rgba(255,247,220,.58));box-shadow:inset 0 0 30px rgba(198,151,68,.08)}
+.gift-easter-showcase>header{display:flex;align-items:center;gap:9px;margin-bottom:8px;color:#5e4631}.gift-easter-showcase>header>span{display:grid;place-items:center;width:30px;height:30px;border:1px solid #b78d4f;border-radius:50%;color:#b07137;animation:egg-showcase-pulse 1.8s ease-in-out infinite}.gift-easter-showcase>header small,.gift-easter-showcase>header strong{display:block}.gift-easter-showcase>header small{color:#a47a43;font-size:8px;letter-spacing:.15em}.gift-easter-showcase>header strong{margin-top:2px;font:13px "STKaiti","KaiTi",serif}
+.gift-easter-showcase>div{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory}.gift-easter-showcase article{position:relative;flex:0 0 min(300px,78vw);display:grid;grid-template-columns:58px minmax(0,1fr) 58px;align-items:center;gap:9px;padding:7px;border:1px solid rgba(153,112,54,.28);background:rgba(255,252,242,.78);scroll-snap-align:start;overflow:hidden}.gift-easter-showcase article:after{content:"";position:absolute;inset:-30% auto -30% -40%;width:32%;background:linear-gradient(90deg,transparent,rgba(255,241,167,.7),transparent);transform:skewX(-18deg);animation:egg-showcase-glint 2.8s ease-in-out infinite;pointer-events:none}.gift-easter-showcase .easter-egg-artwork{width:58px;height:58px;border-radius:8px}.gift-easter-showcase .easter-egg-artwork>i{right:3px;top:3px;width:17px;height:17px;font-size:8px}.gift-easter-showcase article>span{min-width:0}.gift-easter-showcase article small,.gift-easter-showcase article strong,.gift-easter-showcase article p{display:block}.gift-easter-showcase article small{color:#a57337;font-size:8px}.gift-easter-showcase article strong{margin:2px 0;color:#3e3026;font:15px "STKaiti","KaiTi",serif}.gift-easter-showcase article p{margin:0;color:#7b6b58;font-size:9px;line-height:1.45}.gift-easter-showcase article>button{position:relative;z-index:2;min-height:44px;border:1px solid #9d6e36;background:linear-gradient(145deg,#8c3f35,#61312c);color:#fff2d1;font:12px "STKaiti","KaiTi",serif;cursor:pointer}.gift-easter-showcase article>button:active{transform:scale(.94)}
+@keyframes egg-showcase-pulse{50%{transform:scale(1.08);box-shadow:0 0 16px rgba(194,143,56,.38)}}
+@keyframes egg-showcase-glint{0%,35%{transform:translateX(-140%) skewX(-18deg)}70%,100%{transform:translateX(560%) skewX(-18deg)}}
+@media(max-width:580px){.gift-easter-showcase{margin-top:10px;padding:8px}.gift-easter-showcase>header strong{font-size:12px}.gift-easter-showcase article{grid-template-columns:52px minmax(0,1fr) 54px;flex-basis:100%}.gift-easter-showcase .easter-egg-artwork{width:52px;height:52px}}
+@media(prefers-reduced-motion:reduce){.gift-easter-showcase>header>span,.gift-easter-showcase article:after{animation:none}}
 
 .stamina-balance { color:#dfeecb; text-shadow:0 0 12px rgba(143,213,129,.34); }
 .bedroom-practice-card { position:absolute; z-index:8; left:50%; top:53%; transform:translate(-50%,-50%); width:min(380px,78vw); padding:28px 30px 24px; text-align:center; color:#eef4e8; background:linear-gradient(160deg,rgba(9,27,33,.88),rgba(29,47,43,.82)); border:1px solid rgba(180,220,194,.38); box-shadow:0 24px 70px rgba(0,0,0,.45),inset 0 0 40px rgba(143,202,178,.08); backdrop-filter:blur(8px); }
@@ -1113,7 +1122,7 @@ button:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px
 @media(max-width:420px){.gathering-focus-stats{display:none}.gathering-focus-hud{grid-template-columns:40px minmax(0,1fr)}.farm-tool-dock button{min-width:42px}.farm-tool-dock i{margin:auto}.livestock-yard>small,.livestock-yard>h2,.livestock-yard>p{left:105px}.livestock-actions button{min-height:68px}}
 @media(prefers-reduced-motion:reduce){.gathering-focus-hud,.gathering-focus-sigil>i,.gathering-focus-sigil>u,.farm-world-layout>.farm-field-wrap:after,.farm-world-decor:after,.farm-empty-mark,.farm-plot.ready>img,.farm-actions>button.primary-gather-action,.livestock-scenery:after,.livestock-roaming button,.livestock-roaming button.selected:after,.livestock-beast-portrait,.livestock-actions button.primary-gather-action,.livestock-actions button.primary-gather-action:after,.mine-maze-scene,.mine-grid.cavern-map .mine-tile,.targeting-chest:after{animation-duration:.001ms!important}}
 @media(max-width:760px){body .spirit-farm-panel{z-index:5000!important}}
-@media(max-width:760px){body:has(.spirit-farm-panel)>.topbar,body:has(.spirit-farm-panel) .top-actions,body:has(.spirit-farm-panel) .scene-tabs,body:has(.spirit-farm-panel) .fusion-world-dock{display:none!important}body:has(.spirit-farm-panel) .farm-stage{height:100dvh!important}}
+@media(max-width:760px){body:has(.spirit-farm-panel)>.topbar,body:has(.spirit-farm-panel) .top-actions,body:has(.spirit-farm-panel) .scene-tabs,body:has(.spirit-farm-panel) .fusion-world-dock,body:has(.spirit-farm-panel) .world-quick-dock{display:none!important}body:has(.spirit-farm-panel) .farm-stage{height:100dvh!important}}
 @media(max-width:760px){body:has(.spirit-farm-panel) .topbar{display:none!important}}
 @media(max-width:760px){.livestock-detail:has(.livestock-tip){display:none!important}}
 @media(max-width:760px){body:has(.spirit-farm-panel) .current-quest-card{display:none!important}.livestock-yard-empty{position:absolute;left:50%;top:55%;width:min(360px,86%);padding:26px 20px;transform:translate(-50%,-50%);border:1px solid rgba(168,145,84,.32);border-radius:18px;background:radial-gradient(circle at 50% 22%,rgba(111,158,93,.2),rgba(7,25,13,.82) 66%);box-shadow:0 18px 42px #0008;backdrop-filter:blur(5px)}.livestock-yard-empty>span{width:86px;height:86px;background:radial-gradient(circle,#314b30,#13251a);box-shadow:0 0 24px rgba(158,203,114,.18)}.livestock-yard-empty h3{margin:12px 0 5px}.livestock-yard-empty p{margin:0}}
@@ -1577,3 +1586,232 @@ button:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px
 /* Main-quest route actions: selection and execution stay in one thumb-friendly flow. */
 .project-delivery>div{min-width:0;flex:1}.project-route-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.project-delivery .project-route-actions button{min-height:40px;display:inline-flex;align-items:center;justify-content:space-between;gap:14px;padding:7px 12px;color:#ddce9e;border:1px solid rgba(199,169,94,.42);border-radius:20px;background:linear-gradient(110deg,rgba(45,82,62,.82),rgba(12,36,28,.94));box-shadow:inset 0 0 16px rgba(107,170,131,.08);font-size:10px;letter-spacing:.06em}.project-delivery .project-route-actions button i{color:#f0d47d;font-size:15px;font-style:normal}.project-delivery .project-route-actions button:active{transform:scale(.97)}.project-delivery>button{min-width:176px;min-height:48px}.project-delivery>button:disabled{color:#78847d;border-color:#47564f;background:#17251f;box-shadow:none}
 @media(max-width:760px){.project-delivery{align-items:stretch;gap:9px;padding:9px 10px calc(9px + env(safe-area-inset-bottom))}.project-delivery>div>p{display:none}.project-route-actions{flex-wrap:nowrap;overflow-x:auto;margin-top:7px;padding-bottom:2px}.project-delivery .project-route-actions button{flex:1 0 auto;min-height:44px}.project-delivery>button{min-width:136px;min-height:52px;padding:8px 12px;font-size:10px}}
+
+/* Feedback polish: the actor enters once; expression art only dissolves inside the stable stage. */
+.special-portrait-image{animation:special-expression-cut .22s ease both}
+@keyframes special-expression-cut{from{opacity:.35;filter:drop-shadow(0 26px 34px rgba(0,0,0,.5)) brightness(1.08)}to{opacity:1;filter:drop-shadow(0 26px 34px rgba(0,0,0,.5))}}
+.bond-gain-mini em{margin-left:7px;color:#f1ce9b;font-size:8px;font-style:normal;letter-spacing:.04em}
+
+/* Ordinary relationship steps are compact L2 cards. Only an actual vow keeps the full-screen ritual. */
+.stage-notice-backdrop:not(.stage-notice-major){place-items:end center;padding:0 12px calc(86px + env(safe-area-inset-bottom));background:transparent;backdrop-filter:none;pointer-events:none}
+.stage-notice-backdrop:not(.stage-notice-major) .stage-notice{display:block;width:min(360px,100%);min-height:0;padding:0;border-color:rgba(203,168,105,.72);border-radius:18px 7px 18px 7px;background:linear-gradient(135deg,rgba(246,237,216,.98),rgba(224,207,173,.98));box-shadow:0 14px 38px rgba(0,0,0,.42);pointer-events:auto;animation:relationship-step-in .26s ease both}
+.stage-notice-backdrop:not(.stage-notice-major) .stage-notice>img{display:none}.stage-notice-backdrop:not(.stage-notice-major) .stage-notice>div{padding:15px 18px}.stage-notice-backdrop:not(.stage-notice-major) .stage-notice p{font-size:7px}.stage-notice-backdrop:not(.stage-notice-major) .stage-notice h3{margin:7px 0 4px;font-size:19px}.stage-notice-backdrop:not(.stage-notice-major) .stage-notice blockquote{margin:2px 0 5px;font-size:11px;line-height:1.55}.stage-notice-backdrop:not(.stage-notice-major) .stage-notice span{font-size:9px}.stage-notice-backdrop:not(.stage-notice-major) .stage-notice button{display:none}
+@keyframes relationship-step-in{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.special-portrait-image,.stage-notice-backdrop:not(.stage-notice-major) .stage-notice{animation:none}}
+
+/* Generated transparent VFX sheet: source-specific silhouettes keep rare feedback from looking generic. */
+.rare-reveal-art:after{content:"";position:absolute;z-index:3;inset:-42px;pointer-events:none;background:url('/assets/feedback-vfx/xianxia-feedback-vfx-sheet.png') 0 0/200% 200% no-repeat;filter:drop-shadow(0 0 12px rgba(138,225,237,.4));animation:rare-water-arc .8s cubic-bezier(.16,.82,.3,1) both}
+.cavern-map .mine-impact:after{content:"";position:absolute;z-index:-1;left:50%;top:50%;width:120px;height:120px;transform:translate(-50%,-50%);background:url('/assets/feedback-vfx/xianxia-feedback-vfx-sheet.png') 0 100%/200% 200% no-repeat;filter:drop-shadow(0 0 10px rgba(194,142,72,.42));animation:mine-crystal-burst .52s ease-out both}
+@keyframes rare-water-arc{from{opacity:0;transform:translateY(24px) scale(.7) rotate(-9deg)}to{opacity:1;transform:none}}
+@keyframes mine-crystal-burst{from{opacity:0;transform:translate(-50%,-50%) scale(.38)}55%{opacity:.92}to{opacity:0;transform:translate(-50%,-50%) scale(1.16)}}
+@media(prefers-reduced-motion:reduce){.rare-reveal-art:after,.cavern-map .mine-impact:after{animation:none}}
+.mine-broken-strip{position:absolute;z-index:32;left:50%;bottom:18px;display:grid;grid-template-columns:38px minmax(0,1fr) auto auto;align-items:center;gap:9px;width:min(620px,calc(100% - 24px));padding:9px 11px;color:#eedec3;border:1px solid rgba(190,91,64,.72);border-radius:16px 5px;background:linear-gradient(100deg,rgba(67,27,23,.97),rgba(22,20,17,.98));box-shadow:0 12px 34px #000b;transform:translateX(-50%)}.mine-broken-strip>i{display:grid;place-items:center;width:36px;height:36px;border:1px solid #bd6d50;border-radius:50%;background:#632d24;color:#ffe2b9;font-style:normal}.mine-broken-strip span>*{display:block}.mine-broken-strip strong{font-size:11px}.mine-broken-strip small{margin-top:2px;color:#bca898;font-size:7px}.mine-broken-strip button{min-height:38px;padding:6px 12px;color:#fff0d4;border:1px solid #b67750;border-radius:19px;background:#7a3c2b;font-size:9px}.mine-broken-strip button.ghost{border-color:#62594e;background:#24231f;color:#c6baaa}@media(max-width:700px){.mine-broken-strip{bottom:8px;grid-template-columns:34px 1fr 1fr}.mine-broken-strip>i{width:32px;height:32px}.mine-broken-strip span{grid-column:2/4}.mine-broken-strip button{min-height:42px}.mine-broken-strip button:first-of-type{grid-column:1/3}}
+
+/* L2 collection notice: compact, non-blocking, and directly opens its collection. */
+.audio-unlock-banner{position:fixed;inset:auto;top:max(76px,calc(env(safe-area-inset-top) + 66px));left:50%;z-index:80;display:flex;place-content:normal;place-items:normal;align-items:center;gap:12px;width:min(326px,calc(100vw - 32px));min-height:64px;padding:10px 15px;color:#f9ead0;border:1px solid rgba(226,191,119,.8);border-radius:5px;background:linear-gradient(135deg,rgba(43,34,25,.97),rgba(91,52,39,.96));box-shadow:0 14px 32px rgba(16,10,6,.42),inset 0 0 0 1px rgba(255,244,210,.08);text-align:left;transform:translateX(-50%);cursor:pointer;animation:audio-unlock-compact 2.5s ease both}
+.audio-unlock-banner>span:first-child{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;color:#e8c170;border:1px solid rgba(232,193,112,.52);border-radius:50%;background:rgba(226,181,99,.1);font-size:22px}
+.audio-unlock-copy{display:grid;min-width:0;gap:4px}.audio-unlock-copy strong{overflow:hidden;color:#f6e6c9;font:15px "STSong","SimSun",serif;letter-spacing:.06em;text-overflow:ellipsis;white-space:nowrap}.audio-unlock-copy small{color:#c8b596;font-size:10px;letter-spacing:.08em}
+.message-list>button.unread{position:relative;border-color:#bd8b43;background:linear-gradient(90deg,rgba(255,249,230,.88),rgba(255,255,255,.52));box-shadow:inset 3px 0 #a9662f}.message-list>button.unread:after{content:"";position:absolute;top:8px;right:8px;width:6px;height:6px;border-radius:50%;background:#b74836;box-shadow:0 0 0 3px rgba(183,72,54,.12)}.message-list>button.claimed{opacity:.72;filter:saturate(.7)}
+@keyframes audio-unlock-compact{0%{opacity:0;transform:translate(-50%,-12px) scale(.96)}12%,82%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-5px) scale(.98)}}
+@media(prefers-reduced-motion:reduce){.audio-unlock-banner{animation:audio-unlock-compact 2.5s linear both}}
+
+/* Batch portrait refresh: preserve full silhouettes and anchor them away from labels. */
+.portrait-wrap:is(.portrait-shen,.portrait-liu,.portrait-wang-ma,.portrait-ning,.portrait-gu-tinglan,.portrait-bai-zhiwei,.portrait-lu-yaoyao){
+  right:clamp(4px,1.5vw,24px);
+  bottom:72px;
+  width:min(49vw,690px);
+  height:82%;
+  justify-content:flex-end;
+}
+.portrait-wrap:is(.portrait-shen,.portrait-liu,.portrait-wang-ma,.portrait-ning,.portrait-gu-tinglan,.portrait-bai-zhiwei,.portrait-lu-yaoyao) .main-portrait{
+  object-position:right bottom;
+  transform:translate(3%,3%) scale(.9);
+  transform-origin:right bottom;
+  filter:drop-shadow(0 24px 25px rgba(0,0,0,.44)) drop-shadow(0 0 18px color-mix(in srgb,var(--npc-accent,#d9bd80) 16%,transparent));
+}
+.portrait-wrap:is(.portrait-shen,.portrait-liu,.portrait-wang-ma,.portrait-ning,.portrait-gu-tinglan,.portrait-bai-zhiwei,.portrait-lu-yaoyao) .portrait-halo{
+  inset:14% 1% 0 16%;
+  opacity:.7;
+}
+.present-characters button img[src*="/portrait-refresh/"],
+.message-list img[src*="/portrait-refresh/"],
+.quest-giver-row>img[src*="/portrait-refresh/"]{
+  object-fit:contain;
+  object-position:center bottom;
+  background:radial-gradient(circle at 50% 32%,rgba(149,179,153,.25),rgba(7,27,21,.94));
+}
+.special-portrait-wrap img[src*="/portrait-refresh/"]{
+  object-position:center bottom;
+  transform:translateY(3%) scale(.92);
+  transform-origin:center bottom;
+}
+.stage-notice>img[src*="/portrait-refresh/"],
+.character-message>img[src*="/portrait-refresh/"],
+.quest-offer-portrait>img[src*="/portrait-refresh/"],
+.character-card-art>img[src*="/portrait-refresh/"],
+.character-codex-portrait>img[src*="/portrait-refresh/"],
+.drinking-portrait img[src*="/portrait-refresh/"]{
+  object-fit:contain;
+  object-position:center bottom;
+  background:radial-gradient(circle at 50% 38%,rgba(126,161,138,.3),rgba(6,28,22,.96));
+}
+.character-codex-portrait>img[src*="/portrait-refresh/"]{object-position:right bottom;transform:scale(.93);transform-origin:right bottom}
+.quest-offer-portrait>img[src*="/portrait-refresh/"]{object-position:right bottom;transform:translateX(6%) scale(.94);transform-origin:right bottom}
+.drinking-portrait img[src*="/portrait-refresh/"]{object-position:center bottom;height:108%;transform:scale(.94);transform-origin:center bottom}
+
+/* The refreshed merchants stand at the lower right; copy and seals stay clear of faces. */
+.shopkeeper-panel.refreshed-merchant-portrait:after{left:17px;right:auto}
+.shopkeeper-panel.refreshed-merchant-portrait>img{height:94%;object-position:right bottom;transform:translate(4%,3%) scale(.92);transform-origin:right bottom}
+.shopkeeper-panel.refreshed-merchant-portrait>div{right:45%}
+.farm-scene-npc>img[src*="/portrait-refresh/ye-qinghe.png"]{
+  object-fit:contain;
+  object-position:right bottom;
+  background:radial-gradient(circle at 64% 38%,rgba(132,168,117,.28),#0a1610 72%);
+  transform:translate(4%,2%) scale(.94);
+  transform-origin:right bottom;
+}
+.farm-scene-npc:hover>img[src*="/portrait-refresh/ye-qinghe.png"]{transform:translate(3%,1%) scale(.98)}
+.farm-merchant-character>img[src*="/portrait-refresh/ye-qinghe.png"]{
+  object-fit:contain;
+  object-position:right bottom;
+  background:radial-gradient(circle at 62% 38%,rgba(117,158,112,.3),#101c15 72%);
+  transform:translateX(5%) scale(.94);
+  transform-origin:right bottom;
+}
+
+@media(max-width:620px){
+  .portrait-wrap:is(.portrait-shen,.portrait-liu,.portrait-wang-ma,.portrait-ning,.portrait-gu-tinglan,.portrait-bai-zhiwei,.portrait-lu-yaoyao){
+    right:-4vw;
+    bottom:116px;
+    width:82vw;
+    height:66%;
+  }
+  .portrait-wrap:is(.portrait-shen,.portrait-liu,.portrait-wang-ma,.portrait-ning,.portrait-gu-tinglan,.portrait-bai-zhiwei,.portrait-lu-yaoyao) .main-portrait{
+    transform:translate(3%,4%) scale(.88);
+  }
+  .shopkeeper-panel.refreshed-merchant-portrait>img{left:auto;right:-2%;width:58%;height:190px;object-position:right bottom;transform:translate(4%,3%) scale(.92)}
+  .shopkeeper-panel.refreshed-merchant-portrait>div{left:8px;right:46%;bottom:10px}
+  .shopkeeper-panel.refreshed-merchant-portrait:after{left:10px;right:auto}
+  .farm-merchant-character>img[src*="/portrait-refresh/ye-qinghe.png"]{object-position:right bottom;transform:translateX(5%) scale(.91)}
+}
+
+/* Nightfall and daybreak are world-state transitions, not ordinary web modals. */
+.nightfall-notice{position:fixed;z-index:230;left:50%;bottom:max(88px,calc(72px + env(safe-area-inset-bottom)));display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:center;gap:12px;width:min(430px,calc(100vw - 28px));min-height:88px;padding:12px 13px;color:#f2e8d1;border:1px solid rgba(204,177,119,.7);border-radius:22px 8px 22px 8px;background:linear-gradient(115deg,rgba(13,25,32,.97),rgba(35,39,43,.98) 58%,rgba(57,45,39,.97));box-shadow:0 20px 55px rgba(0,0,0,.56),inset 0 0 28px rgba(119,154,171,.08);backdrop-filter:blur(10px);animation:nightfall-arrive .42s cubic-bezier(.18,.86,.3,1.08) both}
+.nightfall-notice:before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(110deg,transparent 20%,rgba(255,239,190,.08) 48%,transparent 70%);transform:translateX(-100%);animation:nightfall-glint 3.8s .45s ease-in-out infinite}
+.nightfall-moon{position:relative;display:grid;place-items:center;width:48px;height:48px;color:#f1d99b;border:1px solid rgba(221,196,136,.52);border-radius:50%;background:radial-gradient(circle at 37% 34%,#f6e8bd 0 10%,#c8ae75 44%,#4d5260 47%,#18242c 68%);box-shadow:0 0 22px rgba(197,211,203,.18)}
+.nightfall-moon i{position:absolute;inset:-7px;border:1px solid rgba(208,188,136,.19);border-radius:50%;animation:nightfall-orbit 5s linear infinite}.nightfall-moon b{position:relative;margin-left:1px;color:#2b2b2b;font:11px "STSong","SimSun",serif}
+.nightfall-copy{min-width:0}.nightfall-copy>*{display:block}.nightfall-copy small{color:#b8b7ae;font-size:8px;letter-spacing:.16em}.nightfall-copy strong{margin-top:3px;color:#ffe6b1;font:18px "STKaiti","KaiTi","STSong",serif;letter-spacing:.13em}.nightfall-copy p{margin:4px 0 0;color:#c9c7bd;font-size:9px;line-height:1.45}
+.nightfall-actions{display:grid;gap:6px}.nightfall-actions button{min-width:84px;min-height:38px;padding:7px 12px;color:#29231b;border:1px solid #e0bd77;border-radius:19px;background:linear-gradient(#f0d899,#cda960);box-shadow:0 5px 15px rgba(0,0,0,.25);font-size:9px;cursor:pointer;transition:transform .16s ease,filter .16s ease}.nightfall-actions button:active{transform:scale(.95)}.nightfall-actions button.ghost{color:#cfc9bb;border-color:#59656c;background:rgba(21,32,38,.72);box-shadow:none}
+
+.daybreak-transition{position:fixed;z-index:320;inset:0;display:grid;place-items:center;overflow:hidden;padding:max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom));color:#efe5ce;background:rgba(4,11,15,.96);transition:opacity .62s ease;background-image:radial-gradient(circle at 50% 14%,rgba(153,177,164,.1),transparent 38%),linear-gradient(180deg,#071116,#121819 54%,#2a261f);animation:daybreak-overlay-in .58s ease both}
+.daybreak-transition.phase-leaving{opacity:0;pointer-events:none}.daybreak-night-curtain{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,5,9,.98),rgba(6,12,14,.95));animation:daybreak-curtain-in .76s ease both}.daybreak-transition:is(.phase-dawn,.phase-story) .daybreak-night-curtain{animation:daybreak-curtain-open 1.1s cubic-bezier(.22,.72,.22,1) forwards}
+.daybreak-night-curtain i{position:absolute;width:3px;height:3px;border-radius:50%;background:#d7e5de;box-shadow:0 0 9px #c8ded7}.daybreak-night-curtain i:nth-child(1){left:24%;top:18%}.daybreak-night-curtain i:nth-child(2){right:22%;top:29%;transform:scale(.7)}.daybreak-night-curtain i:nth-child(3){right:35%;top:12%;transform:scale(.45)}
+.daybreak-window{position:absolute;left:50%;top:0;width:min(540px,100%);height:50%;transform:translateX(-50%);overflow:hidden;pointer-events:none;opacity:.18;transition:opacity 1s ease}.daybreak-transition:is(.phase-dawn,.phase-story) .daybreak-window{opacity:.84}.daybreak-window:before,.daybreak-window:after{content:"";position:absolute;z-index:3;background:#17201f;box-shadow:0 0 0 1px rgba(195,169,110,.18)}.daybreak-window:before{left:50%;top:0;width:7px;height:100%;transform:translateX(-50%)}.daybreak-window:after{left:0;right:0;top:48%;height:7px}.daybreak-window>span{position:absolute;inset:0;background:radial-gradient(circle at 50% 61%,#ffdf9b 0 4%,rgba(235,176,97,.47) 9%,rgba(101,140,139,.18) 30%,transparent 60%),linear-gradient(180deg,#364b55,#9a8066 75%,#d0a872);transform:scale(1.04);animation:daybreak-sky-breathe 6s ease-in-out infinite alternate}.daybreak-window>b{position:absolute;z-index:2;left:50%;bottom:-30%;width:82%;height:65%;border-radius:50% 50% 0 0;background:linear-gradient(150deg,#15201e,#26382f);transform:translateX(-50%);box-shadow:-170px 40px 0 #111c1b,150px 52px 0 #1d2b27}.daybreak-window>i{position:absolute;z-index:2;top:25%;width:28px;height:10px;border-top:2px solid rgba(28,45,44,.68);border-radius:50%}.daybreak-window>i:nth-of-type(1){left:18%;transform:rotate(9deg)}.daybreak-window>i:nth-of-type(2){right:17%;top:34%;transform:scale(.72) rotate(-7deg)}
+.daybreak-card{position:relative;z-index:4;width:min(410px,100%);min-height:410px;padding:15px;border:1px solid rgba(218,189,125,.64);border-radius:28px 8px 28px 8px;background:linear-gradient(155deg,rgba(28,37,34,.96),rgba(18,25,24,.98) 58%,rgba(48,38,29,.98));box-shadow:0 35px 100px rgba(0,0,0,.66),inset 0 0 0 1px rgba(255,245,210,.06),inset 0 -50px 80px rgba(155,99,49,.08);opacity:0;transform:translateY(20px) scale(.96)}
+.daybreak-transition:is(.phase-dawn,.phase-story) .daybreak-card{animation:daybreak-card-arrive .55s cubic-bezier(.16,.84,.24,1) both}.daybreak-card>header{display:grid;grid-template-columns:43px minmax(0,1fr) auto;align-items:center;gap:10px;padding:1px 2px 12px;border-bottom:1px solid rgba(196,169,111,.22)}.daybreak-seal{display:grid;place-items:center;width:40px;height:40px;color:#2b2116;border:1px solid #e0bd75;border-radius:50%;background:radial-gradient(circle at 35% 28%,#ffedb8,#c6994e);box-shadow:0 0 18px rgba(226,181,103,.18);font:17px "STKaiti","KaiTi",serif}.daybreak-card header div>*{display:block}.daybreak-card header small{color:#a8aaa0;font-size:7px;letter-spacing:.15em}.daybreak-card header strong{margin-top:4px;color:#f1dfb7;font:13px "STSong","SimSun",serif;letter-spacing:.08em}.daybreak-card header em{color:#bda77d;font-size:8px;font-style:normal;letter-spacing:.14em}
+.daybreak-arrival,.daybreak-story-line{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:330px;padding:18px 19px 5px;text-align:center}.daybreak-sun{position:relative;display:grid;place-items:center;width:88px;height:88px;margin-bottom:14px;border:1px solid rgba(230,190,111,.38);border-radius:50%;background:radial-gradient(circle,#f8e2a3 0 12%,#dca85d 13% 22%,rgba(219,166,82,.12) 23% 58%,transparent 60%);box-shadow:0 0 50px rgba(225,166,88,.18);animation:daybreak-sun-rise 1s cubic-bezier(.17,.79,.25,1) both}.daybreak-sun:after{content:"";width:40px;height:40px;border-radius:50%;background:#e9bf72;box-shadow:0 0 25px #ebb96a}.daybreak-sun i{position:absolute;inset:-8px;border:1px solid rgba(231,196,123,.15);border-radius:50%}.daybreak-sun i:nth-child(2){inset:-17px}.daybreak-sun i:nth-child(3){inset:-27px}
+.daybreak-arrival>p,.daybreak-story-line>p{margin:0;color:#af9d78;font-size:8px;letter-spacing:.18em}.daybreak-arrival h2,.daybreak-story-line h2{margin:8px 0 7px;color:#f5e6c5;font:24px "STKaiti","KaiTi","STSong",serif;font-weight:500;letter-spacing:.12em}.daybreak-arrival blockquote{margin:4px 0 18px;color:#cfc6b3;font-size:10px;line-height:1.75}.daybreak-card button{min-width:150px;min-height:47px;margin-top:auto;padding:9px 22px;color:#2e271c;border:1px solid #e1be78;border-radius:24px;background:linear-gradient(180deg,#f0daa2,#cfa95e);box-shadow:0 8px 22px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.52);font-size:10px;letter-spacing:.12em;cursor:pointer;transition:transform .16s ease,filter .16s ease}.daybreak-card button:active{transform:scale(.96);filter:brightness(.92)}
+.daybreak-story-line{animation:daybreak-line-enter .34s ease-out both}.daybreak-story-line h2{font-size:20px}.daybreak-rule{display:flex;align-items:center;gap:10px;width:88%;margin:9px 0 15px}.daybreak-rule i{height:1px;flex:1;background:linear-gradient(90deg,transparent,#a98a55)}.daybreak-rule i:last-child{background:linear-gradient(90deg,#a98a55,transparent)}.daybreak-rule span{color:#d2b676;font-size:8px;letter-spacing:.24em}.daybreak-story-line blockquote{display:grid;place-items:center;min-height:115px;margin:0;color:#dfd4be;font:14px/1.9 "STKaiti","KaiTi","STSong",serif;letter-spacing:.04em}.daybreak-story-line.line-thought blockquote{color:#f0dba9;font-style:italic;text-shadow:0 0 18px rgba(231,188,100,.16)}.daybreak-story-line>small{margin:10px 0 14px;color:#8c8d83;font-size:8px;letter-spacing:.16em}
+@keyframes nightfall-arrive{from{opacity:0;transform:translate(-50%,18px) scale(.94)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes nightfall-glint{0%,58%{transform:translateX(-100%)}78%,100%{transform:translateX(100%)}}
+@keyframes nightfall-orbit{to{transform:rotate(360deg)}}
+@keyframes daybreak-curtain-in{from{opacity:0}to{opacity:1}}
+@keyframes daybreak-overlay-in{from{opacity:0}to{opacity:1}}
+@keyframes daybreak-curtain-open{0%{opacity:1}100%{opacity:.18}}
+@keyframes daybreak-card-arrive{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes daybreak-sun-rise{from{opacity:0;transform:translateY(28px) scale(.72)}to{opacity:1;transform:none}}
+@keyframes daybreak-sky-breathe{from{transform:scale(1.04) translateY(0)}to{transform:scale(1.08) translateY(-5px)}}
+@keyframes daybreak-line-enter{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+@media(max-width:520px){.nightfall-notice{grid-template-columns:45px minmax(0,1fr);bottom:max(76px,calc(66px + env(safe-area-inset-bottom)));padding:10px 11px}.nightfall-moon{width:42px;height:42px}.nightfall-copy strong{font-size:16px}.nightfall-actions{grid-column:1/3;grid-template-columns:1.1fr .9fr}.nightfall-actions button{min-height:44px}.daybreak-transition{padding-left:11px;padding-right:11px}.daybreak-card{min-height:min(500px,calc(100svh - 32px));padding:13px}.daybreak-arrival,.daybreak-story-line{min-height:calc(min(500px,100svh - 32px) - 84px);padding:15px 13px 3px}.daybreak-arrival h2{font-size:22px}.daybreak-story-line blockquote{font-size:13px;line-height:1.82}.daybreak-window{height:46%}}
+@media(prefers-reduced-motion:reduce){.nightfall-notice,.nightfall-notice:before,.nightfall-moon i,.daybreak-transition,.daybreak-night-curtain,.daybreak-card,.daybreak-sun,.daybreak-window>span,.daybreak-story-line{animation:none!important}.daybreak-transition,.daybreak-window{transition-duration:.01ms}.daybreak-card{opacity:1;transform:none}}
+
+/* Waking dialogue uses the same compact paper hierarchy as NPC conversation.
+   The full-screen layer is retained only for the night-to-morning light transition. */
+.daybreak-transition{display:block;padding:0;background:transparent;background-image:none;transition:opacity .62s ease,background-color .72s ease}
+.daybreak-transition.phase-veil{background-color:#061015}
+.daybreak-transition:is(.phase-dawn,.phase-story,.phase-leaving){background-color:rgba(7,13,14,.12)}
+.daybreak-transition:is(.phase-dawn,.phase-story) .daybreak-night-curtain{animation:daybreak-curtain-reveal .9s cubic-bezier(.22,.72,.22,1) forwards}
+.daybreak-window{inset:0;width:100%;height:100%;transform:none;opacity:0;transition:opacity .85s ease}
+.daybreak-transition:is(.phase-dawn,.phase-story) .daybreak-window{opacity:.34}
+.daybreak-window:before,.daybreak-window:after,.daybreak-window>b{display:none}
+.daybreak-window>span{background:radial-gradient(ellipse at 76% 5%,rgba(255,223,151,.52),rgba(232,181,99,.14) 27%,transparent 58%),linear-gradient(145deg,rgba(255,244,207,.09),transparent 46%)}
+.daybreak-window>i{top:24%;width:3px;height:3px;border:0;border-radius:50%;background:#ffe0a0;box-shadow:0 0 12px rgba(255,211,118,.74);animation:daybreak-mote 4.8s ease-in-out infinite alternate}
+.daybreak-window>i:nth-of-type(1){left:22%;transform:none}.daybreak-window>i:nth-of-type(2){right:18%;top:42%;transform:none;animation-delay:-2.1s}
+.daybreak-dialogue-box{position:absolute;z-index:4;left:50%;bottom:max(82px,calc(68px + env(safe-area-inset-bottom)));width:min(920px,calc(100% - 24px));min-height:168px;padding:18px 22px 21px;color:#2c281f;border:1px solid rgba(236,218,179,.9);border-radius:18px 5px 18px 5px;background:linear-gradient(90deg,rgba(155,124,73,.08) 1px,transparent 1px) 0 0/26px 100%,rgba(243,237,224,.97);box-shadow:0 28px 80px rgba(0,0,0,.46),inset 0 0 0 4px rgba(120,92,50,.08);opacity:0;transform:translate(-50%,14px)}
+.daybreak-dialogue-box:before{content:"";position:absolute;left:15px;top:14px;bottom:14px;width:2px;background:var(--cinnabar);opacity:.72}
+.daybreak-transition:is(.phase-dawn,.phase-story) .daybreak-dialogue-box{animation:daybreak-dialogue-rise .34s ease-out both}
+.daybreak-kicker{padding-left:4px;color:#8a7659}
+.daybreak-card .daybreak-dialogue-advance{position:static;display:block;width:100%;min-width:0;min-height:118px;margin:0;padding:12px 3px 27px;border:0;border-radius:0;color:inherit;background:transparent;box-shadow:none;text-align:left;letter-spacing:normal}
+.daybreak-card .daybreak-dialogue-advance:active{transform:none;filter:none}
+.daybreak-dialogue-advance .speaker-row{min-height:25px}.daybreak-dialogue-advance .speaker-row strong{color:#453c2e;font-size:19px}.daybreak-dialogue-advance .speaker-row span{color:#9a6650;font-size:9px}
+.daybreak-dialogue-advance>p{min-height:52px;margin:7px 72px 0 0;color:#3b342a;font:14px/1.82 "STKaiti","KaiTi","STSong",serif;letter-spacing:.035em}
+.daybreak-dialogue-advance.line-thought .speaker-row strong,.daybreak-dialogue-advance.line-thought>p{color:#80572d}.daybreak-dialogue-advance.line-thought>p{font-style:italic}
+.daybreak-dialogue-box .continue-mark{right:21px;bottom:16px;color:#9b8157}
+@keyframes daybreak-curtain-reveal{from{opacity:1}to{opacity:0}}
+@keyframes daybreak-dialogue-rise{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes daybreak-mote{to{opacity:.22;transform:translate3d(18px,-28px,0) scale(1.5)}}
+@media(max-width:520px){.daybreak-dialogue-box{bottom:max(74px,calc(66px + env(safe-area-inset-bottom)));width:calc(100% - 20px);min-height:176px;padding:16px 17px 19px 22px}.daybreak-card .daybreak-dialogue-advance{min-height:126px;padding-top:10px}.daybreak-dialogue-advance .speaker-row{display:grid;gap:2px}.daybreak-dialogue-advance .speaker-row strong{font-size:17px}.daybreak-dialogue-advance>p{margin-right:8px;font-size:13px;line-height:1.78}.daybreak-dialogue-box .continue-mark{right:17px;bottom:14px}}
+@media(prefers-reduced-motion:reduce){.daybreak-dialogue-box,.daybreak-window>i{animation:none!important}.daybreak-dialogue-box{opacity:1;transform:translate(-50%,0)}}
+
+/* Scene-secret collection: one authored atlas, twenty crop-safe relics, and
+   restrained feedback tiers that remain legible inside the phone viewport. */
+.easter-light{color:var(--egg-accent,#f4cf72)}
+.explore-glyph{position:absolute;z-index:2;left:50%;top:50%;display:grid;place-items:center;width:23px;height:23px;color:#2d2519;border:1px solid rgba(255,247,215,.86);border-radius:50%;background:color-mix(in srgb,var(--egg-accent,#f4cf72) 78%,#fff);box-shadow:0 0 13px color-mix(in srgb,var(--egg-accent,#f4cf72) 72%,transparent);font:10px "STSong","SimSun",serif;transform:translate(-50%,-50%);transition:transform .2s ease,box-shadow .2s ease}
+.explore-light:hover .explore-glyph,.explore-light:focus-visible .explore-glyph{transform:translate(-50%,-50%) scale(1.14);box-shadow:0 0 20px var(--egg-accent,#f4cf72)}
+.explore-light>span{display:flex;gap:3px;align-items:center}
+.easter-egg-artwork{position:relative;display:block;overflow:hidden;background-repeat:no-repeat;background-color:#17362f;box-shadow:inset 0 0 0 1px rgba(239,210,145,.45),0 12px 30px rgba(7,15,12,.3)}
+.easter-egg-artwork:after{content:"";position:absolute;inset:0;background:linear-gradient(125deg,transparent 24%,rgba(255,244,202,.2) 42%,transparent 58%);transform:translateX(-115%);animation:easter-art-glint 3.8s ease-in-out infinite}
+.easter-egg-artwork>i{position:absolute;z-index:2;right:8px;top:8px;display:grid;place-items:center;width:26px;height:26px;color:#f7e8bd;border:1px solid rgba(231,197,120,.65);border-radius:50%;background:rgba(35,42,34,.78);font:12px "STSong","SimSun",serif;font-style:normal;box-shadow:0 4px 12px rgba(0,0,0,.28)}
+.exploration-image.with-treasure>img{filter:saturate(.68) brightness(.46);transform:scale(1.06)}
+.exploration-treasure-art{position:absolute;z-index:2;left:50%;top:52%;width:min(68%,270px);aspect-ratio:1;border:1px solid color-mix(in srgb,var(--egg-accent,#d5b066) 78%,#fff);border-radius:22px 6px 22px 6px;transform:translate(-50%,-50%);filter:drop-shadow(0 20px 24px rgba(0,0,0,.5));animation:easter-relic-reveal .68s cubic-bezier(.16,.82,.3,1) both}
+.exploration-image>.easter-egg-artwork.exploration-treasure-art{left:50%;top:52%;padding:0;color:inherit;border:1px solid color-mix(in srgb,var(--egg-accent,#d5b066) 78%,#fff);border-radius:22px 6px 22px 6px;background-color:#17362f;font:inherit;letter-spacing:normal}
+.exploration-card.easter_egg{border-color:var(--egg-accent,#c9aa70);box-shadow:0 34px 100px rgba(0,0,0,.64),0 0 38px color-mix(in srgb,var(--egg-accent,#d5b066) 18%,transparent),inset 0 0 0 5px rgba(255,255,255,.25)}
+.exploration-card.easter_egg .exploration-resolve{border-color:color-mix(in srgb,var(--egg-accent,#d5b066) 65%,#49301f);background:linear-gradient(135deg,#6f4731,color-mix(in srgb,var(--egg-accent,#d5b066) 38%,#4f3026))}
+.egg-obtained>.easter-egg-artwork{flex:0 0 50px;width:50px;height:50px;border:1px solid #c49b58;border-radius:10px}
+.egg-obtained>.easter-egg-artwork>i{right:3px;top:3px;width:17px;height:17px;font-size:8px}
+.collection-grid article>.easter-egg-artwork{width:120px;height:100%;min-height:150px}
+.collection-grid article.is-locked{border-style:dashed;background:rgba(39,53,46,.08)}
+.collection-grid article.is-locked .easter-egg-artwork{filter:grayscale(.72) saturate(.35) brightness(.62)}
+.collection-grid article.is-locked .easter-egg-artwork:before{content:"";position:absolute;z-index:1;inset:0;background:repeating-linear-gradient(135deg,rgba(12,29,24,.05) 0 8px,rgba(12,29,24,.2) 8px 10px)}
+.collection-grid article.is-locked .easter-egg-artwork>i{left:50%;right:auto;top:50%;width:36px;height:36px;color:#e0c891;background:rgba(15,31,27,.88);font-size:17px;transform:translate(-50%,-50%)}
+.collection-grid article.is-locked h4{color:#777064}.collection-grid article.is-locked p{color:#837b6e;font-style:italic}
+@keyframes easter-relic-reveal{0%{opacity:0;transform:translate(-50%,-42%) scale(.58) rotate(-5deg)}65%{opacity:1;transform:translate(-50%,-52%) scale(1.06) rotate(1deg)}100%{transform:translate(-50%,-50%) scale(1) rotate(0)}}
+@keyframes easter-art-glint{0%,56%{transform:translateX(-115%)}75%,100%{transform:translateX(115%)}}
+@media(max-width:760px){.exploration-treasure-art{width:min(55%,210px);top:54%}}
+@media(max-width:500px){.collection-grid article>.easter-egg-artwork{width:90px;min-height:138px}.explore-glyph{width:25px;height:25px}.exploration-treasure-art{width:min(48vw,188px)}}
+@media(prefers-reduced-motion:reduce){.easter-egg-artwork:after,.exploration-treasure-art{animation:none}}
+
+/* Five-region atlas: compact chapter strip and clear mobile landmark hierarchy. */
+.world-map-tabs{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.world-map-tabs button{min-width:0;min-height:38px;padding:6px 2px;font-size:9px;line-height:1.25}
+.world-map-tabs button span{display:block;margin:0 0 2px;font-size:8px}
+
+/* New portrait cutouts stand on the lower-right baseline and keep name plaques clear. */
+.portrait-wrap:is(.portrait-shimei,.portrait-lieren,.portrait-nannan,.portrait-nannan-ma,.portrait-shen-qingyin,.portrait-shen-wantang){
+  right:clamp(4px,1.5vw,24px);
+  bottom:72px;
+  width:min(49vw,690px);
+  height:82%;
+  justify-content:flex-end;
+}
+.portrait-wrap:is(.portrait-shimei,.portrait-lieren,.portrait-nannan,.portrait-nannan-ma,.portrait-shen-qingyin,.portrait-shen-wantang) .main-portrait{
+  object-position:right bottom;
+  transform:translate(3%,3%) scale(.9);
+  transform-origin:right bottom;
+  filter:drop-shadow(0 24px 25px rgba(0,0,0,.44)) drop-shadow(0 0 18px rgba(183,211,187,.16));
+}
+.portrait-wrap:is(.portrait-shimei,.portrait-lieren,.portrait-nannan,.portrait-nannan-ma,.portrait-shen-qingyin,.portrait-shen-wantang) .portrait-halo{
+  inset:14% 1% 0 16%;
+  opacity:.7;
+}
+@media(max-width:620px){
+  .portrait-wrap:is(.portrait-shimei,.portrait-lieren,.portrait-nannan,.portrait-nannan-ma,.portrait-shen-qingyin,.portrait-shen-wantang){
+    right:-4vw;
+    bottom:116px;
+    width:82vw;
+    height:66%;
+  }
+  .portrait-wrap:is(.portrait-shimei,.portrait-lieren,.portrait-nannan,.portrait-nannan-ma,.portrait-shen-qingyin,.portrait-shen-wantang) .main-portrait{
+    transform:translate(3%,4%) scale(.88);
+  }
+}

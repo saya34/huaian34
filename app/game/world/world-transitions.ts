@@ -1,5 +1,6 @@
 import { applyAutomaticGlobalKeys, resolveScenePresence, resolveSeekingEncounter } from "../world-engine";
 import type { CharacterDefinition, EventDefinition, GameState, GlobalKeyDefinition, Period, SceneDefinition, SceneId } from "../types";
+import { DAYBREAK_CONTENT } from "../daybreak/content";
 
 export const WORLD_PERIODS: Period[] = ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"];
 export type TimeAdvanceMode = "wait" | "rest" | "sleep";
@@ -66,6 +67,8 @@ export function prepareTimeTransition(input: {
 }): PreparedTimeTransition {
   const { state, mode, characters, events, globalKeys } = input;
   const preview = previewTimeAdvance(state, mode);
+  const wakingAtHome = preview.day > state.day && preview.period === "清晨";
+  const sceneId = wakingAtHome ? DAYBREAK_CONTENT.homeSceneId : state.sceneId;
   const stamina = mode === "sleep"
     ? 10
     : mode === "rest"
@@ -75,11 +78,12 @@ export function prepareTimeTransition(input: {
     ...state,
     period: preview.period,
     day: preview.day,
+    sceneId,
     stamina,
     shortRestDay: mode === "sleep" || preview.wrapped ? preview.day : state.day,
     shortRestCount: mode === "sleep" || preview.wrapped ? 0 : mode === "rest" ? preview.restCount + 1 : preview.restCount,
   }, globalKeys);
-  const presence = resolveScenePresence(timed, state.sceneId, characters, events, false);
+  const presence = resolveScenePresence(timed, sceneId, characters, events, false);
   const ready = { ...presence.state, selectedCharacterId: presence.present[0] ?? state.selectedCharacterId };
   if (presence.forcedEvent) return { state: ready, forcedEvent: presence.forcedEvent, seeking: null };
   const seeking = resolveSeekingEncounter(ready, characters, events);

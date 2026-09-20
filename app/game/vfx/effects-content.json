@@ -1,0 +1,40 @@
+{
+  "sceneEffects": [
+    { "id": "sakura", "name": "流樱过庭", "visual": "petals", "particleCount": 36, "group": "drift" },
+    { "id": "snow", "name": "朔雪纷飞", "visual": "snow", "particleCount": 22, "group": "precipitation" },
+    { "id": "light-rain", "name": "灵雨如丝", "visual": "light-rain", "particleCount": 18, "group": "precipitation" },
+    { "id": "heavy-rain", "name": "骤雨横山", "visual": "heavy-rain", "particleCount": 28, "group": "precipitation" },
+    { "id": "sun-halo", "name": "日华穿云", "visual": "sun-halo", "particleCount": 14, "group": "light" },
+    { "id": "fog", "name": "山岚漫阶", "visual": "fog", "particleCount": 4, "group": "weather-air" },
+    { "id": "falling-leaves", "name": "松叶随风", "visual": "leaves", "particleCount": 32, "group": "drift" },
+    { "id": "fireflies", "name": "流萤照野", "visual": "fireflies", "particleCount": 15, "group": "night-light" },
+    { "id": "embers", "name": "炉星散火", "visual": "embers", "particleCount": 12, "group": "warmth" },
+    { "id": "spirit-motes", "name": "灵息浮尘", "visual": "spirit-motes", "particleCount": 14, "group": "spirit" }
+  ],
+  "storyEffects": [
+    { "id": "pink-mist", "name": "绯雾知心", "visual": "pink-mist", "particleCount": 13 },
+    { "id": "sword-arc", "name": "霜锋留痕", "visual": "sword-arc", "particleCount": 9 },
+    { "id": "memory-shards", "name": "旧忆浮光", "visual": "memory-shards", "particleCount": 11 },
+    { "id": "ink-omen", "name": "墨兆压境", "visual": "ink-omen", "particleCount": 9 },
+    { "id": "golden-runes", "name": "金篆启章", "visual": "golden-runes", "particleCount": 10 }
+  ],
+  "sceneRules": [
+    { "effectId": "heavy-rain", "priority": 120, "sceneIds": ["lingxiao", "tavern", "market", "spirit-farm", "forest-cabin", "field-cottage", "shen-estate"], "weatherIds": ["spirit-rain"], "dayModulo": { "divisor": 8, "remainder": 6 } },
+    { "effectId": "light-rain", "priority": 110, "sceneIds": ["lingxiao", "tavern", "market", "spirit-farm", "forest-cabin", "field-cottage", "shen-estate"], "weatherIds": ["spirit-rain"] },
+    { "effectId": "snow", "priority": 115, "sceneIds": ["lingxiao", "senior-sister-home", "junior-sister-home", "forest-cabin"], "dayModulo": { "divisor": 9, "remainder": 0 }, "excludedWeatherIds": ["spirit-rain"] },
+    { "effectId": "sun-halo", "priority": 86, "sceneIds": ["lingxiao", "market", "spirit-farm", "field-cottage", "shen-estate"], "weatherIds": ["sun-warm"], "periods": ["清晨", "上午", "午后", "黄昏"] },
+    { "effectId": "fog", "priority": 82, "sceneIds": ["lingxiao", "spirit-farm", "forest-cabin", "field-cottage", "shen-estate"], "periods": ["清晨"], "excludedWeatherIds": ["spirit-rain"] },
+    { "effectId": "sakura", "priority": 72, "sceneIds": ["shen-estate", "junior-sister-home", "lingxiao"], "periods": ["上午", "午后", "黄昏"], "excludedWeatherIds": ["spirit-rain"] },
+    { "effectId": "falling-leaves", "priority": 70, "sceneIds": ["forest-cabin", "field-cottage"], "periods": ["上午", "午后", "黄昏"], "excludedWeatherIds": ["spirit-rain"] },
+    { "effectId": "fireflies", "priority": 78, "sceneIds": ["forest-cabin", "field-cottage", "spirit-farm", "tavern"], "periods": ["夜晚", "深夜"], "excludedWeatherIds": ["spirit-rain"] },
+    { "effectId": "embers", "priority": 76, "sceneIds": ["kitchen", "senior-sister-home", "tavern"], "periods": ["黄昏", "夜晚", "深夜"] },
+    { "effectId": "spirit-motes", "priority": 68, "sceneIds": ["bedroom", "lingxiao", "treasure-shop", "intelligence-bureau"], "weatherIds": ["star-dew"], "periods": ["夜晚", "深夜"] }
+  ],
+  "storyRules": [
+    { "effectId": "pink-mist", "priority": 120, "eventTypes": ["情缘", "赠礼"] },
+    { "effectId": "golden-runes", "priority": 110, "eventTypes": ["主线"] },
+    { "effectId": "ink-omen", "priority": 100, "openingEffects": ["flash_black"], "cardStyles": ["special"] },
+    { "effectId": "sword-arc", "priority": 90, "characterIds": ["shen"], "eventTypes": ["心事", "相识"] },
+    { "effectId": "memory-shards", "priority": 80, "cardStyles": ["easter_egg", "trigger_point", "special"] }
+  ]
+}

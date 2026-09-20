@@ -16,11 +16,16 @@ import { projectGrowth } from "./game-state-reducer";
 import { inventoryProjection, syncAlchemyProductInventory } from "./inventory-service";
 import { normalizePlayerGrowth } from "./progression-service";
 import { SAVE_VERSION, type ActivityReceipt, type AlchemyProgress, type UnifiedCardInstance, type UnifiedGameState, type UnifiedItemStack } from "./types";
+import { createInitialKitchen, normalizeKitchen } from "../kitchen/service";
 
-const ITEM_TYPES = new Set(["gift", "material", "pill", "equipment", "card", "treasure", "quest", "fish", "manual"]);
+const ITEM_TYPES = new Set(["gift", "material", "pill", "food", "equipment", "card", "treasure", "quest", "fish", "manual"]);
 const PERIODS = new Set(["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"]);
 const CARD_MODES = new Set(["active", "passive"]);
 const CARD_SOURCES = new Set(["story", "alchemy", "dungeon"]);
+const LEGACY_CHARACTER_ART: Record<string, string> = {
+  "/assets/characters/shen-qingshuang.webp": "/assets/characters/portrait-refresh/shen-qingshuang.png",
+  "/assets/characters/liu-zhiyi.webp": "/assets/characters/portrait-refresh/liu-zhiyi.png",
+};
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -61,6 +66,18 @@ function stringArrayRecord(value: unknown, fallback: Record<string, string[]> = 
   return result;
 }
 
+function sanitizeEasterEggProgress(value: unknown, collectedIds: string[], fallbackDay: number) {
+  const source = asRecord(value);
+  return Object.fromEntries(collectedIds.map((itemId) => {
+    const record = asRecord(source[itemId]);
+    return [itemId, {
+      acquiredDay: integer(record.acquiredDay, fallbackDay, 1),
+      shownTo: stringArray(record.shownTo),
+      unlockedNoteIds: stringArray(record.unlockedNoteIds),
+    }];
+  }));
+}
+
 function sanitizeItems(value: unknown): Record<string, UnifiedItemStack> {
   const result: Record<string, UnifiedItemStack> = {};
   for (const [key, raw] of Object.entries(asRecord(value))) {
@@ -90,7 +107,7 @@ function sanitizeCards(value: unknown, fallback: UnifiedCardInstance[]) {
   return value.flatMap((raw): UnifiedCardInstance[] => {
     const card = asRecord(raw);
     if (typeof card.id !== "string" || typeof card.characterId !== "string" || typeof card.name !== "string" || typeof card.art !== "string" || !CARD_MODES.has(String(card.mode)) || !CARD_SOURCES.has(String(card.source))) return [];
-    return [canonicalCard({ ...card, id: card.id, characterId: card.characterId, name: card.name, art: card.art, mode: card.mode, source: card.source, rarity: integer(card.rarity, 1, 1, 7) } as UnifiedCardInstance)];
+    return [canonicalCard({ ...card, id: card.id, characterId: card.characterId, name: card.name, art: LEGACY_CHARACTER_ART[card.art] ?? card.art, mode: card.mode, source: card.source, rarity: integer(card.rarity, 1, 1, 7) } as UnifiedCardInstance)];
   });
 }
 
@@ -105,8 +122,8 @@ function collectedQuestItems(collectedIds: string[] = []) {
 
 function sanitizeActivityReceipt(value: unknown): ActivityReceipt | undefined {
   const receipt = asRecord(value);
-  const kinds = new Set(["battle", "alchemy", "fishing", "mining", "farming", "livestock", "story", "quest"]);
-  const targets = new Set(["inventory", "tasks", "alchemy", "battle", "farm", "fishing", "mining", "world"]);
+  const kinds = new Set(["battle", "alchemy", "fishing", "mining", "farming", "livestock", "kitchen", "story", "quest"]);
+  const targets = new Set(["inventory", "tasks", "alchemy", "battle", "farm", "fishing", "mining", "kitchen", "world"]);
   const nextStep = asRecord(receipt.nextStep);
   if (typeof receipt.id !== "string" || typeof receipt.title !== "string" || typeof receipt.summary !== "string" || !kinds.has(String(receipt.kind)) || !targets.has(String(nextStep.target)) || typeof nextStep.label !== "string") return undefined;
   return {
@@ -143,9 +160,9 @@ export function cloneInitial(): UnifiedGameState {
     version: SAVE_VERSION,
     updatedAt: Date.now(),
     shared: { spiritStones: romance.spiritStones, stamina: romance.stamina, playerLevel: 1, playerExperience: romance.experience, items, cards: [
-      { id: "story-shen-sword-1", characterId: "shen", name: "沈清霜·霜华一剑", rarity: 4, mode: "active", source: "story", art: "/assets/characters/shen-qingshuang.webp", activeEffect: "sword" },
-      { id: "story-liu-ward-1", characterId: "liu", name: "柳知意·青囊护道", rarity: 3, mode: "passive", source: "story", art: "/assets/characters/liu-zhiyi.webp", bonuses: { health: 60, defense: 18 } },
-    ], learnedSkills: [], globalKeys: { ...romance.flags } },
+      { id: "story-shen-sword-1", characterId: "shen", name: "沈清霜·霜华一剑", rarity: 4, mode: "active", source: "story", art: "/assets/characters/portrait-refresh/shen-qingshuang.png", activeEffect: "sword" },
+      { id: "story-liu-ward-1", characterId: "liu", name: "柳知意·青囊护道", rarity: 3, mode: "passive", source: "story", art: "/assets/characters/portrait-refresh/liu-zhiyi.png", bonuses: { health: 60, defense: 18 } },
+    ], learnedSkills: [], globalKeys: { ...romance.flags }, luck: { bonus: 0, charges: 0, source: "" } },
     romance,
     alchemy: {
       materialCounts: Object.fromEntries(MATERIALS.map((item) => [item.id, item.count])), productStacks: {}, characterCards: [], mythicRareUses: {}, marketOffers: [], manualRefreshCount: 0, refreshResetAt: 0, soldOutRefreshAt: 0, commissions: [], commissionRefreshAt: 0, discoveredRecipes: [],
@@ -155,9 +172,10 @@ export function cloneInitial(): UnifiedGameState {
     fishing: createInitialFishing(),
     mining: createInitialMining(),
     gathering: createInitialGathering(),
+    kitchen: createInitialKitchen(),
     dungeons: { highestUnlocked: 1, completed: [], randomVisible: [] },
     quests: createInitialQuestProgress(),
-    activity: {},
+    activity: { history: [] },
   };
 }
 
@@ -173,7 +191,10 @@ export function mergeSave(saved: unknown) {
   const savedBattle = asRecord(envelope.battle);
   const savedDungeons = asRecord(envelope.dungeons);
   const savedQuests = asRecord(envelope.quests);
+  const savedKitchen = asRecord(envelope.kitchen);
   const collectedEasterEggs = stringArray(savedRomance.collectedEasterEggs);
+  const savedDay = integer(savedRomance.day, base.romance.day, 1);
+  const easterEggProgress = sanitizeEasterEggProgress(savedRomance.easterEggProgress, collectedEasterEggs, savedDay);
   const productStacks = Object.fromEntries(Object.entries(asRecord(savedAlchemy.productStacks)).flatMap(([key, raw]) => {
     const stack = asRecord(raw);
     const mutation = typeof stack.mutation === "string" && ["normal", "burnt", "flawed", "fine", "supreme", "perfect"].includes(stack.mutation) ? stack.mutation : "normal";
@@ -216,6 +237,11 @@ export function mergeSave(saved: unknown) {
     cards: sanitizeCards(savedShared.cards, base.shared.cards),
     learnedSkills: numberArray(savedShared.learnedSkills, base.shared.learnedSkills),
     globalKeys: booleanRecord(savedShared.globalKeys, base.shared.globalKeys),
+    luck: {
+      bonus: finiteNumber(asRecord(savedShared.luck).bonus, 0, 0, 5),
+      charges: integer(asRecord(savedShared.luck).charges, 0, 0, 9),
+      source: typeof asRecord(savedShared.luck).source === "string" ? String(asRecord(savedShared.luck).source) : "",
+    },
   };
   const normalizedBattle = normalizeMetaProgress({ ...base.battle, ...savedBattle });
   normalizedBattle.spiritStones = shared.spiritStones;
@@ -232,7 +258,7 @@ export function mergeSave(saved: unknown) {
     shared,
     romance: {
       ...romanceCandidate,
-      day: integer(savedRomance.day, base.romance.day, 1),
+      day: savedDay,
       period: PERIODS.has(String(savedRomance.period)) ? savedRomance.period as typeof base.romance.period : base.romance.period,
       sceneId: typeof savedRomance.sceneId === "string" ? savedRomance.sceneId as typeof base.romance.sceneId : base.romance.sceneId,
       selectedCharacterId: typeof savedRomance.selectedCharacterId === "string" ? savedRomance.selectedCharacterId as typeof base.romance.selectedCharacterId : base.romance.selectedCharacterId,
@@ -260,6 +286,9 @@ export function mergeSave(saved: unknown) {
       receivedMessages: stringArray(savedRomance.receivedMessages, base.romance.receivedMessages),
       claimedMessages: stringArray(savedRomance.claimedMessages, base.romance.claimedMessages),
       collectedEasterEggs,
+      easterEggProgress,
+      daybreakStoryRuns: stringArray(savedRomance.daybreakStoryRuns, base.romance.daybreakStoryRuns),
+      daybreakAcknowledgedDays: numberArray(savedRomance.daybreakAcknowledgedDays, base.romance.daybreakAcknowledgedDays).filter((day) => day > 0),
       completedEvents: stringArray(savedRomance.completedEvents, base.romance.completedEvents),
       appearanceTriggersUsed: stringArray(savedRomance.appearanceTriggersUsed, base.romance.appearanceTriggersUsed),
       shortRestDay: integer(savedRomance.shortRestDay, base.romance.shortRestDay, 0),
@@ -288,6 +317,7 @@ export function mergeSave(saved: unknown) {
     fishing: normalizeFishingProgress(envelope.fishing as FishingProgress | undefined),
     mining: normalizeMiningProgress(envelope.mining as MiningProgress | undefined),
     gathering: normalizeGathering(envelope.gathering as GatheringProgress | undefined),
+    kitchen: normalizeKitchen(savedKitchen),
     dungeons: {
       highestUnlocked: integer(savedDungeons.highestUnlocked, base.dungeons.highestUnlocked, 1),
       completed: numberArray(savedDungeons.completed).filter((value) => value > 0),
@@ -298,7 +328,16 @@ export function mergeSave(saved: unknown) {
       statuses: Object.fromEntries(Object.entries(asRecord(savedQuests.statuses)).filter(([, status]) => ["unaccepted", "in_progress", "completed", "claimable", "claimed"].includes(String(status)))) as QuestProgress["statuses"],
       trackedQuestId: typeof savedQuests.trackedQuestId === "string" ? savedQuests.trackedQuestId : null,
     }),
-    activity: { last: sanitizeActivityReceipt(asRecord(envelope.activity).last) },
+    activity: (() => {
+      const savedActivity = asRecord(envelope.activity);
+      const last = sanitizeActivityReceipt(savedActivity.last);
+      const history = (Array.isArray(savedActivity.history) ? savedActivity.history : [])
+        .map(sanitizeActivityReceipt)
+        .filter((receipt): receipt is ActivityReceipt => Boolean(receipt))
+        .slice(0, 40);
+      if (last && !history.some((receipt) => receipt.id === last.id)) history.unshift(last);
+      return { ...(last ? { last } : {}), history: history.slice(0, 40) };
+    })(),
   };
   const growth = normalizePlayerGrowth({ playerLevel: shared.playerLevel, playerExperience: shared.playerExperience });
   merged = projectGrowth(merged, growth);

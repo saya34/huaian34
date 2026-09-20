@@ -55,7 +55,8 @@ export default function MiningModal({locationId,randomSpotId,day,onClose,onNotic
 
   useEffect(()=>{const key="huaian-mining-tutorial-v1";if(window.localStorage.getItem(key))return;window.localStorage.setItem(key,"shown");feedback.inspect({titleKey:"mining.tutorialTitle",bodyKey:"mining.tutorialBody",icon:"镐",details:[{labelKey:"mining.reachableLabel",value:feedbackText("mining.tutorialReachable")},{labelKey:"mining.costLabel",value:feedbackText("mining.tutorialDurability")},{labelKey:"mining.keyLabel",value:feedbackText("mining.tutorialChest")}],dedupeKey:key});},[feedback]);
 
-  function announce(copy:string){setMessage(copy);onNotice(copy)}
+  void onNotice;
+  function announce(copy:string){setMessage(copy)}
   function grant(rewards:MiningReward[]){
     const effects:Parameters<typeof applyEffects>[0]=[];
     let gathering=state.gathering;
@@ -63,7 +64,6 @@ export default function MiningModal({locationId,randomSpotId,day,onClose,onNotic
     setGathering(gathering);
     if(rewards.length)effects.push({type:"record_activity",receipt:createActivityReceipt({kind:"mining",title:rewards.some(item=>item.rarity>=5)?"地脉秘藏入囊":"地脉有所获",summary:`${location.name}本次开掘所得已写入统一行囊。`,rewards:rewards.slice(0,3).map(item=>`${item.name} ×${item.amount}`),impacts:["寻脉师历练已记录","任务与炼器材料已同步"],nextStep:{target:"inventory",label:"查看矿藏与用途"}})});
     if(effects.length)applyEffects(effects);
-    rewards.slice(0,3).forEach((reward,index)=>feedback.float({titleKey:"mining.dropFloat",params:{name:reward.name,amount:reward.amount},icon:"矿",tone:reward.rarity>=4?"gold":"jade",dedupeKey:`mining:drop:${reward.name}:${reward.amount}:${Date.now()}:${index}`}));
   }
   function hit(tile:MineTile){
     setSelectedId(tile.id);
@@ -76,10 +76,12 @@ export default function MiningModal({locationId,randomSpotId,day,onClose,onNotic
   }
   function openChest(tile:MineTile){
     const result=openMineChest(mining,{location,spotId:randomSpotId,tileId:tile.id});if(!result.ok){setMessage(result.message);feedback.toast({titleKey:"system.dynamicMessage",params:{message:result.message},icon:"钥",tone:"cinnabar",dedupeKey:`mine-chest-fail:${tile.id}`});return;}
-    setMining(result.progress);setLoot(result.rewards);grant(result.rewards);setChestFx(tile.kind==="deep-chest"?"deep":"normal");setMessage(result.message);onNotice(`${result.message} · 所得已归入行囊`);
-    feedback.publish({variant:tile.kind==="deep-chest"?"rare-reward":"identification-reveal",priority:tile.kind==="deep-chest"?0:1,tone:"gold",titleKey:tile.kind==="deep-chest"?"mining.deepChestTitle":"mining.chestOpenedTitle",bodyKey:tile.kind==="deep-chest"?"mining.deepChestBody":"mining.chestOpenedBody",params:{items:result.rewards.map(item=>`${item.name} ×${item.amount}`).join(" · ")},icon:tile.kind==="deep-chest"?"秘":"匣",dedupeKey:`mining:chest:${tile.id}`});
+    setMining(result.progress);setLoot(result.rewards);grant(result.rewards);setChestFx(tile.kind==="deep-chest"?"deep":"normal");setMessage(`${result.message} · 所得已归入行囊`);
+    if(tile.kind==="chest")window.setTimeout(()=>setChestFx((current)=>current==="normal"?null:current),1500);
+    // 宝箱开启动画本身就是此事件的唯一演出所有者；反馈总线只记录，不再叠加第二个居中层。
+    feedback.publish({variant:tile.kind==="deep-chest"?"rare-reward":"identification-reveal",level:"L0",record:tile.kind==="deep-chest",presentationOwner:"mining",tone:"gold",titleKey:tile.kind==="deep-chest"?"mining.deepChestTitle":"mining.chestOpenedTitle",bodyKey:tile.kind==="deep-chest"?"mining.deepChestBody":"mining.chestOpenedBody",params:{items:result.rewards.map(item=>`${item.name} ×${item.amount}`).join(" · ")},icon:tile.kind==="deep-chest"?"秘":"匣",dedupeKey:`mining:chest:${tile.id}`,rewards:result.rewards.map(item=>`${item.name} ×${item.amount}`),impacts:["所得已写入统一行囊"]});
   }
-  function mend(){const price=repairPrice(mining);if(mining.pickaxeDurability>=mining.pickaxeMaxDurability){setMessage("玄铁灵镐状态完好。 ");return;}if(state.shared.spiritStones<price){setMessage(`修复灵镐需要 ${price} 灵石。`);return;}setMining(repairPickaxe(mining).progress);applyEffects([{type:"add_currency",amount:-price}]);feedback.publish({variant:"progression-milestone",priority:2,titleKey:"mining.repairTitle",bodyKey:"mining.repairBody",params:{value:mining.pickaxeMaxDurability,cost:price},icon:"修",dedupeKey:`mine-repair:${day}:${mining.pickaxeDurability}`});announce(`玄铁灵镐修复完成 · 灵石 -${price}`);}
+  function mend(){const price=repairPrice(mining);if(mining.pickaxeDurability>=mining.pickaxeMaxDurability){setMessage("玄铁灵镐状态完好。 ");return;}if(state.shared.spiritStones<price){setMessage(`修复灵镐需要 ${price} 灵石。`);return;}setMining(repairPickaxe(mining).progress);applyEffects([{type:"add_currency",amount:-price}]);feedback.toast({titleKey:"mining.repairTitle",bodyKey:"mining.repairBody",params:{value:mining.pickaxeMaxDurability,cost:price},icon:"修",dedupeKey:`mine-repair:${day}:${mining.pickaxeDurability}`});announce(`玄铁灵镐修复完成 · 灵石 -${price}`);}
   function descend(){const result=descendResidentMine(mining);if(!result.ok){setMessage(result.message);return;}setMining(result.progress);setSelectedId(result.progress.residentMaze.tiles.find(tile=>tile.state==="revealed")?.id??"");setChestFx(null);setLoot([]);setLootAt(null);announce(result.message);}
   function assemble(){const result=assembleTreasureMap(mining);if(!result.ok){setMessage(result.message);return;}setMining(result.progress);applyEffects([{type:"remove_item",itemId:"treasure-map-fragment",amount:3},{type:"add_item",item:{itemId:"complete-treasure-map",itemType:"quest",rarity:6,amount:1,sourceTags:["挖矿","太虚藏宝图"]}},{type:"reveal_dungeon",dungeonId:"treasure-map-vault"}]);announce(result.message);}
   function close(){if(location.kind==="random"&&maze?.completed)setMining(current=>({...current,randomSpots:current.randomSpots.filter(spot=>spot.id!==randomSpotId)}));onClose();}
@@ -104,6 +106,7 @@ export default function MiningModal({locationId,randomSpotId,day,onClose,onNotic
           {lootTile&&loot[0]&&<div className={`mine-loot-burst rarity-${loot[0].rarity}`} style={caveTileStyle(lootTile,maze.width,maze.height)}><i/><img src={loot[0].image} alt=""/><span><small>地脉发现</small><b>{loot[0].name} ×{loot[0].amount}</b></span></div>}
         </div>
         {chestFx&&<div className={`mine-chest-opening ${chestFx}`}><i/><span>{chestFx==="deep"?"太古秘藏":"地宫宝箱"}</span><strong>{loot.map(item=>`${item.name} ×${item.amount}`).join(" · ")}</strong><button type="button" onClick={()=>setChestFx(null)}>收入行囊</button></div>}
+        {mining.pickaxeDurability===0&&<div className="mine-broken-strip" role="alert"><i>断</i><span><strong>玄铁灵镐已经断裂</strong><small>当前无法继续开掘。修复不会改变已探索地宫与本次所得。</small></span><button type="button" onClick={mend}>修复 · {repairPrice(mining)} 灵石</button><button type="button" className="ghost" onClick={close}>带着所得离开</button></div>}
       </main>
       <aside className={`mine-expedition-hud ${mobilePanelOpen?"mobile-open":""}`}>
         <button type="button" className="mine-mobile-panel-close" onClick={()=>setMobilePanelOpen(false)} aria-label={mineUi.mobilePanel.close}>×</button>
