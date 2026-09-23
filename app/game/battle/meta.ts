@@ -239,7 +239,7 @@ export function awardClearExperience(meta: MetaProgress, waveId: number, experie
 }
 
 export function availableAttributePoints(meta: MetaProgress) {
-  return meta.playerLevel * 5 - Object.values(meta.attributeAllocation).reduce((sum, value) => sum + value, 0);
+  return Math.max(0, meta.playerLevel * 5 - Object.values(meta.attributeAllocation).reduce((sum, value) => sum + value, 0));
 }
 
 export function availableSkillPoints(meta: MetaProgress) {

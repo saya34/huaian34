@@ -5,7 +5,7 @@ import type { GearRarity } from "../battle/progression";
 import { gatheringItemById } from "../gathering/content";
 import { ACTION_COSTS } from "./action-service";
 import { upsertCard } from "./card-service";
-import { inventoryProjection } from "./inventory-service";
+import { acquireInventoryStack, inventoryProjection } from "./inventory-service";
 import { grantPlayerExperience, type PlayerGrowth } from "./progression-service";
 import type { GameEffect, UnifiedGameState } from "./types";
 
@@ -60,8 +60,7 @@ export function reduceGameEffect(next: UnifiedGameState, effect: GameEffect): Un
     return { ...next, shared: { ...next.shared, luck: { ...next.shared.luck, charges, bonus: charges > 0 ? next.shared.luck.bonus : 0, source: charges > 0 ? next.shared.luck.source : "" } } };
   }
   if (effect.type === "add_item") {
-    const previous = next.shared.items[effect.item.itemId];
-    const item = { ...effect.item, amount: (previous?.amount ?? 0) + effect.item.amount };
+    const item = acquireInventoryStack(next.shared.items,effect.item,next.updatedAt);
     const isAlchemyMaterial = MATERIALS.some((entry) => entry.id === item.itemId);
     const romance = item.itemType === "gift" ? { ...next.romance, inventory: { ...next.romance.inventory, [item.itemId]: (next.romance.inventory[item.itemId] ?? 0) + effect.item.amount } } : next.romance;
     let battle = next.battle;

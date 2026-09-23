@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#694722"/><stop offset=".24" stop-color="#d9b76e"/><stop offset=".54" stop-color="#826039"/><stop offset=".8" stop-color="#eed493"/><stop offset="1" stop-color="#573819"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="232" height="292" rx="16" fill="none" stroke="#2d2419" stroke-width="8"/>
+  <rect x="8" y="8" width="224" height="284" rx="13" fill="none" stroke="url(#metal)" stroke-width="3"/>
+  <rect x="17" y="17" width="206" height="266" rx="9" fill="none" stroke="#e4ca8a" stroke-opacity=".32"/>
+  <g fill="#c9a35c" stroke="#60401f" stroke-width="2">
+    <path d="M10 48V10h38c-7 8-16 14-27 16-2 11-5 17-11 22Z"/><path d="M230 48V10h-38c7 8 16 14 27 16 2 11 5 17 11 22Z"/>
+    <path d="M10 252v38h38c-7-8-16-14-27-16-2-11-5-17-11-22Z"/><path d="M230 252v38h-38c7-8 16-14 27-16 2-11 5-17 11-22Z"/>
+  </g>
+  <path d="M84 12c9 9 19 13 36 13s27-4 36-13" fill="none" stroke="#dfc47f" stroke-opacity=".55" stroke-width="2"/>
+  <path d="M84 288c9-9 19-13 36-13s27 4 36 13" fill="none" stroke="#dfc47f" stroke-opacity=".55" stroke-width="2"/>
+</svg>

@@ -44,7 +44,7 @@ export function UnifiedFeedbackBridge({ children }: { children: React.ReactNode 
         tone: "gold",
         titleKey: "player.levelTitle",
         bodyKey: "player.levelBody",
-        params: { level: state.shared.playerLevel },
+        params: { level: state.shared.playerLevel, points: (state.shared.playerLevel - previous.shared.playerLevel) * 5 },
         icon: feedbackText("player.levelIcon"),
         dedupeKey: `level:${state.shared.playerLevel}`,
       });

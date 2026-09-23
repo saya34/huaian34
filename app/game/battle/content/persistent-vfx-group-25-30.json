@@ -1,0 +1,68 @@
+[
+  {
+    "effectId": "north-star-array",
+    "effectText": "北斗照命",
+    "mechanicText": "持续 30 秒｜伤害 +120% · 攻速 +40% · 前 6 秒无敌",
+    "glyph": "斗",
+    "particleKind": "star",
+    "particleCount": 46,
+    "fieldClass": "north-star-field",
+    "centerDurationMs": 3500,
+    "cardDurationMs": 10400
+  },
+  {
+    "effectId": "seven-star-execution",
+    "effectText": "七曜诛邪",
+    "mechanicText": "全场 7 次星枪轰击｜每次造成 9% 最大生命伤害",
+    "glyph": "诛",
+    "particleKind": "star",
+    "particleCount": 58,
+    "fieldClass": "seven-star-execution-field",
+    "centerDurationMs": 3600,
+    "cardDurationMs": 8600
+  },
+  {
+    "effectId": "falling-comet-array",
+    "effectText": "三星坠世",
+    "mechanicText": "三颗流火先后坠落｜全场 3 次毁灭爆裂",
+    "glyph": "陨",
+    "particleKind": "ember",
+    "particleCount": 68,
+    "fieldClass": "falling-comet-field",
+    "centerDurationMs": 3700,
+    "cardDurationMs": 8800
+  },
+  {
+    "effectId": "black-tide-dragon",
+    "effectText": "玄潮墨龙",
+    "mechanicText": "持续 24 秒｜前 20 秒无敌 · 每秒恢复 2.8% 最大生命",
+    "glyph": "玄",
+    "particleKind": "ink",
+    "particleCount": 52,
+    "fieldClass": "black-tide-dragon-field",
+    "centerDurationMs": 3600,
+    "cardDurationMs": 10200
+  },
+  {
+    "effectId": "jade-dragon-rise",
+    "effectText": "苍龙出渊",
+    "mechanicText": "苍龙 8 次冲阵全场｜伤害 +75% · 移速 +50%",
+    "glyph": "苍",
+    "particleKind": "leaf",
+    "particleCount": 64,
+    "fieldClass": "jade-dragon-rise-field",
+    "centerDurationMs": 3500,
+    "cardDurationMs": 9400
+  },
+  {
+    "effectId": "vermilion-chi-dragon",
+    "effectText": "赤螭战魂",
+    "mechanicText": "持续 30 秒｜伤害 +125% · 攻速 +85% · 移速 +50%",
+    "glyph": "螭",
+    "particleKind": "ember",
+    "particleCount": 76,
+    "fieldClass": "vermilion-chi-dragon-field",
+    "centerDurationMs": 3800,
+    "cardDurationMs": 10800
+  }
+]

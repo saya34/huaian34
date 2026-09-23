@@ -4,6 +4,7 @@ import { BASE_HERO_ATTRIBUTES, CombatTraits, DEFAULT_COMBAT_TRAITS, HeroAttribut
 import { EquipmentItem } from "./progression";
 import { CULTIVATOR_PACK_SIZE, organizeEquipment } from "./inventorySystem";
 import { DEFAULT_WM_CONFIG, WMConfig, rollManagedEquipment, rollManagedTreasure } from "./weaponManager";
+import type { SummonGameplayEffect, SummonPersistentVisual } from "./summon-effects";
 import {
   BUFFS,
   ChestKind,
@@ -90,7 +91,7 @@ export interface GameCallbacks {
   onToast: (message: string) => void;
   onPhase: (phase: ExpeditionPhase, index: number) => void;
   onLoot: (offer: LootOffer) => void;
-  onPartner: (partner: PartnerDefinition, resonance: boolean) => void;
+  onPartner: (partner: PartnerDefinition, resonance: boolean, gameplay?: SummonGameplayEffect) => void;
   onPartnerRequest?: () => void;
 }
 
@@ -244,6 +245,33 @@ interface PartnerStrike {
   seed: number;
 }
 
+interface ActiveSummonPower {
+  effect: SummonGameplayEffect;
+  resonance: boolean;
+  remaining: number;
+  total: number;
+  delayRemaining: number;
+  invulnerableRemaining: number;
+  damageTimer: number;
+  healTimer: number;
+  damagePulses: number;
+  healPulses: number;
+  initialHealApplied: boolean;
+  seed: number;
+}
+
+interface SummonImpact {
+  x: number;
+  y: number;
+  radius: number;
+  visual: SummonPersistentVisual;
+  color: string;
+  accent: string;
+  life: number;
+  maxLife: number;
+  seed: number;
+}
+
 const TAU = Math.PI * 2;
 // Visual size is deliberately decoupled from collision size. At 1280x720 this
 // keeps the hero near 145px tall, normal enemies near 80-105px, elites around
@@ -312,6 +340,8 @@ export class BattleEngine {
   private drops: Drop[] = [];
   private damageTexts: DamageText[] = [];
   private partnerStrikes: PartnerStrike[] = [];
+  private activeSummonPowers: ActiveSummonPower[] = [];
+  private summonImpacts: SummonImpact[] = [];
   private impactParticles: ImpactParticle[] = [];
   private shockwaves: Shockwave[] = [];
   private keys = new Set<string>();
@@ -554,7 +584,7 @@ export class BattleEngine {
     this.emitSnapshot(true);
   }
 
-  summonPartner(partnerId?: string, identity?: Pick<PartnerDefinition, "name" | "title" | "art">) {
+  summonPartner(partnerId?: string, identity?: Pick<PartnerDefinition, "name" | "title" | "art">, gameplay?: SummonGameplayEffect, activationDelaySeconds = 0) {
     if (this.ended || this.paused || this.qi < 100) return;
     const pool = PARTNERS.filter((partner) => partner.id !== this.lastPartnerId);
     const basePartner = (partnerId ? PARTNERS.find((entry) => entry.id === partnerId) : null) ?? pool[Math.floor(Math.random() * pool.length)] ?? PARTNERS[0];
@@ -563,9 +593,17 @@ export class BattleEngine {
     const resonance = this.lastPartnerTag === partner.tag;
     this.lastPartnerId = partner.id;
     this.lastPartnerTag = partner.tag;
-    this.applyPartnerPower(partner, resonance);
-    this.callbacks.onPartner(partner, resonance);
+    if (gameplay) this.applySummonGameplay(gameplay, resonance, activationDelaySeconds);
+    else this.applyPartnerPower(partner, resonance);
+    this.callbacks.onPartner(partner, resonance, gameplay);
     this.emitSnapshot(true);
+  }
+
+  testSummonEffect(gameplay: SummonGameplayEffect, activationDelaySeconds = 0) {
+    if (this.ended) return false;
+    this.applySummonGameplay(gameplay, false, activationDelaySeconds);
+    this.emitSnapshot(true);
+    return true;
   }
 
   takeLoot(uid: string, container: ContainerKind) {
@@ -786,7 +824,10 @@ export class BattleEngine {
       safeBox: [...this.safeBox],
       backpackSize: this.backpackSize,
       safeSize: this.safeSize,
-      activeBuffs: [...this.activeBuffNames],
+      activeBuffs: [
+        ...this.activeBuffNames,
+        ...this.activeSummonPowers.filter((power) => power.delayRemaining <= 0).map((power) => `${power.effect.summary} · ${Math.ceil(power.remaining)}秒`),
+      ],
       runEquipment: [...this.runEquipment],
     };
   }
@@ -857,8 +898,11 @@ export class BattleEngine {
 
   private updateRealTime(delta: number) {
     this.updatePartnerPower(delta);
+    this.updateSummonPowers(delta);
     for (const strike of this.partnerStrikes) strike.life -= delta;
     this.partnerStrikes = this.partnerStrikes.filter((strike) => strike.life > 0).slice(-90);
+    for (const impact of this.summonImpacts) impact.life -= delta;
+    this.summonImpacts = this.summonImpacts.filter((impact) => impact.life > 0).slice(-420);
     if (!this.extraction || this.ended) return;
     const distance = Math.hypot(this.extraction.x - this.player.x, this.extraction.y - this.player.y);
     if (distance <= this.extraction.radius) this.extraction.progress = Math.min(5, this.extraction.progress + delta * (1 + this.combatTraits.extractionSpeed));
@@ -967,6 +1011,143 @@ export class BattleEngine {
     this.updatePartnerPower(0);
   }
 
+  private applySummonGameplay(effect: SummonGameplayEffect, resonance: boolean, activationDelaySeconds: number) {
+    const strength = resonance ? 1.25 : 1;
+    const duration = effect.durationSeconds * (resonance ? 1.2 : 1);
+    const active: ActiveSummonPower = {
+      effect,
+      resonance,
+      remaining: duration,
+      total: duration,
+      delayRemaining: Math.max(0, activationDelaySeconds),
+      invulnerableRemaining: (effect.buff?.invulnerableSeconds ?? 0) * (resonance ? 1.2 : 1),
+      damageTimer: 0,
+      healTimer: 0,
+      damagePulses: 0,
+      healPulses: 0,
+      initialHealApplied: false,
+      seed: Math.random() * 1000,
+    };
+    this.activeSummonPowers = this.activeSummonPowers.filter((power) => power.effect.effectId !== effect.effectId).slice(-3);
+    this.activeSummonPowers.push(active);
+    this.shake = Math.max(this.shake, effect.damage?.mode === "burst" ? .72 : .38);
+    if (active.delayRemaining <= 0) this.updateSummonPower(active, 0);
+  }
+
+  private updateSummonPowers(delta: number) {
+    for (const power of this.activeSummonPowers) this.updateSummonPower(power, delta);
+    this.activeSummonPowers = this.activeSummonPowers.filter((power) => power.remaining > 0);
+  }
+
+  private updateSummonPower(power: ActiveSummonPower, delta: number) {
+    if (power.delayRemaining > 0) {
+      power.delayRemaining -= delta;
+      if (power.delayRemaining > 0) return;
+      delta = Math.max(0, -power.delayRemaining);
+      power.delayRemaining = 0;
+    }
+    power.remaining -= delta;
+    power.invulnerableRemaining = Math.max(0, power.invulnerableRemaining - delta);
+    power.damageTimer -= delta;
+    power.healTimer -= delta;
+    if (power.remaining < 0) return;
+    const { effect } = power;
+    const strength = power.resonance ? 1.25 : 1;
+    if (!power.initialHealApplied) {
+      power.initialHealApplied = true;
+      if (effect.heal?.initialMaxHpRatio) this.healFromSummon(this.player.maxHp * effect.heal.initialMaxHpRatio * strength, effect);
+    }
+    if (effect.damage && power.damagePulses < effect.damage.hits && power.damageTimer <= 0) {
+      const alive = this.monsters.filter((monster) => monster.alive);
+      if (!alive.length) {
+        power.damageTimer = .12;
+        return;
+      }
+      power.damageTimer = effect.damage.interval;
+      power.damagePulses += 1;
+      this.shake = Math.max(this.shake, effect.damage.mode === "burst" ? .68 : effect.damage.mode === "pulse" ? .32 : .16);
+      for (const monster of alive) {
+        if (effect.control?.pullStrength) {
+          const dx = this.player.x - monster.x;
+          const dy = this.player.y - monster.y;
+          const length = Math.max(1, Math.hypot(dx, dy));
+          const pull = effect.control.pullStrength * Math.max(.18, effect.damage.interval);
+          monster.x += dx / length * pull;
+          monster.y += dy / length * pull;
+        }
+        if (effect.control?.freezeSeconds) monster.frozen = Math.max(monster.frozen, effect.control.freezeSeconds);
+        const bossScale = monster.isBoss ? effect.damage.bossScale : 1;
+        const damage = Math.max(effect.damage.minDamage, monster.maxHp * effect.damage.maxHpRatio * bossScale) * strength;
+        this.summonDamage(monster, damage, effect);
+      }
+    }
+    if (effect.heal && power.healPulses < effect.heal.ticks && power.healTimer <= 0) {
+      power.healTimer = effect.heal.interval;
+      power.healPulses += 1;
+      this.healFromSummon(this.player.maxHp * effect.heal.maxHpRatio * strength, effect);
+    }
+  }
+
+  private healFromSummon(amount: number, effect: SummonGameplayEffect) {
+    const before = this.player.hp;
+    this.player.hp = Math.min(this.player.maxHp, this.player.hp + amount * (1 + this.combatTraits.healingBonus));
+    const healed = Math.max(0, this.player.hp - before);
+    this.damageTexts.push({
+      x: this.player.x + randomRange(-14, 14),
+      y: this.player.y - 58,
+      value: `+${Math.max(1, Math.round(healed)).toLocaleString()}`,
+      life: 1.05,
+      maxLife: 1.05,
+      color: effect.color,
+      size: 25,
+    });
+    this.summonImpacts.push({
+      x: this.player.x,
+      y: this.player.y,
+      radius: 56,
+      visual: "healing",
+      color: effect.color,
+      accent: effect.accent,
+      life: .82,
+      maxLife: .82,
+      seed: Math.random() * 1000,
+    });
+  }
+
+  private summonDamage(monster: Monster, damage: number, effect: SummonGameplayEffect) {
+    monster.hp -= damage;
+    monster.hitFlash = .16;
+    this.damageTexts.push({
+      x: monster.x + randomRange(-14, 14),
+      y: monster.y - monster.radius,
+      value: `✦${Math.round(damage).toLocaleString()}`,
+      life: .95,
+      maxLife: .95,
+      color: effect.color,
+      size: monster.isBoss ? 31 : 25,
+    });
+    this.summonImpacts.push({
+      x: monster.x,
+      y: monster.y,
+      radius: monster.radius * (monster.isBoss ? 1.9 : 1.45) + 24,
+      visual: effect.visual,
+      color: effect.color,
+      accent: effect.accent,
+      life: effect.damage?.mode === "dot" ? .72 : .54,
+      maxLife: effect.damage?.mode === "dot" ? .72 : .54,
+      seed: Math.random() * 1000,
+    });
+    if (monster.hp <= 0) this.killMonster(monster, true);
+  }
+
+  private summonBuffBonus(stat: "damageBonus" | "hasteBonus" | "speedBonus") {
+    return this.activeSummonPowers.reduce((sum, power) => sum + (power.delayRemaining <= 0 ? (power.effect.buff?.[stat] ?? 0) * (power.resonance ? 1.2 : 1) : 0), 0);
+  }
+
+  private hasSummonInvulnerability() {
+    return this.activeSummonPowers.some((power) => power.delayRemaining <= 0 && power.invulnerableRemaining > 0);
+  }
+
   private updatePartnerPower(delta: number) {
     const cast = this.partnerPower;
     if (!cast) return;
@@ -1064,7 +1245,7 @@ export class BattleEngine {
       y /= Math.max(1, length);
       const speed = this.player.speed
         * this.supplyMultiplier(1002, 0.08)
-        * (1 + (this.runBuffs.get("speed") ?? 0) + this.partnerBuff.speed);
+        * (1 + (this.runBuffs.get("speed") ?? 0) + this.partnerBuff.speed + this.summonBuffBonus("speedBonus"));
       this.player.x += x * speed * delta;
       this.player.y += y * speed * delta;
       this.player.directionX = x;
@@ -1263,7 +1444,7 @@ export class BattleEngine {
       const cd = Math.max(0.08, Number(levelRef.CD || 0) / 1000)
         / this.baseAttributes.attackSpeed
         / this.supplyMultiplier(1012, 0.07)
-        / (1 + (this.runBuffs.get("haste") ?? 0) + this.partnerBuff.haste);
+        / (1 + (this.runBuffs.get("haste") ?? 0) + this.partnerBuff.haste + this.summonBuffBonus("hasteBonus"));
       this.castTimers.set(skillId, cd);
       if (isSingle) this.singleCast.add(skillId);
       this.castHeroSkill(skillId, levelRef);
@@ -1341,7 +1522,7 @@ export class BattleEngine {
     const life = Math.max(0.25, Number(bullet.effectTime || 2200) / 1000) * (owner === "hero" ? this.supplyMultiplier(1004, 0.08) : 1);
     const weaponDamage = (this.baseAttributes.weaponMinDamage + this.baseAttributes.weaponMaxDamage) / 2;
     const damageScale = owner === "hero"
-      ? this.baseAttributes.damage * (1 + weaponDamage / 100) * this.supplyMultiplier(1011, 0.1) * (1 + (this.runBuffs.get("damage") ?? 0) + this.partnerBuff.damage) * (this.settings.skillDamageBonuses?.[skillId] ?? 1)
+      ? this.baseAttributes.damage * (1 + weaponDamage / 100) * this.supplyMultiplier(1011, 0.1) * (1 + (this.runBuffs.get("damage") ?? 0) + this.partnerBuff.damage + this.summonBuffBonus("damageBonus")) * (this.settings.skillDamageBonuses?.[skillId] ?? 1)
       : 0.1 * EXPEDITION_PHASES[this.phaseIndex].attack;
     const model = bullet.model;
     const effectPath = findEffect(this.data.manifest, model);
@@ -1644,7 +1825,7 @@ export class BattleEngine {
   }
 
   private damagePlayer(amount: number, element: "physical" | "fire" | "lightning" | "magic" = "physical") {
-    if (this.player.invulnerable > 0 || this.ended) return;
+    if (this.player.invulnerable > 0 || this.hasSummonInvulnerability() || this.ended) return;
     if (Math.random() < this.baseAttributes.dodge) {
       this.player.invulnerable = .18;
       this.damageTexts.push({ x: this.player.x, y: this.player.y - 45, value: "闪避", life: .55, color: "#a8f4ff", size: 21 });
@@ -1907,7 +2088,7 @@ export class BattleEngine {
     this.drops = this.drops
       .filter((drop) => drop.age >= 0 && (drop.type === "chest" || drop.age < 90))
       .slice(-360);
-    this.damageTexts = this.damageTexts.filter((text) => text.life > 0).slice(-120);
+    this.damageTexts = this.damageTexts.filter((text) => text.life > 0).slice(-420);
     this.impactParticles = this.impactParticles.filter((particle) => particle.life > 0).slice(-280);
     this.shockwaves = this.shockwaves.filter((wave) => wave.life > 0).slice(-50);
   }
@@ -1947,10 +2128,12 @@ export class BattleEngine {
       height / 2 - this.player.y + randomRange(-shakeAmount, shakeAmount),
     );
     this.renderBackground(width, height);
+    this.renderSummonField(time);
     this.renderExtraction(time);
     this.renderDrops(time);
     this.renderProjectiles("hero", true, time);
     this.renderMonsters(time);
+    this.renderSummonImpacts(time);
     this.renderPlayer(time);
     this.renderProjectiles("hero", false, time);
     this.renderProjectiles("monster", false, time);
@@ -2081,7 +2264,8 @@ export class BattleEngine {
     const context = this.context;
     const player = this.player;
     context.save();
-    context.globalAlpha = player.invulnerable > 0 && Math.floor(time * 16) % 2 ? 0.45 : 1;
+    this.renderPlayerSummonAuras(time);
+    context.globalAlpha = !this.hasSummonInvulnerability() && player.invulnerable > 0 && Math.floor(time * 16) % 2 ? 0.45 : 1;
     context.fillStyle = "rgba(22, 45, 30, .25)";
     context.beginPath(); context.ellipse(player.x, player.y + 29 * UNIT_VISUAL_ZOOM, 39 * UNIT_VISUAL_ZOOM, 13 * UNIT_VISUAL_ZOOM, 0, 0, TAU); context.fill();
     const customAtlas = player.animations?.[player.action] ?? null;
@@ -2106,6 +2290,184 @@ export class BattleEngine {
     }
     context.restore();
     if (this.debugHitboxes) this.drawHitbox(player.x, player.y, player.radius, "#70e8ff");
+  }
+
+  private renderSummonField(time: number) {
+    const context = this.context;
+    const powers = this.activeSummonPowers.filter((power) => power.delayRemaining <= 0).slice(-3);
+    for (let powerIndex = 0; powerIndex < powers.length; powerIndex++) {
+      const power = powers[powerIndex];
+      const effect = power.effect;
+      const age = power.total - power.remaining;
+      const radius = 150 + powerIndex * 34 + Math.sin(time * 1.8 + power.seed) * 11;
+      context.save();
+      context.translate(this.player.x, this.player.y);
+      context.globalCompositeOperation = "lighter";
+      context.globalAlpha = .08 + Math.min(.1, power.remaining / Math.max(1, power.total) * .1);
+      context.strokeStyle = effect.color;
+      context.lineWidth = effect.visual === "ward" ? 7 : 3;
+      context.setLineDash(effect.visual === "wind" || effect.visual === "frost" ? [18, 14] : [7, 24]);
+      context.rotate((effect.visual === "shadow" ? -1 : 1) * time * .22 + power.seed);
+      context.beginPath();
+      context.arc(0, 0, radius, 0, TAU);
+      context.stroke();
+      context.setLineDash([]);
+      const moteCount = effect.visual === "healing" || effect.visual === "wind" ? 14 : 9;
+      for (let index = 0; index < moteCount; index++) {
+        const angle = index / moteCount * TAU + time * (.28 + powerIndex * .08) + power.seed;
+        const orbit = radius * (.46 + (index % 4) * .12);
+        const lift = Math.sin(age * 2.4 + index) * 18;
+        context.fillStyle = index % 3 ? effect.color : effect.accent;
+        context.beginPath();
+        context.arc(Math.cos(angle) * orbit, Math.sin(angle) * orbit * .48 + lift, 2 + index % 3, 0, TAU);
+        context.fill();
+      }
+      context.restore();
+    }
+  }
+
+  private renderPlayerSummonAuras(time: number) {
+    const context = this.context;
+    const player = this.player;
+    const powers = this.activeSummonPowers.filter((power) => power.delayRemaining <= 0 && (power.effect.buff || power.effect.heal)).slice(-3);
+    for (let index = 0; index < powers.length; index++) {
+      const power = powers[index];
+      const effect = power.effect;
+      const pulse = 1 + Math.sin(time * 3.1 + power.seed) * .06;
+      context.save();
+      context.translate(player.x, player.y - 3);
+      context.globalCompositeOperation = "lighter";
+      if (power.invulnerableRemaining > 0) {
+        const radius = (62 + index * 9) * pulse;
+        const dome = context.createRadialGradient(0, -12, radius * .15, 0, -12, radius);
+        dome.addColorStop(0, "rgba(255,255,255,.03)");
+        dome.addColorStop(.72, `${effect.color}22`);
+        dome.addColorStop(1, `${effect.color}99`);
+        context.fillStyle = dome;
+        context.beginPath();
+        context.ellipse(0, -8, radius, radius * 1.18, 0, Math.PI, TAU);
+        context.lineTo(radius, 20);
+        context.quadraticCurveTo(0, 49, -radius, 20);
+        context.closePath();
+        context.fill();
+        context.strokeStyle = effect.accent;
+        context.globalAlpha = .72;
+        context.lineWidth = 2.5;
+        context.beginPath();
+        context.ellipse(0, -8, radius, radius * 1.18, 0, Math.PI, TAU);
+        context.stroke();
+      }
+      if (effect.heal) {
+        context.globalAlpha = .7;
+        for (let mote = 0; mote < 9; mote++) {
+          const phase = (time * .38 + mote / 9 + power.seed) % 1;
+          const angle = mote / 9 * TAU + time * .8;
+          const orbit = 26 + (mote % 3) * 12;
+          context.fillStyle = mote % 2 ? effect.color : effect.accent;
+          context.beginPath();
+          context.arc(Math.cos(angle) * orbit, 38 - phase * 112, 2.5 + mote % 2, 0, TAU);
+          context.fill();
+        }
+      }
+      if (effect.buff?.damageBonus || effect.buff?.hasteBonus || effect.buff?.speedBonus) {
+        context.globalAlpha = .48;
+        context.strokeStyle = effect.color;
+        context.lineWidth = 3;
+        context.setLineDash([8, 12]);
+        context.rotate(time * (index % 2 ? -.9 : .9));
+        context.beginPath();
+        context.ellipse(0, 28, 52 + index * 7, 20 + index * 3, 0, 0, TAU);
+        context.stroke();
+        context.setLineDash([]);
+      }
+      context.restore();
+    }
+  }
+
+  private renderSummonImpacts(time: number) {
+    const context = this.context;
+    for (const impact of this.summonImpacts) {
+      const progress = clamp(1 - impact.life / impact.maxLife, 0, 1);
+      const alpha = Math.sin(Math.min(1, progress) * Math.PI) * .92;
+      const radius = impact.radius * (.58 + progress * .72);
+      context.save();
+      context.translate(impact.x, impact.y);
+      context.globalCompositeOperation = "lighter";
+      context.globalAlpha = alpha;
+      context.strokeStyle = impact.color;
+      context.fillStyle = impact.accent;
+      context.shadowColor = impact.color;
+      context.shadowBlur = 13;
+      context.lineCap = "round";
+      if (impact.visual === "lightning") {
+        context.lineWidth = 4;
+        context.beginPath();
+        context.moveTo(0, -radius * 1.8);
+        for (let part = 1; part <= 6; part++) context.lineTo(Math.sin(impact.seed + part * 4.3) * radius * .28, -radius * 1.8 + part / 6 * radius * 2.1);
+        context.stroke();
+      } else if (impact.visual === "sword" || impact.visual === "shadow" || impact.visual === "blood") {
+        context.rotate((impact.seed % 1 - .5) * 1.4);
+        context.lineWidth = impact.visual === "blood" ? 10 : 6;
+        context.beginPath();
+        context.moveTo(-radius, radius * .38);
+        context.quadraticCurveTo(0, -radius * .52, radius, -radius * .2);
+        context.stroke();
+        if (impact.visual === "shadow") {
+          context.rotate(Math.PI / 2);
+          context.beginPath();
+          context.moveTo(-radius * .75, radius * .25);
+          context.lineTo(radius * .75, -radius * .25);
+          context.stroke();
+        }
+      } else if (impact.visual === "frost") {
+        context.lineWidth = 3;
+        for (let spoke = 0; spoke < 6; spoke++) {
+          context.rotate(TAU / 6);
+          context.beginPath(); context.moveTo(0, 0); context.lineTo(0, -radius); context.stroke();
+          context.beginPath(); context.moveTo(0, -radius * .58); context.lineTo(-radius * .2, -radius * .76); context.moveTo(0, -radius * .58); context.lineTo(radius * .2, -radius * .76); context.stroke();
+        }
+      } else if (impact.visual === "star") {
+        context.rotate(time * 1.4 + impact.seed);
+        context.beginPath();
+        for (let point = 0; point < 10; point++) {
+          const pointRadius = point % 2 ? radius * .32 : radius;
+          const angle = point / 10 * TAU - Math.PI / 2;
+          const x = Math.cos(angle) * pointRadius;
+          const y = Math.sin(angle) * pointRadius;
+          if (point === 0) context.moveTo(x, y); else context.lineTo(x, y);
+        }
+        context.closePath(); context.stroke();
+      } else if (impact.visual === "phoenix") {
+        context.lineWidth = 5;
+        for (let wing = -1; wing <= 1; wing += 2) {
+          context.beginPath(); context.moveTo(0, radius * .3); context.quadraticCurveTo(wing * radius * .48, -radius, wing * radius, -radius * .3); context.quadraticCurveTo(wing * radius * .42, -radius * .05, 0, radius * .3); context.stroke();
+        }
+      } else if (impact.visual === "dragon") {
+        context.lineWidth = 7;
+        context.beginPath();
+        for (let part = 0; part <= 16; part++) {
+          const angle = part / 16 * TAU * 1.6 + impact.seed;
+          const spiral = radius * part / 16;
+          const x = Math.cos(angle) * spiral;
+          const y = Math.sin(angle) * spiral * .55;
+          if (part === 0) context.moveTo(x, y); else context.lineTo(x, y);
+        }
+        context.stroke();
+      } else {
+        context.lineWidth = impact.visual === "ward" ? 7 : 4;
+        context.setLineDash(impact.visual === "wind" ? [12, 9] : []);
+        context.beginPath(); context.arc(0, 0, radius, 0, TAU); context.stroke();
+        context.beginPath(); context.arc(0, 0, radius * .58, 0, TAU); context.stroke();
+      }
+      for (let spark = 0; spark < 5; spark++) {
+        const angle = spark / 5 * TAU + impact.seed;
+        context.globalAlpha = alpha * .82;
+        context.beginPath();
+        context.arc(Math.cos(angle) * radius * .82, Math.sin(angle) * radius * .55, 2 + spark % 2, 0, TAU);
+        context.fill();
+      }
+      context.restore();
+    }
   }
 
   private renderMonsters(_time: number) {

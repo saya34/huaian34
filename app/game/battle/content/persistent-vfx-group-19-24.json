@@ -1,0 +1,68 @@
+[
+  {
+    "effectId": "ink-raven-raid",
+    "effectText": "墨鸦夜袭",
+    "mechanicText": "全场十二段斩击｜每击至少 72 伤害",
+    "glyph": "鸦",
+    "particleKind": "ink",
+    "particleCount": 58,
+    "fieldClass": "ink-raven-field",
+    "centerDurationMs": 3400,
+    "cardDurationMs": 9200
+  },
+  {
+    "effectId": "ghost-blade-step",
+    "effectText": "幽刃无踪",
+    "mechanicText": "全场瞬斩｜持续 22 秒：伤害 +80% · 攻速 +120% · 移速 +65%",
+    "glyph": "幽",
+    "particleKind": "shard",
+    "particleCount": 48,
+    "fieldClass": "ghost-blade-field",
+    "centerDurationMs": 3500,
+    "cardDurationMs": 9800
+  },
+  {
+    "effectId": "starless-shadow",
+    "effectText": "无星长夜",
+    "mechanicText": "持续 16 秒｜十二次侵蚀伤害 · 妖群冻结 1.8 秒",
+    "glyph": "夜",
+    "particleKind": "mist",
+    "particleCount": 40,
+    "fieldClass": "starless-shadow-field",
+    "centerDurationMs": 3600,
+    "cardDurationMs": 9400
+  },
+  {
+    "effectId": "cloud-wind-domain",
+    "effectText": "流云御风",
+    "mechanicText": "持续 30 秒｜伤害 +40% · 攻速 +100% · 移速 +85%",
+    "glyph": "风",
+    "particleKind": "mist",
+    "particleCount": 52,
+    "fieldClass": "cloud-wind-field",
+    "centerDurationMs": 3300,
+    "cardDurationMs": 9800
+  },
+  {
+    "effectId": "bamboo-wind-domain",
+    "effectText": "竹海听涛",
+    "mechanicText": "持续 30 秒｜伤害 +100% · 攻速 +35% · 五次全场竹刃",
+    "glyph": "竹",
+    "particleKind": "leaf",
+    "particleCount": 68,
+    "fieldClass": "bamboo-wind-field",
+    "centerDurationMs": 3400,
+    "cardDurationMs": 9800
+  },
+  {
+    "effectId": "storm-eye-domain",
+    "effectText": "归墟风眼",
+    "mechanicText": "持续 15 秒｜牵引全场妖物 · 十四次风刃撕裂",
+    "glyph": "旋",
+    "particleKind": "mist",
+    "particleCount": 60,
+    "fieldClass": "storm-eye-field",
+    "centerDurationMs": 3600,
+    "cardDurationMs": 10000
+  }
+]

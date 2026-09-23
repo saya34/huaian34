@@ -1,0 +1,70 @@
+{
+  "profiles": [
+    {
+      "effectId": "frost-sword-heaven",
+      "effectText": "霜华肃清 · 万邪封脉",
+      "mechanicText": "全场八段霜剑伤害 · 冻结妖群 1.4 秒",
+      "glyph": "霜",
+      "particleKind": "snow",
+      "particleCount": 54,
+      "fieldClass": "field-frost-sword",
+      "centerDurationMs": 2600,
+      "cardDurationMs": 9000
+    },
+    {
+      "effectId": "blood-moon-cleave",
+      "effectText": "血月三断 · 刃返生机",
+      "mechanicText": "三次全场重斩 · 每次汲取 8% 最大生命",
+      "glyph": "斩",
+      "particleKind": "spark",
+      "particleCount": 48,
+      "fieldClass": "field-blood-moon",
+      "centerDurationMs": 2500,
+      "cardDurationMs": 10000
+    },
+    {
+      "effectId": "jade-gale-blades",
+      "effectText": "碧岚千刃 · 身随风动",
+      "mechanicText": "十二段穿场风刃 · 伤害 +55% · 攻速 +75% · 移速 +55%",
+      "glyph": "岚",
+      "particleKind": "leaf",
+      "particleCount": 72,
+      "fieldClass": "field-jade-gale",
+      "centerDurationMs": 2700,
+      "cardDurationMs": 22000
+    },
+    {
+      "effectId": "violet-tribulation",
+      "effectText": "九霄劫落 · 雷诛群邪",
+      "mechanicText": "九道天雷追击全场 · 对精英与首领持续重击",
+      "glyph": "劫",
+      "particleKind": "spark",
+      "particleCount": 60,
+      "fieldClass": "field-violet-tribulation",
+      "centerDurationMs": 2500,
+      "cardDurationMs": 10000
+    },
+    {
+      "effectId": "cyan-thunder-chain",
+      "effectText": "青霆链锁 · 雷狱镇妖",
+      "mechanicText": "十次连锁雷击 · 禁锢妖群 2.4 秒",
+      "glyph": "锁",
+      "particleKind": "rune",
+      "particleCount": 58,
+      "fieldClass": "field-cyan-chain",
+      "centerDurationMs": 2600,
+      "cardDurationMs": 14000
+    },
+    {
+      "effectId": "golden-heaven-strike",
+      "effectText": "大日天罚 · 金雷护身",
+      "mechanicText": "全场毁灭重击 · 八秒无敌 · 伤害 +45%",
+      "glyph": "威",
+      "particleKind": "star",
+      "particleCount": 50,
+      "fieldClass": "field-golden-heaven",
+      "centerDurationMs": 2800,
+      "cardDurationMs": 12000
+    }
+  ]
+}

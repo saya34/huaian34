@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import * as React from "react";
 import { EVENTS, GIFTS } from "../content";
 import { ITEM_TABLE } from "../alchemy/item-data";
-import { discardEquipment, experienceToNextLevel, identifyEquipment, moveEquipment, sortEquipment, tryEquipItem, tryUnequipItem, type MetaProgress } from "../battle/meta";
-import { EquipmentBodySlot, canUseEquipment, equipmentAttributeBonus, equipmentById, equipmentRequirements, equipmentSize, equipmentValue, formatBonus, SLOT_META } from "../battle/progression";
+import { availableAttributePoints, discardEquipment, experienceToNextLevel, identifyEquipment, moveEquipment, sortEquipment, tryEquipItem, tryUnequipItem, type MetaProgress } from "../battle/meta";
+import { EquipmentBodySlot, canUseEquipment, equipmentAttributeBonus, equipmentById, equipmentRequirements, equipmentSize, equipmentValue, formatBonus, SLOT_META, type AttributeAllocation } from "../battle/progression";
+import { AttributeAllocationPanel } from "../battle/AttributeAllocationPanel";
 import { RARITY_META, treasureById } from "../battle/expedition";
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import type { UnifiedItemStack, UnifiedItemType } from "../core/types";
@@ -20,6 +21,7 @@ import { CARD_QUALITY_NAMES } from "../core/card-service";
 import CultivationArtsPanel from "../skills/CultivationArtsPanel";
 import { manualItemById } from "../skills/manual-items";
 import { kitchenRecipeByItemId } from "../kitchen/content";
+import { eatDish } from "../kitchen/service";
 import { easterEggPresentationById } from "../easter-eggs/content";
 import { isEasterEggItem, revealEligibleEasterEggNotes } from "../easter-eggs/system";
 import { getCalendarDate } from "../calendar-engine";
@@ -29,6 +31,7 @@ export type FusionPanelId = "profile" | "inventory" | "cards" | "skills" | "equi
 const RARITY = ["", ...Object.values(CARD_QUALITY_NAMES)];
 const TYPE_LABEL: Record<UnifiedItemType, string> = { gift: "礼物甜品", material: "炼丹灵材", pill: "丹药", food: "烟火灵膳", equipment: "装备", card: "人物卡", treasure: "秘境宝物", quest: "剧情物品", fish: "灵鱼渔获", manual: "功法玉简" };
 type InventoryFilter = UnifiedItemType | "all" | "easter";
+type InventoryRarityFilter = UnifiedItemStack["rarity"] | "all";
 const FILTERS: Array<[string, InventoryFilter]> = [["全部", "all"], ["藏珍", "easter"], ["礼物", "gift"], ["灵材", "material"], ["丹药", "pill"], ["灵膳", "food"], ["功法", "manual"], ["装备", "equipment"], ["宝物", "treasure"], ["渔获", "fish"], ["剧情", "quest"]];
 
 type ItemPresentation = { name: string; image: string; description: string; detail: string; position: string; atlas?: boolean; atlasSize?: string };
@@ -62,18 +65,32 @@ function ItemArtwork({ item, className = "" }: { item: ItemPresentation; classNa
   return <img className={className} src={item.image} alt="" style={{ objectPosition: item.position }} />;
 }
 
-export default function FusionSystemPanel({ panel, onClose }: { panel: FusionPanelId; onClose: () => void }) {
-  const { state, setRomance, setBattle, applyEffects } = useUnifiedGame();
+type FusionSystemPanelProps = {
+  panel: FusionPanelId;
+  onClose: () => void;
+  giftTargetName?: string;
+  onUseGift?: (giftId: string) => void;
+  onEatGift?: (giftId: string) => void;
+};
+
+export default function FusionSystemPanel({ panel, onClose, giftTargetName, onUseGift, onEatGift }: FusionSystemPanelProps) {
+  const { state, setRomance, setBattle, applyEffects, transact } = useUnifiedGame();
   const feedback = useFeedback();
   const [filter, setFilter] = useState<InventoryFilter>("all");
-  const allItems = useMemo(() => Object.values(state.shared.items).filter((item) => item.amount > 0).sort((a, b) => b.rarity - a.rarity || b.amount - a.amount), [state.shared.items]);
-  const items = filter === "all" ? allItems : filter === "easter" ? allItems.filter(isEasterEggItem) : allItems.filter((item) => item.itemType === filter);
+  const [rarityFilter, setRarityFilter] = useState<InventoryRarityFilter>("all");
+  const [profileView, setProfileView] = useState<"allocation" | "summary">("allocation");
+  const allItems = useMemo(() => Object.values(state.shared.items).filter((item) => item.amount > 0).sort((a, b) => (b.lastAcquiredAt??0)-(a.lastAcquiredAt??0) || b.rarity - a.rarity || b.amount - a.amount), [state.shared.items]);
+  const categoryItems = filter === "all" ? allItems : filter === "easter" ? allItems.filter(isEasterEggItem) : allItems.filter((item) => item.itemType === filter);
+  const availableRarities=useMemo(()=>[...new Set(categoryItems.map((item)=>item.rarity))].sort((a,b)=>b-a),[categoryItems]);
+  const items = rarityFilter === "all" ? categoryItems : categoryItems.filter((item)=>item.rarity===rarityFilter);
   const [selectedItemId, setSelectedItemId] = useState(() => allItems[0]?.itemId ?? "");
   const [itemInspectorOpen, setItemInspectorOpen] = useState(false);
   const [noteReveal, setNoteReveal] = useState<{ itemId: string; noteIds: string[] } | null>(null);
-  const selectedStack = allItems.find((item) => item.itemId === selectedItemId) ?? items[0] ?? allItems[0];
+  const selectedStack = items.find((item) => item.itemId === selectedItemId) ?? items[0];
   const selected = selectedStack ? itemPresentation(selectedStack) : null;
   const selectedManual = selectedStack ? manualItemById(selectedStack.itemId) : undefined;
+  const selectedDish = selectedStack ? kitchenRecipeByItemId(selectedStack.itemId) : undefined;
+  const selectedGift = selectedStack ? GIFTS.find((gift)=>gift.id===selectedStack.itemId) : undefined;
   const selectedEasterEgg = selectedStack ? easterEggPresentationById(selectedStack.itemId) : undefined;
   const selectedEasterProgress = selectedStack ? state.romance.easterEggProgress[selectedStack.itemId] : undefined;
   const acquiredDate = selectedEasterProgress ? getCalendarDate(selectedEasterProgress.acquiredDay) : null;
@@ -82,17 +99,43 @@ export default function FusionSystemPanel({ panel, onClose }: { panel: FusionPan
     if (!selectedStack || !selectedManual || selectedManualLearned) return;
     applyEffects([{ type: "remove_item", itemId: selectedStack.itemId, amount: 1 }, { type: "learn_skill", skillId: selectedManual.skillId }]);
   };
+  const useSelectedDish=()=>{
+    if(!selectedDish)return;
+    const result=eatDish(state,selectedDish.id);
+    if(!result.ok){feedback.toast({titleKey:"system.toastWarning",bodyKey:"world.changeBody",params:{message:result.message},icon:"盒",tone:"muted",dedupeKey:`inventory-eat-missing:${selectedDish.id}`});return}
+    transact(()=>result.state);
+    const staminaGain=Math.max(0,result.state.shared.stamina-state.shared.stamina);
+    const levelGain=Math.max(0,result.state.shared.playerLevel-state.shared.playerLevel);
+    const effects=[staminaGain?`体力 +${staminaGain}`:"",selectedDish.effects.experience?levelGain?`修为 +${selectedDish.effects.experience} · 境界 +${levelGain}`:`修为 +${selectedDish.effects.experience}`:"",selectedDish.effects.luckCharges?`食运 ${selectedDish.effects.luckBonus}阶×${selectedDish.effects.luckCharges}次`:""].filter(Boolean).join(" · ");
+    feedback.publish({variant:"action-toast",level:"L1",priority:2,tone:selectedDish.effects.luckCharges?"gold":"jade",titleKey:"system.toastSuccess",bodyKey:"world.changeBody",params:{message:effects},icon:selectedDish.effects.luckCharges?"福":"炁",imageSrc:selectedDish.art,eventId:`inventory-eat:${selectedDish.id}:${state.updatedAt}`,presentationOwner:"inventory"});
+  };
   const passiveBonusCount = state.shared.cards.filter((card) => card.mode === "passive").length;
   const attributes = computeFinalAttributes(state);
+  const profileAttributePoints = availableAttributePoints(state.battle);
   const nextLevelExperience = experienceToNextLevel(state.shared.playerLevel);
   const panelTitle = panel === "profile" ? "修士属性" : panel === "inventory" ? "乾坤行囊" : panel === "cards" ? "太虚名册" : panel === "skills" ? "万法谱" : "法器阁";
   useEffect(()=>{if(!noteReveal)return;const timer=window.setTimeout(()=>setNoteReveal(null),1900);return()=>window.clearTimeout(timer)},[noteReveal]);
   const filterCount=(id:InventoryFilter)=>id==="all"?allItems.length:id==="easter"?allItems.filter(isEasterEggItem).length:allItems.filter((item)=>item.itemType===id).length;
+  const selectCategory=(id:InventoryFilter)=>{const next=id==="all"?allItems:id==="easter"?allItems.filter(isEasterEggItem):allItems.filter((item)=>item.itemType===id);setFilter(id);setRarityFilter("all");setItemInspectorOpen(false);setSelectedItemId(next[0]?.itemId??"")};
+  const selectRarity=(rarity:InventoryRarityFilter)=>{const next=rarity==="all"?categoryItems:categoryItems.filter((item)=>item.rarity===rarity);setRarityFilter(rarity);setItemInspectorOpen(false);setSelectedItemId(next[0]?.itemId??"")};
+  const latestAcquisition=allItems[0]?.lastAcquiredAt??0;
   const inspectItem=(itemId:string)=>{
     setSelectedItemId(itemId);setItemInspectorOpen(true);
     const definition=easterEggPresentationById(itemId);if(!definition)return;
     const preview=revealEligibleEasterEggNotes(state.romance,definition);
     if(preview.newlyUnlocked.length){setNoteReveal({itemId,noteIds:preview.newlyUnlocked});setRomance((current)=>revealEligibleEasterEggNotes(current,definition).state)}
+  };
+  const allocateProfileAttribute = (key: keyof AttributeAllocation) => {
+    setBattle((current) => {
+      if (availableAttributePoints(current) <= 0) return current;
+      return {
+        ...current,
+        attributeAllocation: {
+          ...current.attributeAllocation,
+          [key]: current.attributeAllocation[key] + 1,
+        },
+      };
+    });
   };
 
   return <div className="fusion-system-backdrop" role="presentation" onMouseDown={onClose}>
@@ -102,13 +145,21 @@ export default function FusionSystemPanel({ panel, onClose }: { panel: FusionPan
 
       {panel === "profile" && <div className="player-profile-panel">
         <section className="profile-identity"><div className="profile-avatar"><img src="/game-assets/heroes/young-male-cultivator.webp" alt="主角立绘" /></div><small>槐安入梦者 · 云州修士</small><h3>无名剑修</h3><p>修士等级 <b>Lv.{state.shared.playerLevel}</b></p><div className="profile-exp"><span><i style={{ width: `${nextLevelExperience ? Math.min(100, state.shared.playerExperience / nextLevelExperience * 100) : 100}%` }} /></span><small>修为 {state.shared.playerExperience.toLocaleString()} / {nextLevelExperience ? nextLevelExperience.toLocaleString() : "圆满"}</small></div><footer><span>体力 <b>{state.shared.stamina}/10</b></span><span>灵石 <b>{state.shared.spiritStones.toLocaleString()}</b></span></footer></section>
-        <section className="profile-attributes"><header><small>PERMANENT ATTRIBUTES</small><h3>永久属性总览</h3><p>已计入根基、授业、法器和被动人物卡；入境后临时强化另行叠加。</p></header><div><article><small>生命</small><strong>{Math.round(attributes.health)}</strong><span>承伤上限</span></article><article><small>防御</small><strong>{Math.round(attributes.defense)}</strong><span>减免妖物伤害</span></article><article><small>伤害</small><strong>{Math.round(attributes.damage * 100)}%</strong><span>所有法术倍率</span></article><article><small>闪避</small><strong>{Math.round(attributes.dodge * 100)}%</strong><span>规避直接伤害</span></article><article><small>移动</small><strong>{Math.round(attributes.moveSpeed)}</strong><span>秘境身法速度</span></article><article><small>攻速</small><strong>{Math.round(attributes.attackSpeed * 100)}%</strong><span>法器施放频率</span></article><article><small>弹速</small><strong>{Math.round(attributes.projectileSpeed * 100)}%</strong><span>飞行法术速度</span></article><article><small>悟性</small><strong>{Math.round(attributes.expGain * 100)}%</strong><span>局内修为获取</span></article></div><footer><span>已习功法 <b>{state.shared.learnedSkills.length}</b></span><span>人物命契 <b>{state.shared.cards.length}</b></span><span>已装备法器 <b>{Object.values(state.battle.equipped).filter(Boolean).length}/6</b></span><span>镇压秘境 <b>{state.dungeons.completed.length}/21</b></span></footer></section>
+        <div className="profile-growth-stack">
+          <nav className="profile-growth-tabs" aria-label="人物属性分页">
+            <button type="button" className={profileView === "allocation" ? "active" : ""} onClick={() => setProfileView("allocation")}><i>根</i><span><strong>根基分配</strong><small>{profileAttributePoints > 0 ? `${profileAttributePoints} 点待分配` : "本级已分配"}</small></span></button>
+            <button type="button" className={profileView === "summary" ? "active" : ""} onClick={() => setProfileView("summary")}><i>览</i><span><strong>属性总览</strong><small>查看最终战斗数值</small></span></button>
+          </nav>
+          {profileView === "allocation"
+            ? <AttributeAllocationPanel variant="profile" meta={state.battle} onAllocate={allocateProfileAttribute} />
+            : <section className="profile-attributes"><header><small>PERMANENT ATTRIBUTES</small><h3>永久属性总览</h3><p>已计入根基、授业、法器和被动人物卡；入境后临时强化另行叠加。</p></header><div><article><small>生命</small><strong>{Math.round(attributes.health)}</strong><span>承伤上限</span></article><article><small>防御</small><strong>{Math.round(attributes.defense)}</strong><span>减免妖物伤害</span></article><article><small>伤害</small><strong>{Math.round(attributes.damage * 100)}%</strong><span>所有法术倍率</span></article><article><small>闪避</small><strong>{Math.round(attributes.dodge * 100)}%</strong><span>规避直接伤害</span></article><article><small>移动</small><strong>{Math.round(attributes.moveSpeed)}</strong><span>秘境身法速度</span></article><article><small>攻速</small><strong>{Math.round(attributes.attackSpeed * 100)}%</strong><span>法器施放频率</span></article><article><small>弹速</small><strong>{Math.round(attributes.projectileSpeed * 100)}%</strong><span>飞行法术速度</span></article><article><small>悟性</small><strong>{Math.round(attributes.expGain * 100)}%</strong><span>局内修为获取</span></article></div><footer><span>已习功法 <b>{state.shared.learnedSkills.length}</b></span><span>人物命契 <b>{state.shared.cards.length}</b></span><span>已装备法器 <b>{Object.values(state.battle.equipped).filter(Boolean).length}/6</b></span><span>镇压秘境 <b>{state.dungeons.completed.length}/21</b></span></footer></section>}
+        </div>
       </div>}
 
       {panel === "inventory" && <div className="professional-inventory">
-        <nav className="inventory-filters" aria-label="行囊分类">{FILTERS.map(([label, id]) => <button key={id} className={filter === id ? "active" : ""} onClick={() => { setFilter(id); setItemInspectorOpen(false); const first = id === "all" ? allItems[0] : id === "easter" ? allItems.find(isEasterEggItem) : allItems.find((item) => item.itemType === id); if (first) setSelectedItemId(first.itemId); }}>{label}<b>{filterCount(id)}</b></button>)}</nav>
-        <div className={`inventory-workspace ${itemInspectorOpen ? "inspector-open" : ""}`}><div className="inventory-art-grid">{items.map((stack) => { const meta = itemPresentation(stack); const egg=isEasterEggItem(stack); return <button type="button" key={stack.itemId} className={`${selectedStack?.itemId === stack.itemId ? "selected" : ""} ${egg?"easter-inventory-item":""}`} data-rarity={stack.rarity} onMouseEnter={() => setSelectedItemId(stack.itemId)} onFocus={() => setSelectedItemId(stack.itemId)} onClick={() => inspectItem(stack.itemId)} aria-label={`${meta.name}，${RARITY[stack.rarity]}，数量${stack.amount}`}><span className="item-art"><ItemArtwork item={meta} /><i>{egg?"藏珍":RARITY[stack.rarity]}</i></span><strong>{meta.name}</strong><b>×{stack.amount}</b></button>; })}{items.length === 0 && <div className="fusion-empty">此分类尚无物品。秘境、赠礼与炼丹都会将所得送入这里。</div>}</div>
-          <aside className={`item-inspector ${selectedManual ? "manual-inspector" : ""} ${selectedEasterEgg?"easter-inspector":""}`}><button type="button" className="item-inspector-close" onClick={() => setItemInspectorOpen(false)} aria-label={feedbackText("system.close")}>×</button>{selected && selectedStack ? <><div className="inspector-art" data-rarity={selectedStack.rarity}><ItemArtwork item={selected} /><span>{selectedEasterEgg?"藏珍":RARITY[selectedStack.rarity]}</span></div><small>{TYPE_LABEL[selectedStack.itemType]} · {selectedStack.sourceTags.join(" / ")}</small><h3>{selected.name}</h3><p>{selected.description}</p><div className="inspector-tags"><span>{selected.detail}</span><span>持有 ×{selectedStack.amount}</span>{selectedStack.locked && <span>剧情锁定</span>}</div>{selectedEasterEgg&&<section className="easter-egg-ledger"><header><small>ACQUIRED · 获取日期</small><strong>{acquiredDate?`${acquiredDate.eraYear} · ${acquiredDate.monthName}${acquiredDate.dayName}`:"旧档藏珍"}</strong><span>已向 {selectedEasterProgress?.shownTo.length??0} 位关联人物展示</span></header><div>{selectedEasterEgg.notes.map((note,index)=>{const unlocked=selectedEasterProgress?.unlockedNoteIds.includes(note.id);const revealing=noteReveal?.itemId===selectedStack.itemId&&noteReveal.noteIds.includes(note.id);return <article key={note.id} className={`${unlocked?"unlocked":"masked"} ${revealing?"revealing":""}`}><i>{String(index+1).padStart(2,"0")}</i><p>{unlocked?note.text:"这段补注尚被旧忆遮住"}</p><span>{unlocked?"已解明":"与关联人物交谈后，回来查看"}</span></article>})}</div></section>}{selectedManual && <div className="manual-learn-row"><small>{selectedManualLearned ? "此诀已收入万法谱" : "研读会消耗一卷玉简"}</small><button type="button" disabled={selectedManualLearned} onClick={learnSelectedManual}>{selectedManualLearned ? "已习得" : `研读 · 习得${selectedManual.name.replace(/[《》]/g, "")}`}</button></div>}<footer><span>可用于 {selectedStack.itemType === "material" ? "玄火丹炉" : selectedStack.itemType === "gift" ? "人物赠礼" : selectedStack.itemType === "food" ? "恢复体力、增长修为与获取食运" : selectedStack.itemType === "treasure" ? "收藏与交易" : selectedStack.itemType === "fish" ? "鱼获图鉴与商店交易" : selectedStack.itemType === "manual" ? "研读并收入万法谱" : selectedEasterEgg ? "向关联人物展示，不会被消耗" : selectedStack.itemType === "quest" ? "剧情回顾与世界线索" : "对应玩法"}</span><button type="button" onClick={()=>feedback.inspect({titleKey:"items.nameLabel",bodyKey:"world.changeBody",params:{message:selected.description},icon:"鉴",imageSrc:selected.image,details:[{labelKey:"items.nameLabel",value:selected.name,emphasis:true},{labelKey:"items.rarityLabel",value:RARITY[selectedStack.rarity]},{labelKey:"items.countLabel",value:selectedStack.amount},{labelKey:"items.sourceLabel",value:selectedStack.sourceTags.join(" · ")},{labelKey:"items.tagsLabel",value:selected.detail},{labelKey:"items.lockedLabel",value:feedbackText(selectedStack.locked?"system.yes":"system.no")}],dedupeKey:`inventory:inspect:${selectedStack.itemId}:${selectedStack.amount}`})}>{feedbackText("system.details")}</button></footer></> : <div className="fusion-empty">行囊尚空</div>}</aside></div>
+        <div className="inventory-filter-deck"><nav className="inventory-filters" aria-label="行囊分类">{FILTERS.map(([label, id]) => <button key={id} className={filter === id ? "active" : ""} onClick={() => selectCategory(id)}>{label}<b>{filterCount(id)}</b></button>)}</nav><nav className="inventory-rarity-filter" aria-label="按稀有度筛选"><span>灵韵</span><button type="button" className={rarityFilter==="all"?"active":""} onClick={()=>selectRarity("all")}>全品阶 <b>{categoryItems.length}</b></button>{availableRarities.map((rarity)=><button type="button" key={rarity} data-rarity={rarity} className={rarityFilter===rarity?"active":""} onClick={()=>selectRarity(rarity)}><i/>{RARITY[rarity]} <b>{categoryItems.filter((item)=>item.rarity===rarity).length}</b></button>)}</nav></div>
+        <div className={`inventory-workspace ${itemInspectorOpen ? "inspector-open" : ""}`}><div className="inventory-art-grid">{items.map((stack) => { const meta = itemPresentation(stack); const egg=isEasterEggItem(stack); const recent=Boolean(stack.lastAcquiredAt&&stack.lastAcquiredAt===latestAcquisition); return <button type="button" key={stack.itemId} className={`${selectedStack?.itemId === stack.itemId ? "selected" : ""} ${egg?"easter-inventory-item":""} ${recent?"recently-acquired":""}`} data-rarity={stack.rarity} onMouseEnter={() => setSelectedItemId(stack.itemId)} onFocus={() => setSelectedItemId(stack.itemId)} onClick={() => inspectItem(stack.itemId)} aria-label={`${meta.name}，${RARITY[stack.rarity]}，数量${stack.amount}`}><span className="item-art"><ItemArtwork item={meta} /><i>{egg?"藏珍":RARITY[stack.rarity]}</i></span>{recent&&<em className="inventory-new-badge">新入</em>}<strong>{meta.name}</strong><b>×{stack.amount}</b></button>; })}{items.length === 0 && <div className="fusion-empty">此筛选下尚无物品。调整品阶或前往玩法获取新物。</div>}</div>
+          <aside className={`item-inspector ${selectedManual ? "manual-inspector" : ""} ${selectedEasterEgg?"easter-inspector":""}`}><button type="button" className="item-inspector-close" onClick={() => setItemInspectorOpen(false)} aria-label={feedbackText("system.close")}>×</button>{selected && selectedStack ? <><div className="inspector-art" data-rarity={selectedStack.rarity}><ItemArtwork item={selected} /><span>{selectedEasterEgg?"藏珍":RARITY[selectedStack.rarity]}</span></div><small>{TYPE_LABEL[selectedStack.itemType]} · {selectedStack.sourceTags.join(" / ")}</small><h3>{selected.name}</h3><p>{selected.description}</p><div className="inspector-tags"><span>{selected.detail}</span><span>持有 ×{selectedStack.amount}</span>{selectedStack.locked && <span>剧情锁定</span>}</div>{selectedEasterEgg&&<section className="easter-egg-ledger"><header><small>ACQUIRED · 获取日期</small><strong>{acquiredDate?`${acquiredDate.eraYear} · ${acquiredDate.monthName}${acquiredDate.dayName}`:"旧档藏珍"}</strong><span>已向 {selectedEasterProgress?.shownTo.length??0} 位关联人物展示</span></header><div>{selectedEasterEgg.notes.map((note,index)=>{const unlocked=selectedEasterProgress?.unlockedNoteIds.includes(note.id);const revealing=noteReveal?.itemId===selectedStack.itemId&&noteReveal.noteIds.includes(note.id);return <article key={note.id} className={`${unlocked?"unlocked":"masked"} ${revealing?"revealing":""}`}><i>{String(index+1).padStart(2,"0")}</i><p>{unlocked?note.text:"这段补注尚被旧忆遮住"}</p><span>{unlocked?"已解明":"与关联人物交谈后，回来查看"}</span></article>})}</div></section>}{selectedManual && <div className="manual-learn-row"><small>{selectedManualLearned ? "此诀已收入万法谱" : "研读会消耗一卷玉简"}</small><button type="button" disabled={selectedManualLearned} onClick={learnSelectedManual}>{selectedManualLearned ? "已习得" : `研读 · 习得${selectedManual.name.replace(/[《》]/g, "")}`}</button></div>}<footer><span>可用于 {selectedStack.itemType === "material" ? "玄火丹炉" : selectedStack.itemType === "gift" ? giftTargetName?`赠予当前人物 · ${giftTargetName}`:"靠近人物后可直接赠予" : selectedStack.itemType === "food" ? "恢复体力、增长修为与获取食运" : selectedStack.itemType === "treasure" ? "收藏与交易" : selectedStack.itemType === "fish" ? "鱼获图鉴与商店交易" : selectedStack.itemType === "manual" ? "研读并收入万法谱" : selectedEasterEgg ? "向关联人物展示，不会被消耗" : selectedStack.itemType === "quest" ? "剧情回顾与世界线索" : "对应玩法"}</span><div className="inventory-inspector-actions"><button type="button" className="secondary" onClick={()=>feedback.inspect({titleKey:"items.nameLabel",bodyKey:"world.changeBody",params:{message:selected.description},icon:"鉴",imageSrc:selected.image,details:[{labelKey:"items.nameLabel",value:selected.name,emphasis:true},{labelKey:"items.rarityLabel",value:RARITY[selectedStack.rarity]},{labelKey:"items.countLabel",value:selectedStack.amount},{labelKey:"items.sourceLabel",value:selectedStack.sourceTags.join(" · ")},{labelKey:"items.tagsLabel",value:selected.detail},{labelKey:"items.lockedLabel",value:feedbackText(selectedStack.locked?"system.yes":"system.no")}],dedupeKey:`inventory:inspect:${selectedStack.itemId}:${selectedStack.amount}`})}>{feedbackText("system.details")}</button>{selectedDish&&<button type="button" className="primary" onClick={useSelectedDish}>享用灵膳</button>}{selectedGift&&giftTargetName&&onUseGift&&<button type="button" className="primary" onClick={()=>onUseGift(selectedGift.id)}>赠予 · {giftTargetName}</button>}{selectedGift?.energyRestore&&onEatGift&&<button type="button" className="primary eat" onClick={()=>onEatGift(selectedGift.id)}>食用 · 体力 +{selectedGift.energyRestore}</button>}</div></footer></> : <div className="fusion-empty">行囊尚空</div>}</aside></div>
       </div>}
 
       {panel === "cards" && <div className="card-codex-layout"><aside><div><small>主动人物卡</small><strong>{state.shared.cards.filter((card) => card.mode === "active").length}</strong><span>元气满时随机展示至多三张</span></div><div><small>被动人物卡</small><strong>{passiveBonusCount}</strong><span>全部自动叠加，不占卡槽</span></div></aside><div className="professional-card-grid">{state.shared.cards.map((card) => <article key={card.id} data-rarity={card.rarity}><div className="card-art"><img src={card.art} alt="" /><span>{RARITY[card.rarity]}</span><i>{card.mode === "active" ? "主动" : "被动"}</i></div><small>{card.source === "story" ? "人物剧情·固定命契" : card.source === "alchemy" ? "玄火丹炉·星命显化" : "秘境·偶得命契"}</small><h3>{card.name}</h3><p>{card.mode === "active" ? `元气满时进入三选一，召唤后释放「${card.activeEffect === "healing" ? "青囊回春" : card.activeEffect === "ward" ? "护道金光" : card.activeEffect === "frost" ? "霜天封境" : "剑意横空"}」。` : `持有即生效：${Object.entries(card.bonuses ?? {}).map(([key, value]) => `${key} +${value}`).join(" · ") || "命格加护"}。`}</p><footer><span>{card.mode === "active" ? "进入主动候选池" : "已计入永久属性"}</span><b>◆{card.rarity}</b></footer></article>)}{state.shared.cards.length === 0 && <div className="fusion-empty">名册尚空。人物关系事件、星命神花与高阶秘境均可获得完整人物卡。</div>}</div></div>}

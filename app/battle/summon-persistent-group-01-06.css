@@ -1,0 +1,158 @@
+.summon-persistent-vfx.effect-frost-sword-heaven{
+  --persistent-main:#aeeaff;--persistent-deep:#477fc1;--persistent-accent:#f7ffff;
+}
+.summon-persistent-vfx.effect-blood-moon-cleave{
+  --persistent-main:#ff625f;--persistent-deep:#79152b;--persistent-accent:#ffe0bb;
+}
+.summon-persistent-vfx.effect-jade-gale-blades{
+  --persistent-main:#7df0bd;--persistent-deep:#1f846f;--persistent-accent:#edffd0;
+}
+.summon-persistent-vfx.effect-violet-tribulation{
+  --persistent-main:#bd8cff;--persistent-deep:#5d2d9c;--persistent-accent:#faf4ff;
+}
+.summon-persistent-vfx.effect-cyan-thunder-chain{
+  --persistent-main:#6df5ff;--persistent-deep:#127a8e;--persistent-accent:#ecffff;
+}
+.summon-persistent-vfx.effect-golden-heaven-strike{
+  --persistent-main:#ffdb69;--persistent-deep:#aa6319;--persistent-accent:#fff9d2;
+}
+
+.summon-persistent-vfx.effect-frost-sword-heaven .summon-persistent-field,
+.summon-persistent-vfx.effect-blood-moon-cleave .summon-persistent-field,
+.summon-persistent-vfx.effect-jade-gale-blades .summon-persistent-field,
+.summon-persistent-vfx.effect-violet-tribulation .summon-persistent-field,
+.summon-persistent-vfx.effect-cyan-thunder-chain .summon-persistent-field,
+.summon-persistent-vfx.effect-golden-heaven-strike .summon-persistent-field{
+  position:absolute;inset:-12%;overflow:hidden;pointer-events:none;opacity:.7;will-change:transform,opacity;
+}
+.summon-persistent-vfx .summon-persistent-field::before,
+.summon-persistent-vfx .summon-persistent-field::after{
+  content:"";position:absolute;inset:0;pointer-events:none;will-change:transform,opacity;
+}
+
+.summon-persistent-vfx.effect-frost-sword-heaven .summon-persistent-field::before{
+  background:repeating-linear-gradient(145deg,transparent 0 13%,color-mix(in srgb,var(--persistent-main) 12%,transparent) 13.2%,transparent 13.8% 26%);
+  opacity:.45;transform:translate3d(-3%,-2%,0);animation:persistent-frost-drift 5.6s ease-in-out infinite alternate;
+}
+.summon-persistent-vfx.effect-frost-sword-heaven .summon-persistent-field::after{
+  inset:16% 7%;border:1px solid color-mix(in srgb,var(--persistent-accent) 28%,transparent);clip-path:polygon(50% 0,57% 38%,100% 50%,59% 59%,50% 100%,42% 61%,0 50%,40% 40%);
+  opacity:.24;animation:persistent-frost-seal 8s linear infinite;
+}
+
+.summon-persistent-vfx.effect-blood-moon-cleave .summon-persistent-field::before{
+  inset:-22% -12% auto auto;width:min(68vw,540px);aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle at 42% 38%,color-mix(in srgb,var(--persistent-accent) 70%,transparent),color-mix(in srgb,var(--persistent-main) 38%,transparent) 31%,color-mix(in srgb,var(--persistent-deep) 16%,transparent) 60%,transparent 71%);
+  opacity:.52;animation:persistent-blood-moon 4.8s ease-in-out infinite alternate;
+}
+.summon-persistent-vfx.effect-blood-moon-cleave .summon-persistent-field::after{
+  inset:13% -20%;background:repeating-linear-gradient(164deg,transparent 0 18%,color-mix(in srgb,var(--persistent-main) 19%,transparent) 18.3%,transparent 19% 34%);
+  opacity:.42;animation:persistent-blood-slash 2.6s cubic-bezier(.18,.72,.2,1) infinite;
+}
+
+.summon-persistent-vfx.effect-jade-gale-blades .summon-persistent-field::before{
+  inset:4%;border-radius:50%;background:repeating-conic-gradient(from 0deg,transparent 0 12deg,color-mix(in srgb,var(--persistent-main) 16%,transparent) 14deg,transparent 18deg 36deg);
+  mask-image:radial-gradient(circle,transparent 0 24%,#000 32% 64%,transparent 76%);opacity:.7;animation:persistent-jade-gale 11s linear infinite;
+}
+.summon-persistent-vfx.effect-jade-gale-blades .summon-persistent-field::after{
+  inset:19% 8%;border-block:1px solid color-mix(in srgb,var(--persistent-accent) 34%,transparent);border-radius:50%;
+  opacity:.4;animation:persistent-jade-breathe 2.4s ease-in-out infinite alternate;
+}
+
+.summon-persistent-vfx.effect-violet-tribulation .summon-persistent-field::before{
+  inset:-4% 2% 38%;background:linear-gradient(180deg,color-mix(in srgb,var(--persistent-deep) 31%,transparent),transparent),repeating-linear-gradient(102deg,transparent 0 12%,color-mix(in srgb,var(--persistent-main) 16%,transparent) 12.4%,transparent 13% 24%);
+  opacity:.64;animation:persistent-violet-cloud 3.7s ease-in-out infinite alternate;
+}
+.summon-persistent-vfx.effect-violet-tribulation .summon-persistent-field::after{
+  inset:0 8%;background:repeating-linear-gradient(91deg,transparent 0 9%,color-mix(in srgb,var(--persistent-accent) 12%,transparent) 9.15%,transparent 9.5% 19%);
+  opacity:.38;animation:persistent-violet-strike 1.9s steps(1,end) infinite;
+}
+
+.summon-persistent-vfx.effect-cyan-thunder-chain .summon-persistent-field::before{
+  inset:8%;border-radius:50%;background:repeating-conic-gradient(from 22deg,transparent 0 33deg,color-mix(in srgb,var(--persistent-main) 22%,transparent) 34deg 35deg,transparent 36deg 70deg);
+  mask-image:radial-gradient(circle,transparent 0 28%,#000 29% 32%,transparent 33% 53%,#000 54% 55%,transparent 57%);opacity:.68;animation:persistent-cyan-lock 8.5s linear infinite;
+}
+.summon-persistent-vfx.effect-cyan-thunder-chain .summon-persistent-field::after{
+  inset:22% 18%;border:1px solid color-mix(in srgb,var(--persistent-accent) 45%,transparent);border-radius:50%;box-shadow:0 0 22px color-mix(in srgb,var(--persistent-main) 24%,transparent),inset 0 0 22px color-mix(in srgb,var(--persistent-main) 18%,transparent);
+  opacity:.42;animation:persistent-cyan-pulse 1.8s ease-in-out infinite;
+}
+
+.summon-persistent-vfx.effect-golden-heaven-strike .summon-persistent-field::before{
+  inset:-24% 0 18%;background:repeating-conic-gradient(from 0deg,transparent 0 7deg,color-mix(in srgb,var(--persistent-main) 18%,transparent) 8deg 9deg,transparent 10deg 20deg);
+  mask-image:radial-gradient(circle at 50% 34%,#000 0 8%,transparent 37%);opacity:.72;animation:persistent-golden-rays 16s linear infinite;
+}
+.summon-persistent-vfx.effect-golden-heaven-strike .summon-persistent-field::after{
+  inset:auto 14% 5%;height:58%;border:2px solid color-mix(in srgb,var(--persistent-accent) 42%,transparent);border-bottom:0;border-radius:50% 50% 0 0;box-shadow:0 -5px 26px color-mix(in srgb,var(--persistent-main) 32%,transparent),inset 0 9px 32px color-mix(in srgb,var(--persistent-main) 10%,transparent);
+  opacity:.62;transform-origin:50% 100%;animation:persistent-golden-ward 2.8s ease-in-out infinite alternate;
+}
+
+.summon-persistent-vfx.effect-frost-sword-heaven .summon-effect-callout,
+.summon-persistent-vfx.effect-blood-moon-cleave .summon-effect-callout,
+.summon-persistent-vfx.effect-jade-gale-blades .summon-effect-callout,
+.summon-persistent-vfx.effect-violet-tribulation .summon-effect-callout,
+.summon-persistent-vfx.effect-cyan-thunder-chain .summon-effect-callout,
+.summon-persistent-vfx.effect-golden-heaven-strike .summon-effect-callout{
+  position:absolute;z-index:4;left:50%;top:48%;width:min(86%,680px);padding:10px 28px 12px;transform:translate3d(-50%,-50%,0);text-align:center;color:var(--persistent-accent);
+  border-block:1px solid color-mix(in srgb,var(--persistent-main) 70%,transparent);background:linear-gradient(90deg,transparent,color-mix(in srgb,#061015 70%,transparent) 17% 83%,transparent);
+  text-shadow:0 2px 5px #000,0 0 16px var(--persistent-main);pointer-events:none;animation:persistent-callout-stage var(--persistent-callout-duration) cubic-bezier(.17,.76,.22,1) var(--persistent-delay) both;
+}
+.summon-persistent-vfx.effect-frost-sword-heaven .summon-effect-callout{clip-path:polygon(5% 0,95% 0,100% 50%,95% 100%,5% 100%,0 50%)}
+.summon-persistent-vfx.effect-blood-moon-cleave .summon-effect-callout{border-color:var(--persistent-main);transform:translate3d(-50%,-50%,0) skewX(-5deg)}
+.summon-persistent-vfx.effect-jade-gale-blades .summon-effect-callout{border-radius:50%;border-inline:1px solid color-mix(in srgb,var(--persistent-accent) 52%,transparent)}
+.summon-persistent-vfx.effect-violet-tribulation .summon-effect-callout{box-shadow:0 -4px 22px color-mix(in srgb,var(--persistent-main) 22%,transparent)}
+.summon-persistent-vfx.effect-cyan-thunder-chain .summon-effect-callout{outline:1px solid color-mix(in srgb,var(--persistent-main) 24%,transparent);outline-offset:5px}
+.summon-persistent-vfx.effect-golden-heaven-strike .summon-effect-callout{border-color:var(--persistent-accent);background:linear-gradient(90deg,transparent,color-mix(in srgb,#261b06 74%,transparent) 18% 82%,transparent)}
+
+.summon-persistent-vfx.effect-frost-sword-heaven .summon-persistent-card,
+.summon-persistent-vfx.effect-blood-moon-cleave .summon-persistent-card,
+.summon-persistent-vfx.effect-jade-gale-blades .summon-persistent-card,
+.summon-persistent-vfx.effect-violet-tribulation .summon-persistent-card,
+.summon-persistent-vfx.effect-cyan-thunder-chain .summon-persistent-card,
+.summon-persistent-vfx.effect-golden-heaven-strike .summon-persistent-card{
+  position:absolute;z-index:5;right:max(10px,env(safe-area-inset-right));top:max(72px,calc(env(safe-area-inset-top) + 58px));width:min(42vw,238px);padding:8px 11px;color:#fff9e7;
+  border:1px solid color-mix(in srgb,var(--persistent-main) 55%,transparent);border-right:3px solid var(--persistent-main);background:linear-gradient(108deg,color-mix(in srgb,#071211 86%,transparent),color-mix(in srgb,var(--persistent-deep) 42%,transparent));
+  box-shadow:0 6px 22px #0008,0 0 18px color-mix(in srgb,var(--persistent-main) 18%,transparent);text-shadow:0 2px 4px #000;pointer-events:none;transform-origin:100% 50%;animation:persistent-card-life var(--persistent-card-duration) cubic-bezier(.2,.75,.2,1) var(--persistent-delay) both;
+}
+.summon-persistent-vfx.effect-blood-moon-cleave .summon-persistent-card{clip-path:polygon(9px 0,100% 0,100% 100%,0 100%,0 9px)}
+.summon-persistent-vfx.effect-jade-gale-blades .summon-persistent-card{border-radius:18px 2px 18px 2px}
+.summon-persistent-vfx.effect-violet-tribulation .summon-persistent-card{border-top-color:var(--persistent-accent)}
+.summon-persistent-vfx.effect-cyan-thunder-chain .summon-persistent-card{clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px))}
+.summon-persistent-vfx.effect-golden-heaven-strike .summon-persistent-card{border-color:color-mix(in srgb,var(--persistent-accent) 60%,transparent);border-right-width:4px}
+
+@keyframes persistent-frost-drift{to{opacity:.72;transform:translate3d(4%,3%,0)}}
+@keyframes persistent-frost-seal{to{transform:rotate(360deg)}}
+@keyframes persistent-blood-moon{to{opacity:.72;transform:scale(1.08)}}
+@keyframes persistent-blood-slash{0%,48%{opacity:.08;transform:translate3d(-12%,0,0)}62%{opacity:.72}100%{opacity:.08;transform:translate3d(12%,0,0)}}
+@keyframes persistent-jade-gale{to{transform:rotate(360deg)}}
+@keyframes persistent-jade-breathe{to{opacity:.68;transform:scale(1.08,.92) rotate(2deg)}}
+@keyframes persistent-violet-cloud{to{opacity:.88;transform:translate3d(3%,2%,0) scale(1.04)}}
+@keyframes persistent-violet-strike{0%,38%,72%{opacity:.14}39%,40%,73%,75%{opacity:.66}41%,71%,76%,100%{opacity:.25}}
+@keyframes persistent-cyan-lock{to{transform:rotate(-360deg)}}
+@keyframes persistent-cyan-pulse{50%{opacity:.82;transform:scale(1.06)}}
+@keyframes persistent-golden-rays{to{transform:rotate(360deg)}}
+@keyframes persistent-golden-ward{to{opacity:.86;transform:scale(1.035,.97)}}
+@keyframes persistent-callout-stage{0%{opacity:0;transform:translate3d(-50%,-42%,0) scale(.82)}14%{opacity:1;transform:translate3d(-50%,-50%,0) scale(1.035)}24%,72%{opacity:1;transform:translate3d(-50%,-50%,0) scale(1)}100%{opacity:0;transform:translate3d(-50%,-56%,0) scale(.98)}}
+@keyframes persistent-card-breathe{to{box-shadow:0 8px 26px #0008,0 0 22px color-mix(in srgb,var(--persistent-main) 27%,transparent);transform:scale(1.015)}}
+
+@media(max-width:760px){
+  .summon-persistent-vfx.effect-frost-sword-heaven .summon-effect-callout,
+  .summon-persistent-vfx.effect-blood-moon-cleave .summon-effect-callout,
+  .summon-persistent-vfx.effect-jade-gale-blades .summon-effect-callout,
+  .summon-persistent-vfx.effect-violet-tribulation .summon-effect-callout,
+  .summon-persistent-vfx.effect-cyan-thunder-chain .summon-effect-callout,
+  .summon-persistent-vfx.effect-golden-heaven-strike .summon-effect-callout{top:43%;width:min(88%,360px);padding:8px 19px 10px}
+  .summon-persistent-vfx.effect-frost-sword-heaven .summon-persistent-card,
+  .summon-persistent-vfx.effect-blood-moon-cleave .summon-persistent-card,
+  .summon-persistent-vfx.effect-jade-gale-blades .summon-persistent-card,
+  .summon-persistent-vfx.effect-violet-tribulation .summon-persistent-card,
+  .summon-persistent-vfx.effect-cyan-thunder-chain .summon-persistent-card,
+  .summon-persistent-vfx.effect-golden-heaven-strike .summon-persistent-card{top:max(58px,calc(env(safe-area-inset-top) + 48px));width:min(48vw,196px);padding:6px 8px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .summon-persistent-vfx .summon-persistent-field,
+  .summon-persistent-vfx .summon-persistent-field::before,
+  .summon-persistent-vfx .summon-persistent-field::after,
+  .summon-persistent-vfx .summon-persistent-card{animation:none!important;opacity:.94;transform:none!important}
+  .summon-persistent-vfx .summon-persistent-field{opacity:.45}
+  .summon-persistent-vfx .summon-effect-callout{animation-duration:1.7s!important}
+}

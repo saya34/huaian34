@@ -1,0 +1,20 @@
+{
+  "buy": {
+    "eyebrow": "QIZHEN CABINET · 百宝陈列",
+    "title": "今朝上柜",
+    "hint": "轻触器物，在鉴赏台细看",
+    "inspectorEyebrow": "SHOPKEEPER'S SELECTION · 掌柜荐物",
+    "action": "收入行囊",
+    "soldOut": "今日售罄"
+  },
+  "sell": {
+    "eyebrow": "APPRAISAL DESK · 掌柜鉴价",
+    "title": "旧物易主",
+    "hint": "选择一件物品，宁砚书会当面开价",
+    "bag": "随身百物",
+    "equipment": "闲置法器",
+    "inspectorEyebrow": "APPRAISAL · 柜前估值",
+    "sellOne": "售出一件",
+    "sellAll": "全部托售"
+  }
+}

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="bronze" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6f4b29"/><stop offset=".18" stop-color="#d2ad69"/><stop offset=".48" stop-color="#7d5730"/><stop offset=".75" stop-color="#e0c27e"/><stop offset="1" stop-color="#684425"/>
+    </linearGradient>
+    <pattern id="grain" width="31" height="19" patternUnits="userSpaceOnUse">
+      <path d="M-5 9C8 1 19 18 36 7" fill="none" stroke="#e8d49c" stroke-opacity=".12" stroke-width="2"/>
+      <path d="M-3 16C12 8 23 23 35 14" fill="none" stroke="#51351f" stroke-opacity=".22"/>
+    </pattern>
+    <filter id="soft"><feGaussianBlur stdDeviation="1.3"/></filter>
+  </defs>
+  <rect x="8" y="8" width="984" height="684" rx="20" fill="none" stroke="#2d2419" stroke-opacity=".85" stroke-width="16"/>
+  <rect x="14" y="14" width="972" height="672" rx="16" fill="url(#grain)" stroke="url(#bronze)" stroke-width="5"/>
+  <rect x="27" y="27" width="946" height="646" rx="10" fill="none" stroke="#d7bd7a" stroke-opacity=".42" stroke-width="2"/>
+  <path d="M28 105C66 104 69 73 98 73c31 0 32 33 66 33s39-35 72-35c23 0 37 15 51 34M972 105c-38-1-41-32-70-32-31 0-32 33-66 33s-39-35-72-35c-23 0-37 15-51 34" fill="none" stroke="#d3b56f" stroke-opacity=".5" stroke-width="3"/>
+  <path d="M28 595c38 1 41 32 70 32 31 0 32-33 66-33s39 35 72 35c23 0 37-15 51-34m685 0c-38 1-41 32-70 32-31 0-32-33-66-33s-39 35-72 35c-23 0-37-15-51-34" fill="none" stroke="#d3b56f" stroke-opacity=".5" stroke-width="3"/>
+  <g fill="none" stroke="url(#bronze)" stroke-width="4">
+    <path d="M22 88V26h66M22 52c20 0 30 10 30 30 0-20 10-30 30-30"/>
+    <path d="M978 88V26h-66m66 26c-20 0-30 10-30 30 0-20-10-30-30-30"/>
+    <path d="M22 612v62h66m-66-26c20 0 30-10 30-30 0 20 10 30 30 30"/>
+    <path d="M978 612v62h-66m66-26c-20 0-30-10-30-30 0 20-10 30-30 30"/>
+  </g>
+  <circle cx="22" cy="22" r="6" fill="#e7cd8c" filter="url(#soft)"/><circle cx="978" cy="22" r="6" fill="#e7cd8c" filter="url(#soft)"/>
+  <circle cx="22" cy="678" r="6" fill="#e7cd8c" filter="url(#soft)"/><circle cx="978" cy="678" r="6" fill="#e7cd8c" filter="url(#soft)"/>
+</svg>

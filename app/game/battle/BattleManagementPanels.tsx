@@ -16,8 +16,6 @@ import {
   tryUnequipItem,
 } from "./meta";
 import {
-  ATTRIBUTE_POINT_BONUS,
-  type AttributeAllocation,
   BLESSING_META,
   type BlessingPage,
   type EquipmentBodySlot,
@@ -32,6 +30,7 @@ import {
   formatBonus,
   passiveSkillUnlocked,
 } from "./progression";
+import { AttributeAllocationPanel } from "./AttributeAllocationPanel";
 import { DEFAULT_WM_CONFIG, type WMAttributeKey, type WMConfig, type WMEquipmentRule, cloneWMConfig, validateWMConfig } from "./weaponManager";
 import {
   MAX_SKILL_MASTERY_LEVEL,
@@ -190,15 +189,6 @@ function WMStatEditor({ title, stats, onChange, extra }: { title: string; stats:
   return <div className="wm-stat-editor"><h4>{title}{extra}</h4>{stats.map((entry, index) => <div key={`${entry.key}-${index}`}><select value={entry.key} onChange={(e) => onChange(stats.map((row, i) => i === index ? { ...row, key: e.target.value as WMAttributeKey } : row))}>{Object.entries(WM_STAT_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><label>最小<input type="number" step=".005" value={entry.min} onChange={(e) => onChange(stats.map((row, i) => i === index ? { ...row, min: +e.target.value } : row))} /></label><label>最大<input type="number" step=".005" value={entry.max} onChange={(e) => onChange(stats.map((row, i) => i === index ? { ...row, max: +e.target.value } : row))} /></label><button onClick={() => onChange(stats.filter((_, i) => i !== index))}>×</button></div>)}<button onClick={() => onChange([...stats, { key: "damage", min: .03, max: .08 }])}>＋ 添加属性</button></div>;
 }
 
-const ALLOCATION_META: Array<{ key: keyof AttributeAllocation; name: string; description: string }> = [
-  { key: "health", name: "体魄", description: `每点生命 +${ATTRIBUTE_POINT_BONUS.health}` },
-  { key: "defense", name: "护体", description: `每点防御 +${ATTRIBUTE_POINT_BONUS.defense}` },
-  { key: "damage", name: "道法", description: `每点伤害 +${ATTRIBUTE_POINT_BONUS.damage * 100}%` },
-  { key: "attackSpeed", name: "御器", description: `每点攻速 +${ATTRIBUTE_POINT_BONUS.attackSpeed * 100}%` },
-  { key: "dodge", name: "身法", description: `每点闪避 +${ATTRIBUTE_POINT_BONUS.dodge * 100}%` },
-  { key: "moveSpeed", name: "疾行", description: `每点移速 +${ATTRIBUTE_POINT_BONUS.moveSpeed}` },
-];
-
 export function CharacterProgression({ meta, relationships, onChange }: { meta: MetaProgress; relationships: Record<string, number>; onChange: (meta: MetaProgress) => void }) {
   const [section, setSection] = useState<"attributes" | "skills">("attributes");
   const [page, setPage] = useState<BlessingPage>("damage");
@@ -206,10 +196,6 @@ export function CharacterProgression({ meta, relationships, onChange }: { meta: 
   const attrPoints = availableAttributePoints(meta);
   const skillPoints = availableSkillPoints(meta);
   const selected = PASSIVE_SKILLS.find((skill) => skill.id === selectedSkill) ?? PASSIVE_SKILLS[0];
-  const addAttribute = (key: keyof AttributeAllocation) => {
-    if (attrPoints <= 0) return;
-    onChange({ ...meta, attributeAllocation: { ...meta.attributeAllocation, [key]: meta.attributeAllocation[key] + 1 } });
-  };
   const addPassive = () => {
     const rank = meta.passiveRanks[selected.id] ?? 0;
     if (skillPoints <= 0 || rank >= selected.maxRank || !passiveSkillUnlocked(meta.passiveRanks, selected, relationships)) return;
@@ -224,19 +210,10 @@ export function CharacterProgression({ meta, relationships, onChange }: { meta: 
         <i>‹</i><button className={section === "skills" ? "active" : ""} onClick={() => setSection("skills")}><small>第二页</small><b>赐福技能树</b><span>{skillPoints} 点可用</span></button>
         <button className="page-turn" onClick={() => setSection(section === "attributes" ? "skills" : "attributes")}>{section === "attributes" ? "下一页 · 技能树 ›" : "‹ 上一页 · 人物属性"}</button>
       </nav>
-      {section === "attributes" && <section className="attribute-allocation progression-page">
-        <div className="point-heading"><div><small>可用属性点</small><b>{attrPoints}</b></div><span>每级获得 5 点</span></div>
-        <div className="attribute-list">
-          {ALLOCATION_META.map((entry) => (
-            <article key={entry.key}>
-              <div><strong>{entry.name}</strong><small>{entry.description}</small></div>
-              <b>{meta.attributeAllocation[entry.key]}</b>
-              <button disabled={attrPoints <= 0} onClick={() => addAttribute(entry.key)}>＋</button>
-            </article>
-          ))}
-        </div>
-        <p>属性点会永久增强副本外基础属性，装备和卡片在此基础上继续加成。</p>
-      </section>}
+      {section === "attributes" && <AttributeAllocationPanel meta={meta} onAllocate={(key) => {
+        if (availableAttributePoints(meta) <= 0) return;
+        onChange({ ...meta, attributeAllocation: { ...meta.attributeAllocation, [key]: meta.attributeAllocation[key] + 1 } });
+      }} />}
       {section === "skills" && <section className={`blessing-tree progression-page blessing-${page}`}>
         <div className="blessing-tabs">
           {(Object.keys(BLESSING_META) as BlessingPage[]).map((key) => <button key={key} className={page === key ? "active" : ""} onClick={() => { setPage(key); setSelectedSkill(PASSIVE_SKILLS.find((skill) => skill.page === key)!.id); }}><b>{BLESSING_META[key].name}</b><small>{BLESSING_META[key].subtitle}</small></button>)}

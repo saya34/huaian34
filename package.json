@@ -18,7 +18,9 @@
     "check:shen-story": "node scripts/check-shen-content.mjs",
     "check:turn-combat": "node scripts/check-turn-combat.mjs",
     "check:daybreak": "node scripts/check-daybreak.mjs",
-    "check:vfx": "node scripts/check-vfx.mjs"
+    "check:vfx": "node scripts/check-vfx.mjs",
+    "check:summon-showcase": "node scripts/check-summon-showcase.mjs",
+    "check:persistent-vfx": "node scripts/check-persistent-vfx.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

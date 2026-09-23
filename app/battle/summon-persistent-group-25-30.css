@@ -1,0 +1,204 @@
+.summon-persistent-vfx.effect-north-star-array{
+  --persistent-primary:#d9e7ff;
+  --persistent-secondary:#5c70bc;
+  --persistent-accent:#ffffff;
+  --persistent-shadow:#070e2c;
+}
+.summon-persistent-vfx.effect-north-star-array::before{
+  background:
+    radial-gradient(circle at 50% 36%,#fff 0 1px,transparent 2px),
+    radial-gradient(circle at 19% 22%,#d9e7ff28,transparent 26%),
+    linear-gradient(180deg,#0713323d,transparent 58%);
+  background-size:37px 43px,auto,auto;
+}
+.effect-north-star-array .summon-persistent-field>i{
+  border-color:#d9e7ff68;
+  border-style:dotted;
+  box-shadow:0 0 33px #a9c9ff2a,inset 0 0 34px #ffffff12;
+  animation:north-star-turn 12s linear infinite;
+}
+.effect-north-star-array .summon-persistent-field>i:nth-child(2){animation-direction:reverse;animation-duration:8s}
+.effect-north-star-array .summon-persistent-field>i:nth-child(3){border-style:solid;animation-duration:5.5s}
+.effect-north-star-array .summon-persistent-field>b{
+  color:#eef5ff;
+  text-shadow:0 0 14px #fff,0 0 44px #91afff,0 0 72px #536ec8;
+  animation:north-star-breathe 2.8s ease-in-out infinite;
+}
+.effect-north-star-array .summon-effect-callout{border-color:#d9e7ffb5;background:linear-gradient(90deg,transparent,#070e2ceb 16%,#15265be9 50%,#070e2ceb 84%,transparent);box-shadow:0 0 34px #aec9ff23}
+.effect-north-star-array .summon-persistent-card{border-color:#d9e7ffae;background:linear-gradient(110deg,#060d27f2,#1e326ce8);box-shadow:0 10px 28px #000a,0 0 26px #b7d2ff25}
+
+.summon-persistent-vfx.effect-seven-star-execution{
+  --persistent-primary:#ffdc83;
+  --persistent-secondary:#a75c27;
+  --persistent-accent:#fff9db;
+  --persistent-shadow:#281504;
+}
+.summon-persistent-vfx.effect-seven-star-execution::before{
+  background:
+    repeating-linear-gradient(102deg,transparent 0 11%,#ffdc830a 11.5%,transparent 12%),
+    radial-gradient(ellipse at 50% 76%,#ffdc8324,transparent 54%);
+}
+.effect-seven-star-execution .summon-persistent-field>i{
+  width:min(84vmin,720px);
+  aspect-ratio:2.1;
+  border-color:#ffdc8375;
+  border-style:dashed;
+  transform:translate(-50%,-50%) scale(.7) rotateX(66deg);
+  box-shadow:0 0 38px #ffcf6430,inset 0 0 32px #fff1b315;
+  animation:seven-star-ground 2.6s ease-in-out infinite;
+}
+.effect-seven-star-execution .summon-persistent-field>i:nth-child(2){animation-delay:-.86s}
+.effect-seven-star-execution .summon-persistent-field>i:nth-child(3){animation-delay:-1.72s}
+.effect-seven-star-execution .summon-persistent-field>b{
+  color:#ffe5a2;
+  text-shadow:0 0 12px #fff9db,0 0 38px #ffb237,0 0 70px #a54419;
+  animation:seven-star-strike 1.35s ease-in-out infinite;
+}
+.effect-seven-star-execution .summon-effect-callout{border-color:#ffdc83c2;background:linear-gradient(90deg,transparent,#281504ed 14%,#55300de9 50%,#281504ed 86%,transparent);box-shadow:0 0 36px #ffbd492d}
+.effect-seven-star-execution .summon-persistent-card{border-color:#ffdc83bd;background:linear-gradient(110deg,#251203f2,#57300ce9);box-shadow:0 10px 28px #000a,0 0 28px #ffbf452e}
+
+.summon-persistent-vfx.effect-falling-comet-array{
+  --persistent-primary:#ff8f55;
+  --persistent-secondary:#c92f25;
+  --persistent-accent:#fff2c2;
+  --persistent-shadow:#300805;
+}
+.summon-persistent-vfx.effect-falling-comet-array::before{
+  background:
+    linear-gradient(143deg,transparent 0 28%,#fff2c218 28.4%,#ff8f5510 31%,transparent 35%),
+    linear-gradient(143deg,transparent 0 51%,#fff2c216 51.4%,#ff8f550d 54%,transparent 59%),
+    radial-gradient(ellipse at 50% 86%,#ff5a2f28,transparent 58%);
+}
+.effect-falling-comet-array .summon-persistent-field>i{
+  border-color:#ff8f557f;
+  border-style:dashed;
+  box-shadow:0 0 45px #ff61323b,inset 0 0 36px #fff2c217;
+  animation:comet-impact-ring 3.1s cubic-bezier(.16,.75,.22,1) infinite;
+}
+.effect-falling-comet-array .summon-persistent-field>i:nth-child(2){animation-delay:-1.02s}
+.effect-falling-comet-array .summon-persistent-field>i:nth-child(3){animation-delay:-2.04s}
+.effect-falling-comet-array .summon-persistent-field>b{
+  color:#ff9a58;
+  text-shadow:0 0 11px #fff2c2,0 0 38px #ff5528,0 0 74px #bd150f;
+  animation:comet-core-pulse 1.05s ease-out infinite;
+}
+.effect-falling-comet-array .summon-effect-callout{border-color:#ff9463c5;background:linear-gradient(90deg,transparent,#300805ef 13%,#68180de9 50%,#300805ef 87%,transparent);box-shadow:0 0 42px #ff5d3135}
+.effect-falling-comet-array .summon-persistent-card{border-color:#ff9463c2;background:linear-gradient(110deg,#2a0603f3,#681b10eb);box-shadow:0 10px 28px #000a,0 0 30px #ff633736}
+
+.summon-persistent-vfx.effect-black-tide-dragon{
+  --persistent-primary:#80b9b0;
+  --persistent-secondary:#243f50;
+  --persistent-accent:#e4fff7;
+  --persistent-shadow:#030f18;
+}
+.summon-persistent-vfx.effect-black-tide-dragon::before{
+  background:
+    radial-gradient(ellipse at 78% 48%,#80b9b014,transparent 38%),
+    repeating-radial-gradient(ellipse at 50% 104%,transparent 0 9%,#36596613 10% 11%,transparent 12% 18%),
+    linear-gradient(180deg,transparent 38%,#071c2938);
+}
+.effect-black-tide-dragon .summon-persistent-field>i{
+  width:min(92vmin,780px);
+  aspect-ratio:1.9;
+  border-color:#80b9b05e;
+  border-style:solid;
+  transform:translate(-50%,-50%) scale(.7) rotateX(65deg);
+  box-shadow:0 0 35px #76b7ad22,inset 0 0 44px #0f283e38;
+  animation:black-tide-wave 5.8s ease-in-out infinite;
+}
+.effect-black-tide-dragon .summon-persistent-field>i:nth-child(2){animation-delay:-1.9s}
+.effect-black-tide-dragon .summon-persistent-field>i:nth-child(3){animation-delay:-3.8s}
+.effect-black-tide-dragon .summon-persistent-field>b{
+  color:#92c7c0;
+  text-shadow:0 0 14px #e4fff7,0 0 44px #4d908e,0 0 76px #122f43;
+  animation:black-dragon-glide 3.8s ease-in-out infinite;
+}
+.effect-black-tide-dragon .summon-effect-callout{border-color:#80b9b0ac;background:linear-gradient(90deg,transparent,#030f18ed 15%,#12303ce9 50%,#030f18ed 85%,transparent);box-shadow:0 0 34px #76c2b525}
+.effect-black-tide-dragon .summon-persistent-card{border-color:#80b9b0a9;background:linear-gradient(110deg,#020c13f2,#163643eb);box-shadow:0 10px 28px #000b,0 0 28px #77b8ae24}
+
+.summon-persistent-vfx.effect-jade-dragon-rise{
+  --persistent-primary:#66e0bc;
+  --persistent-secondary:#238b7f;
+  --persistent-accent:#dcffbf;
+  --persistent-shadow:#04241e;
+}
+.summon-persistent-vfx.effect-jade-dragon-rise::before{
+  background:
+    linear-gradient(150deg,transparent 0 37%,#dcffbf10 43%,transparent 49%),
+    radial-gradient(ellipse at 28% 94%,#66e0bc28,transparent 48%),
+    linear-gradient(180deg,#0d493114,transparent 44%);
+}
+.effect-jade-dragon-rise .summon-persistent-field>i{
+  border-color:#66e0bc69;
+  border-style:dashed;
+  box-shadow:0 0 36px #68e8c12d,inset 0 0 30px #dcffbf12;
+  animation:jade-dragon-ascend 5.4s cubic-bezier(.37,0,.22,1) infinite;
+}
+.effect-jade-dragon-rise .summon-persistent-field>i:nth-child(2){animation-delay:-1.8s}
+.effect-jade-dragon-rise .summon-persistent-field>i:nth-child(3){animation-delay:-3.6s}
+.effect-jade-dragon-rise .summon-persistent-field>b{
+  color:#7df3ca;
+  text-shadow:0 0 15px #dcffbf,0 0 48px #45caa9,0 0 76px #14766e;
+  animation:jade-glyph-rise 3.2s ease-in-out infinite;
+}
+.effect-jade-dragon-rise .summon-effect-callout{border-color:#66e0bcb5;background:linear-gradient(90deg,transparent,#04241eed 14%,#0b4c42e9 50%,#04241eed 86%,transparent);box-shadow:0 0 37px #5fe0ba29}
+.effect-jade-dragon-rise .summon-persistent-card{border-color:#66e0bcb0;background:linear-gradient(110deg,#031c18f2,#0b4e43e9);box-shadow:0 10px 28px #000a,0 0 28px #66e0bc2d}
+
+.summon-persistent-vfx.effect-vermilion-chi-dragon{
+  --persistent-primary:#ff7d68;
+  --persistent-secondary:#b62732;
+  --persistent-accent:#ffe0a8;
+  --persistent-shadow:#320707;
+}
+.summon-persistent-vfx.effect-vermilion-chi-dragon::before{
+  background:
+    conic-gradient(from 30deg at 50% 63%,transparent,#ff7d6810 14%,transparent 28%,#ffe0a80b 42%,transparent 58%),
+    radial-gradient(ellipse at 50% 64%,#ffe0a81b,#ff51301b 28%,transparent 63%),
+    linear-gradient(180deg,transparent 28%,#5e0a103b);
+}
+.effect-vermilion-chi-dragon .summon-persistent-field>i{
+  border-color:#ff7d687d;
+  border-style:dashed;
+  box-shadow:0 0 43px #ff49353a,inset 0 0 38px #ffe0a816;
+  animation:chi-dragon-coil 4.2s linear infinite;
+}
+.effect-vermilion-chi-dragon .summon-persistent-field>i:nth-child(2){animation-direction:reverse;animation-duration:3.1s}
+.effect-vermilion-chi-dragon .summon-persistent-field>i:nth-child(3){border-style:dotted;animation-duration:2.2s}
+.effect-vermilion-chi-dragon .summon-persistent-field>b{
+  color:#ff8f74;
+  text-shadow:0 0 12px #ffe0a8,0 0 43px #ff3d31,0 0 78px #a90b22;
+  animation:chi-war-soul 1.2s ease-in-out infinite;
+}
+.effect-vermilion-chi-dragon .summon-effect-callout{border-color:#ff866fc7;background:linear-gradient(90deg,transparent,#320707ef 13%,#681018eb 50%,#320707ef 87%,transparent);box-shadow:0 0 42px #ff4b3a36}
+.effect-vermilion-chi-dragon .summon-persistent-card{border-color:#ff866fc2;background:linear-gradient(110deg,#2b0506f3,#681018eb);box-shadow:0 10px 28px #000a,0 0 32px #ff493736}
+
+@keyframes north-star-turn{to{transform:translate(-50%,-50%) scale(.7) rotate(360deg)}}
+@keyframes north-star-breathe{0%,100%{opacity:.22;transform:translate(-50%,-50%) scale(.96)}50%{opacity:.48;transform:translate(-50%,-53%) scale(1.07)}}
+@keyframes seven-star-ground{0%,100%{opacity:.18;transform:translate(-50%,-50%) scale(.58) rotateX(66deg)}50%{opacity:.52;transform:translate(-50%,-50%) scale(.82) rotateX(66deg)}}
+@keyframes seven-star-strike{0%,100%{opacity:.2;transform:translate(-50%,-50%) scale(.94)}38%{opacity:.52;transform:translate(-50%,-52%) scale(1.11)}}
+@keyframes comet-impact-ring{0%{opacity:.55;transform:translate(-50%,-50%) scale(.34)}72%,100%{opacity:0;transform:translate(-50%,-50%) scale(.96)}}
+@keyframes comet-core-pulse{0%,100%{opacity:.2;transform:translate(-50%,-50%) scale(.9)}36%{opacity:.54;transform:translate(-50%,-51%) scale(1.13)}}
+@keyframes black-tide-wave{0%,100%{opacity:.18;transform:translate(-50%,-50%) scale(.62) rotateX(65deg) translateY(8%)}50%{opacity:.43;transform:translate(-50%,-50%) scale(.82) rotateX(65deg) translateY(-5%)}}
+@keyframes black-dragon-glide{0%,100%{opacity:.2;transform:translate(-53%,-50%) rotate(-2deg)}50%{opacity:.4;transform:translate(-47%,-53%) rotate(2deg)}}
+@keyframes jade-dragon-ascend{0%{opacity:.1;transform:translate(-58%,-39%) scale(.48) rotate(-18deg)}58%{opacity:.48;transform:translate(-48%,-55%) scale(.78) rotate(5deg)}100%{opacity:.08;transform:translate(-42%,-66%) scale(.92) rotate(16deg)}}
+@keyframes jade-glyph-rise{0%,100%{opacity:.19;transform:translate(-50%,-47%) scale(.96)}50%{opacity:.43;transform:translate(-50%,-55%) scale(1.07)}}
+@keyframes chi-dragon-coil{to{transform:translate(-50%,-50%) scale(.7) rotate(360deg)}}
+@keyframes chi-war-soul{0%,100%{opacity:.2;transform:translate(-50%,-50%) scale(.93)}42%{opacity:.52;transform:translate(-50%,-52%) scale(1.1)}}
+
+@media(max-width:760px){
+  .effect-seven-star-execution .summon-persistent-field>i,.effect-black-tide-dragon .summon-persistent-field>i{width:94vmin}
+  .effect-north-star-array .summon-persistent-field>b,.effect-seven-star-execution .summon-persistent-field>b,.effect-falling-comet-array .summon-persistent-field>b,.effect-black-tide-dragon .summon-persistent-field>b,.effect-jade-dragon-rise .summon-persistent-field>b,.effect-vermilion-chi-dragon .summon-persistent-field>b{font-size:29vmin}
+  .effect-falling-comet-array .summon-effect-callout strong,.effect-vermilion-chi-dragon .summon-effect-callout strong{letter-spacing:.09em}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .effect-north-star-array .summon-persistent-field>i,.effect-north-star-array .summon-persistent-field>b,
+  .effect-seven-star-execution .summon-persistent-field>i,.effect-seven-star-execution .summon-persistent-field>b,
+  .effect-falling-comet-array .summon-persistent-field>i,.effect-falling-comet-array .summon-persistent-field>b,
+  .effect-black-tide-dragon .summon-persistent-field>i,.effect-black-tide-dragon .summon-persistent-field>b,
+  .effect-jade-dragon-rise .summon-persistent-field>i,.effect-jade-dragon-rise .summon-persistent-field>b,
+  .effect-vermilion-chi-dragon .summon-persistent-field>i,.effect-vermilion-chi-dragon .summon-persistent-field>b{animation:none}
+  .effect-seven-star-execution .summon-persistent-field>i,.effect-black-tide-dragon .summon-persistent-field>i{transform:translate(-50%,-50%) scale(.7) rotateX(66deg)}
+  .effect-north-star-array .summon-persistent-field>i,.effect-falling-comet-array .summon-persistent-field>i,.effect-jade-dragon-rise .summon-persistent-field>i,.effect-vermilion-chi-dragon .summon-persistent-field>i{transform:translate(-50%,-50%) scale(.7)}
+  .effect-north-star-array .summon-persistent-field>b,.effect-seven-star-execution .summon-persistent-field>b,.effect-falling-comet-array .summon-persistent-field>b,.effect-black-tide-dragon .summon-persistent-field>b,.effect-jade-dragon-rise .summon-persistent-field>b,.effect-vermilion-chi-dragon .summon-persistent-field>b{opacity:.3;transform:translate(-50%,-50%)}
+}

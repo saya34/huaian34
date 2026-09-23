@@ -11,7 +11,7 @@ import type { QuestProgress } from "../quests/types";
 import { keyFor, LocalPlayerStateRepository } from "./player-state-repository";
 import type { AlchemyProgress, GameEffect, StateSetter, UnifiedGameState } from "./types";
 import { grantPlayerExperience, normalizePlayerGrowth, type PlayerGrowth } from "./progression-service";
-import { inventoryProjection } from "./inventory-service";
+import { acquireInventoryStack, inventoryProjection, setInventoryStackAmount } from "./inventory-service";
 import { upsertCard } from "./card-service";
 import { reduceGameEffects } from "./game-state-reducer";
 import { cloneInitial, mergeSave } from "./save-migration";
@@ -68,8 +68,8 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
       else if (effect.type === "learn_skill") { battle = learnMetaSkill(battle, effect.skillId, true); shared = { ...shared, learnedSkills: [...new Set([...shared.learnedSkills, effect.skillId])] }; }
       else if (effect.type === "trigger_map_event") dungeons = { ...dungeons, randomVisible: [...new Set([...dungeons.randomVisible, effect.eventId])] };
       else if (effect.type === "add_item") {
-        const previous = shared.items[effect.itemId];
-        shared = { ...shared, items: { ...shared.items, [effect.itemId]: { itemId: effect.itemId, itemType: effect.itemType, rarity: effect.rarity, amount: (previous?.amount ?? 0) + effect.amount, sourceTags: ["story"] } } };
+        const item = acquireInventoryStack(shared.items,{ itemId: effect.itemId, itemType: effect.itemType, rarity: effect.rarity, amount: effect.amount, sourceTags: ["story"] },current.updatedAt);
+        shared = { ...shared, items: { ...shared.items, [effect.itemId]: item } };
         if (MATERIALS.some((item) => item.id === effect.itemId)) alchemy = { ...alchemy, materialCounts: { ...alchemy.materialCounts, [effect.itemId]: (alchemy.materialCounts[effect.itemId] ?? 0) + effect.amount } };
       } else if (effect.type === "add_card") shared = { ...shared, cards: upsertCard(shared.cards, { id: effect.cardId, characterId: effect.characterId, name: effect.name, rarity: effect.rarity, mode: effect.mode, source: "story", art: effect.art, activeEffect: "sword" }) };
     }
@@ -77,8 +77,12 @@ export function UnifiedGameProvider({ children }: { children: React.ReactNode })
     if (requested.experience !== current.romance.experience) growth = grantPlayerExperience(growth, requested.experience - current.romance.experience);
     shared = { ...shared, ...growth };
     const next = { ...requested, pendingUnifiedEffects: [], spiritStones: shared.spiritStones, experience: growth.playerExperience, playerLevel: growth.playerLevel };
-    const giftItems = Object.fromEntries(Object.entries(next.inventory).map(([itemId, amount]) => [itemId, { ...(current.shared.items[itemId] ?? { itemId, itemType: "gift" as const, rarity: 2 as const, sourceTags: ["romance"] }), amount }]));
-    shared = { ...shared, spiritStones: next.spiritStones, stamina: next.stamina, items: { ...shared.items, ...giftItems }, globalKeys: { ...shared.globalKeys, ...next.flags } };
+    let syncedItems={...shared.items};
+    for(const [itemId,amount] of Object.entries(next.inventory)){
+      const incoming=syncedItems[itemId]??{itemId,itemType:"gift" as const,rarity:2 as const,amount:0,sourceTags:["romance"]};
+      syncedItems={...syncedItems,[itemId]:setInventoryStackAmount(syncedItems,incoming,amount,current.updatedAt)};
+    }
+    shared = { ...shared, spiritStones: next.spiritStones, stamina: next.stamina, items: syncedItems, globalKeys: { ...shared.globalKeys, ...next.flags } };
     const projected = { ...next, playerLevel: growth.playerLevel, teacherSkillRanks: current.battle.passiveRanks, learnedSkillIds: shared.learnedSkills, ownedCardIds: shared.cards.map((card) => card.id), completedDungeons: dungeons.completed, alchemyResults: Object.values(alchemy.productStacks).filter((stack) => stack.count > 0).map((stack) => stack.productId), inventoryRarities: Object.fromEntries(Object.entries(shared.items).map(([id, item]) => [id, item.rarity])), inventoryItems: inventoryProjection(shared.items) };
     return { ...current, romance: projected, shared, alchemy, dungeons, battle: { ...battle, spiritStones: shared.spiritStones, playerLevel: growth.playerLevel, playerExp: growth.playerExperience } };
   }), []);

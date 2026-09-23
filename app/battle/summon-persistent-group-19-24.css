@@ -1,0 +1,97 @@
+/* Persistent summon effects 19-24: six readable fields with distinct silhouettes. */
+.summon-persistent-vfx.effect-ink-raven-raid{
+  --persistent-primary:#b6a2e8;--persistent-secondary:#3f315e;--persistent-accent:#f0d9ff;--persistent-shadow:#05040a;
+}
+.summon-persistent-vfx.effect-ink-raven-raid::before{background:radial-gradient(ellipse at 50% 53%,#b6a2e815,transparent 48%),linear-gradient(145deg,#05040a35,transparent 37%,#3f315e18 51%,transparent 66%)}
+.effect-ink-raven-raid .summon-persistent-field>i{width:min(88vmin,760px);aspect-ratio:1.65;border-color:#b6a2e84d;border-style:dashed;box-shadow:0 0 38px #b6a2e821,inset 0 0 38px #3f315e1c;animation:ink-raven-sweep 6.2s ease-in-out infinite}
+.effect-ink-raven-raid .summon-persistent-field>i:nth-child(2){width:min(62vmin,530px);animation-duration:4.7s;animation-direction:reverse}.effect-ink-raven-raid .summon-persistent-field>i:nth-child(3){width:min(34vmin,290px);border-style:solid;animation-duration:3.4s}
+.effect-ink-raven-raid .summon-persistent-field>b{color:#cabaf06b;text-shadow:0 0 16px #f0d9ff,0 0 56px #6b50aa;animation:ink-raven-glyph 2.8s ease-in-out infinite}
+.effect-ink-raven-raid .summon-effect-callout{border-color:#b6a2e8b3;background:linear-gradient(90deg,transparent,#05040aed 14%,#2e234be8 50%,#05040aed 86%,transparent);box-shadow:0 0 48px #9d7fe93a}
+.effect-ink-raven-raid .summon-effect-callout strong{color:#f7edff;text-shadow:0 0 9px #fff,0 0 32px #9f7cdf}
+.effect-ink-raven-raid .summon-persistent-card{border-radius:3px 20px 3px 20px;background:linear-gradient(118deg,#05040af5,#352650e9);box-shadow:0 12px 30px #000b,0 0 28px #a484e738}
+
+.summon-persistent-vfx.effect-ghost-blade-step{
+  --persistent-primary:#8de9dd;--persistent-secondary:#3c5184;--persistent-accent:#ffffff;--persistent-shadow:#050b15;
+}
+.summon-persistent-vfx.effect-ghost-blade-step::before{background:linear-gradient(132deg,transparent 18%,#8de9dd12 34%,transparent 38%,#fff0 49%,#8de9dd10 63%,transparent 78%),radial-gradient(ellipse at 50% 55%,#3c51841c,transparent 54%)}
+.effect-ghost-blade-step .summon-persistent-field>i{width:min(93vmin,800px);aspect-ratio:2.6;border:0;border-block:2px solid #8de9dd57;border-radius:50%;box-shadow:0 0 38px #8de9dd2a;animation:ghost-blade-cross 3.7s cubic-bezier(.55,0,.3,1) infinite}
+.effect-ghost-blade-step .summon-persistent-field>i:nth-child(2){width:min(69vmin,590px);animation-delay:-1.2s;animation-direction:reverse}.effect-ghost-blade-step .summon-persistent-field>i:nth-child(3){width:min(43vmin,370px);border-color:#fff8;animation-duration:2.6s;animation-delay:-2s}
+.effect-ghost-blade-step .summon-persistent-field>b{color:#bffff565;text-shadow:0 0 14px #fff,0 0 48px #55d8cf;animation:ghost-blade-glyph 2.2s ease-in-out infinite}
+.effect-ghost-blade-step .summon-effect-callout{border-color:#9af9edbd;background:linear-gradient(90deg,transparent,#050b15ed 14%,#16394be8 50%,#050b15ed 86%,transparent);box-shadow:0 0 48px #71e5db3d}
+.effect-ghost-blade-step .summon-effect-callout strong{color:#efffff;text-shadow:0 0 8px #fff,0 0 32px #5ce1d5}
+.effect-ghost-blade-step .summon-persistent-card{border-left:3px solid #8de9dd;border-right:1px solid #8de9dd99;background:linear-gradient(118deg,#050b15f5,#17344de9);box-shadow:0 12px 30px #000b,0 0 30px #71e5db3b}
+
+.summon-persistent-vfx.effect-starless-shadow{
+  --persistent-primary:#8e91c8;--persistent-secondary:#26213c;--persistent-accent:#d8d5ff;--persistent-shadow:#020207;
+}
+.summon-persistent-vfx.effect-starless-shadow::before{background:radial-gradient(ellipse at 50% 53%,transparent 0 18%,#15132622 55%,#02020761 100%);animation-duration:calc(var(--persistent-duration) * .98)}
+.effect-starless-shadow .summon-persistent-field>i{width:min(84vmin,720px);aspect-ratio:1.3;border-color:#8e91c83d;border-style:dotted;box-shadow:inset 0 0 70px #02020780,0 0 34px #7a78b927;animation:starless-collapse 7.4s ease-in-out infinite}
+.effect-starless-shadow .summon-persistent-field>i:nth-child(2){width:min(59vmin,500px);animation-duration:5.8s;animation-delay:-2s}.effect-starless-shadow .summon-persistent-field>i:nth-child(3){width:min(31vmin,265px);border-style:solid;animation-duration:4.2s;animation-direction:reverse}
+.effect-starless-shadow .summon-persistent-field>b{color:#9da0dd58;text-shadow:0 0 20px #d8d5ff,0 0 58px #4c487f;animation:starless-breathe 4.6s ease-in-out infinite}
+.effect-starless-shadow .summon-effect-callout{border-color:#9b9fd095;background:linear-gradient(90deg,transparent,#020207f0 13%,#171427eb 50%,#020207f0 87%,transparent);box-shadow:0 0 42px #6d6fa12d}
+.effect-starless-shadow .summon-effect-callout strong{color:#e7e5ff;text-shadow:0 0 8px #d8d5ff,0 0 30px #67699f}
+.effect-starless-shadow .summon-persistent-card{border-radius:14px 3px 14px 3px;border-color:#8e91c889;background:linear-gradient(120deg,#020207f5,#1f1b32ed);box-shadow:0 12px 30px #000c,0 0 25px #777ab12b}
+
+.summon-persistent-vfx.effect-cloud-wind-domain{
+  --persistent-primary:#b8ffeb;--persistent-secondary:#5aa79d;--persistent-accent:#ffffff;--persistent-shadow:#0c2b29;
+}
+.summon-persistent-vfx.effect-cloud-wind-domain::before{background:linear-gradient(112deg,transparent 0 18%,#b8ffeb0e 31%,transparent 45%,#ffffff0d 59%,transparent 76%),radial-gradient(ellipse at 50% 72%,#8effdf19,transparent 56%)}
+.effect-cloud-wind-domain .summon-persistent-field>i{width:min(94vmin,810px);aspect-ratio:2.8;border:0;border-block:1px solid #b8ffeb55;border-radius:50%;box-shadow:0 0 32px #8effdf21;animation:cloud-wind-drift 7.8s ease-in-out infinite}
+.effect-cloud-wind-domain .summon-persistent-field>i:nth-child(2){width:min(68vmin,580px);animation-duration:5.9s;animation-delay:-1.8s}.effect-cloud-wind-domain .summon-persistent-field>i:nth-child(3){width:min(42vmin,360px);border-style:dashed;animation-duration:4.3s;animation-direction:reverse}
+.effect-cloud-wind-domain .summon-persistent-field>b{color:#d9fff266;text-shadow:0 0 14px #fff,0 0 52px #66dac8;animation:cloud-wind-glyph 3.4s ease-in-out infinite}
+.effect-cloud-wind-domain .summon-effect-callout{border-color:#b8ffeba8;background:linear-gradient(90deg,transparent,#0c2b29eb 14%,#185c57e5 50%,#0c2b29eb 86%,transparent);box-shadow:0 0 44px #8effdf31}
+.effect-cloud-wind-domain .summon-effect-callout strong{color:#effff9;text-shadow:0 0 8px #fff,0 0 30px #5ed9c5}
+.effect-cloud-wind-domain .summon-persistent-card{border-radius:22px 4px 22px 4px;background:linear-gradient(118deg,#0c2b29f4,#1e625ce7);box-shadow:0 12px 30px #0009,0 0 28px #8effdf31}
+
+.summon-persistent-vfx.effect-bamboo-wind-domain{
+  --persistent-primary:#9be384;--persistent-secondary:#34764b;--persistent-accent:#efffb6;--persistent-shadow:#0b2514;
+}
+.summon-persistent-vfx.effect-bamboo-wind-domain::before{background:linear-gradient(90deg,#0b251445,transparent 22% 78%,#0b251445),radial-gradient(ellipse at 50% 62%,#9be38418,transparent 53%)}
+.effect-bamboo-wind-domain .summon-persistent-field>i{width:min(89vmin,760px);aspect-ratio:2;border-color:#9be38450;border-style:dashed;box-shadow:inset 0 0 46px #34764b15,0 0 29px #9be38426;animation:bamboo-leaf-wheel 8.2s linear infinite}
+.effect-bamboo-wind-domain .summon-persistent-field>i:nth-child(2){width:min(64vmin,550px);animation-duration:6.1s;animation-direction:reverse}.effect-bamboo-wind-domain .summon-persistent-field>i:nth-child(3){width:min(37vmin,315px);border-color:#efffb67a;animation-duration:4.4s}
+.effect-bamboo-wind-domain .summon-persistent-field>b{color:#b8ec826d;text-shadow:0 0 15px #efffb6,0 0 52px #57ad52;animation:bamboo-glyph 3s ease-in-out infinite}
+.effect-bamboo-wind-domain .summon-effect-callout{border-color:#9be384ad;background:linear-gradient(90deg,transparent,#0b2514ec 14%,#235a35e5 50%,#0b2514ec 86%,transparent);box-shadow:0 0 47px #8bd77735}
+.effect-bamboo-wind-domain .summon-effect-callout strong{color:#f2ffd1;text-shadow:0 0 8px #efffb6,0 0 31px #6dca62}
+.effect-bamboo-wind-domain .summon-persistent-card{border-radius:3px 22px 3px 22px;border-color:#9be384ad;background:linear-gradient(116deg,#0b2514f4,#285f38e7);box-shadow:0 12px 30px #000a,0 0 29px #8bd77736}
+
+.summon-persistent-vfx.effect-storm-eye-domain{
+  --persistent-primary:#91d9ff;--persistent-secondary:#3569a0;--persistent-accent:#e8fbff;--persistent-shadow:#071a32;
+}
+.summon-persistent-vfx.effect-storm-eye-domain::before{background:radial-gradient(circle at 50% 51%,transparent 0 10%,#91d9ff13 26%,#3569a01b 44%,transparent 67%),linear-gradient(180deg,#071a322b,transparent 46%,#071a322e)}
+.effect-storm-eye-domain .summon-persistent-field>i{width:min(92vmin,790px);aspect-ratio:1.32;border:2px dashed #91d9ff57;box-shadow:inset 0 0 62px #3569a017,0 0 39px #6ac9ff2e;animation:storm-eye-spin 7.2s linear infinite}
+.effect-storm-eye-domain .summon-persistent-field>i:nth-child(2){width:min(64vmin,550px);border-style:dotted;animation-duration:5.2s;animation-direction:reverse}.effect-storm-eye-domain .summon-persistent-field>i:nth-child(3){width:min(34vmin,290px);border-style:solid;border-width:3px;animation-duration:3.6s}
+.effect-storm-eye-domain .summon-persistent-field>b{color:#bdeaff66;text-shadow:0 0 16px #e8fbff,0 0 58px #449ed5;animation:storm-eye-glyph 2.4s ease-in-out infinite}
+.effect-storm-eye-domain .summon-effect-callout{border-color:#91d9ffb0;background:linear-gradient(90deg,transparent,#071a32ed 14%,#174874e8 50%,#071a32ed 86%,transparent);box-shadow:0 0 50px #62c0f43a}
+.effect-storm-eye-domain .summon-effect-callout strong{color:#e8fbff;text-shadow:0 0 9px #fff,0 0 34px #62bff0}
+.effect-storm-eye-domain .summon-persistent-card{border-radius:50% 5px 50% 5px / 14px 5px 14px 5px;border-color:#91d9ffb3;background:linear-gradient(120deg,#071a32f5,#1b4c77e9);box-shadow:0 12px 30px #000b,0 0 31px #62c0f43c}
+
+@keyframes ink-raven-sweep{0%,100%{transform:translate(-50%,-50%) scale(.66) rotate(-7deg);opacity:.48}50%{transform:translate(-50%,-52%) scale(.74) rotate(7deg);opacity:.9}}
+@keyframes ink-raven-glyph{0%,100%{transform:translate(-50%,-50%) scale(.95);opacity:.2}50%{transform:translate(-50%,-52%) scale(1.06);opacity:.42}}
+@keyframes ghost-blade-cross{0%,100%{transform:translate(-50%,-50%) scale(.68) rotate(-8deg);opacity:.45}48%{transform:translate(-50%,-50%) scale(.75) rotate(8deg);opacity:1}}
+@keyframes ghost-blade-glyph{0%,100%{transform:translate(-50%,-50%) skewX(-4deg);opacity:.2}40%{transform:translate(-48%,-52%) skewX(5deg);opacity:.44}}
+@keyframes starless-collapse{0%,100%{transform:translate(-50%,-50%) scale(.76) rotate(0);opacity:.42}50%{transform:translate(-50%,-50%) scale(.59) rotate(180deg);opacity:.82}}
+@keyframes starless-breathe{0%,100%{transform:translate(-50%,-50%) scale(.97);opacity:.16}50%{transform:translate(-50%,-50%) scale(1.03);opacity:.34}}
+@keyframes cloud-wind-drift{0%,100%{transform:translate(-53%,-50%) scale(.68);opacity:.43}50%{transform:translate(-47%,-54%) scale(.74);opacity:.9}}
+@keyframes cloud-wind-glyph{0%,100%{transform:translate(-53%,-50%) rotate(-2deg);opacity:.2}50%{transform:translate(-47%,-54%) rotate(2deg);opacity:.4}}
+@keyframes bamboo-leaf-wheel{to{transform:translate(-50%,-50%) scale(.7) rotate(360deg)}}
+@keyframes bamboo-glyph{0%,100%{transform:translate(-50%,-50%) rotate(-2deg);opacity:.2}50%{transform:translate(-50%,-53%) rotate(2deg);opacity:.43}}
+@keyframes storm-eye-spin{to{transform:translate(-50%,-50%) scale(.7) rotate(360deg)}}
+@keyframes storm-eye-glyph{0%,100%{transform:translate(-50%,-50%) scale(.94);opacity:.18}50%{transform:translate(-50%,-50%) scale(1.08);opacity:.44}}
+
+@media(max-width:760px){
+  .effect-ink-raven-raid .summon-persistent-field>i,.effect-ghost-blade-step .summon-persistent-field>i,.effect-cloud-wind-domain .summon-persistent-field>i,.effect-bamboo-wind-domain .summon-persistent-field>i,.effect-storm-eye-domain .summon-persistent-field>i{width:94vmin}
+  .effect-starless-shadow .summon-persistent-field>i{width:88vmin}
+  .effect-ink-raven-raid .summon-persistent-field>b,.effect-ghost-blade-step .summon-persistent-field>b,.effect-starless-shadow .summon-persistent-field>b,.effect-cloud-wind-domain .summon-persistent-field>b,.effect-bamboo-wind-domain .summon-persistent-field>b,.effect-storm-eye-domain .summon-persistent-field>b{font-size:30vmin}
+  .effect-ghost-blade-step .summon-effect-callout p,.effect-bamboo-wind-domain .summon-effect-callout p{font-size:9px;letter-spacing:.055em}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .effect-ink-raven-raid .summon-persistent-field>i,.effect-ink-raven-raid .summon-persistent-field>b,
+  .effect-ghost-blade-step .summon-persistent-field>i,.effect-ghost-blade-step .summon-persistent-field>b,
+  .effect-starless-shadow .summon-persistent-field>i,.effect-starless-shadow .summon-persistent-field>b,
+  .effect-cloud-wind-domain .summon-persistent-field>i,.effect-cloud-wind-domain .summon-persistent-field>b,
+  .effect-bamboo-wind-domain .summon-persistent-field>i,.effect-bamboo-wind-domain .summon-persistent-field>b,
+  .effect-storm-eye-domain .summon-persistent-field>i,.effect-storm-eye-domain .summon-persistent-field>b{animation:none}
+  .effect-ink-raven-raid .summon-persistent-field>i,.effect-ghost-blade-step .summon-persistent-field>i,.effect-starless-shadow .summon-persistent-field>i,.effect-cloud-wind-domain .summon-persistent-field>i,.effect-bamboo-wind-domain .summon-persistent-field>i,.effect-storm-eye-domain .summon-persistent-field>i{opacity:.62;transform:translate(-50%,-50%) scale(.7)}
+  .effect-ink-raven-raid .summon-persistent-field>b,.effect-ghost-blade-step .summon-persistent-field>b,.effect-starless-shadow .summon-persistent-field>b,.effect-cloud-wind-domain .summon-persistent-field>b,.effect-bamboo-wind-domain .summon-persistent-field>b,.effect-storm-eye-domain .summon-persistent-field>b{opacity:.28;transform:translate(-50%,-50%)}
+}

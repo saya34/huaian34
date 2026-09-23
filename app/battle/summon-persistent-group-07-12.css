@@ -1,0 +1,103 @@
+/* Persistent summon effects 07-12: field identity, callout hierarchy, and compact card continuation. */
+.summon-persistent-vfx.effect-silver-moon-lotus{
+  --persistent-primary:#d8f7ff;--persistent-secondary:#759edb;--persistent-accent:#fff;--persistent-shadow:#07172e;
+}
+.summon-persistent-vfx.effect-silver-moon-lotus::before{background:radial-gradient(circle at 50% 18%,#eefcff25 0 9%,#7fa9dc0c 26%,transparent 47%),linear-gradient(180deg,transparent 28%,#061a384a 100%)}
+.effect-silver-moon-lotus .summon-persistent-field>i{top:58%;border-color:#d8f7ff4d;box-shadow:inset 0 0 54px #b9eaff0e,0 0 30px #87b9ff26;transform:translate(-50%,-50%) scale(.7) rotate(45deg)}
+.effect-silver-moon-lotus .summon-persistent-field>i:nth-child(2){border-style:solid;border-radius:12% 50%;animation-name:persistent-ice-lotus-turn}
+.effect-silver-moon-lotus .summon-persistent-field>i:nth-child(3){border-radius:50% 12%;animation-name:persistent-ice-lotus-turn;animation-direction:reverse}
+.effect-silver-moon-lotus .summon-effect-callout{border-color:#d8f7ff9c;background:linear-gradient(90deg,transparent,#07172ee6 18%,#193d68e8 50%,#07172ee6 82%,transparent);box-shadow:0 0 38px #8ddfff25}
+.effect-silver-moon-lotus .summon-effect-callout strong{color:#f3fdff;text-shadow:0 0 8px #fff,0 0 28px #6ebdff}
+.effect-silver-moon-lotus .summon-persistent-card{border-radius:4px 18px 4px 18px;background:linear-gradient(120deg,#07172ef2,#244f78e5);box-shadow:0 12px 30px #000a,0 0 24px #9beaff32}
+
+.summon-persistent-vfx.effect-azure-ice-lotus{
+  --persistent-primary:#9fffe4;--persistent-secondary:#46b9c5;--persistent-accent:#efffff;--persistent-shadow:#062a29;
+}
+.summon-persistent-vfx.effect-azure-ice-lotus::before{background:radial-gradient(ellipse at 50% 78%,#8ffff02b,transparent 42%),linear-gradient(0deg,#0528274f,transparent 54%)}
+.effect-azure-ice-lotus .summon-persistent-field>i{top:76%;width:min(68vmin,580px);aspect-ratio:2.8;border-color:#9fffe45c;box-shadow:inset 0 0 48px #a4ffe411,0 0 26px #6affd92b}
+.effect-azure-ice-lotus .summon-persistent-field>i:nth-child(2){width:min(48vmin,410px);border-style:solid;animation-name:persistent-healing-breathe;animation-duration:4.8s}
+.effect-azure-ice-lotus .summon-persistent-field>i:nth-child(3){width:min(30vmin,260px);animation-name:persistent-healing-breathe;animation-duration:3.4s;animation-delay:-1.1s}
+.effect-azure-ice-lotus .summon-persistent-field>b{top:72%;color:#b5ffef66;text-shadow:0 0 32px #68ffe4}
+.effect-azure-ice-lotus .summon-effect-callout{border-color:#a8ffeaa6;background:linear-gradient(90deg,transparent,#062a29e8 16%,#0e5b5ae3 50%,#062a29e8 84%,transparent);box-shadow:0 0 42px #78ffe42b}
+.effect-azure-ice-lotus .summon-effect-callout strong{color:#eafff9;text-shadow:0 0 10px #dffff5,0 0 26px #48e8ce}
+.effect-azure-ice-lotus .summon-persistent-card{border-radius:22px 4px 22px 4px;background:linear-gradient(125deg,#062a29f2,#147071e6);box-shadow:0 12px 30px #0009,0 0 26px #71ffe230}
+
+.summon-persistent-vfx.effect-snow-crane-ward{
+  --persistent-primary:#eefcff;--persistent-secondary:#9fbad8;--persistent-accent:#fff;--persistent-shadow:#111d31;
+}
+.summon-persistent-vfx.effect-snow-crane-ward::before{background:radial-gradient(ellipse at 50% 56%,#f3fdff20,transparent 38%),linear-gradient(135deg,transparent 36%,#dff7ff0b 50%,transparent 64%)}
+.effect-snow-crane-ward .summon-persistent-field>i{top:54%;width:min(62vmin,520px);aspect-ratio:2.35;border:0;border-block:1px solid #eefcff52;border-radius:50% 12%;box-shadow:0 -18px 36px #dff8ff14;animation-name:persistent-crane-wing;animation-duration:4.2s}
+.effect-snow-crane-ward .summon-persistent-field>i:nth-child(2){transform:translate(-50%,-50%) scale(.7) rotate(180deg);animation-direction:reverse;animation-delay:-1.2s}
+.effect-snow-crane-ward .summon-persistent-field>i:nth-child(3){top:64%;width:min(44vmin,360px);border-style:solid;border-radius:50%;animation-name:persistent-feather-halo;animation-duration:8s}
+.effect-snow-crane-ward .summon-persistent-field>b{color:#f6ffff66}
+.effect-snow-crane-ward .summon-effect-callout{border-color:#fff9;background:linear-gradient(90deg,transparent,#111d31e8 17%,#344b67e0 50%,#111d31e8 83%,transparent)}
+.effect-snow-crane-ward .summon-effect-callout strong{color:#fff;text-shadow:0 0 9px #fff,0 0 30px #b9ddff}
+.effect-snow-crane-ward .summon-persistent-card{border-radius:3px 24px 3px 24px;background:linear-gradient(115deg,#111d31f2,#41566de8);box-shadow:0 12px 30px #0009,0 0 26px #e8fbff29}
+
+.summon-persistent-vfx.effect-vajra-golden-dome{
+  --persistent-primary:#ffd978;--persistent-secondary:#b87427;--persistent-accent:#fff4bd;--persistent-shadow:#2e1d08;
+}
+.summon-persistent-vfx.effect-vajra-golden-dome::before{background:radial-gradient(ellipse at 50% 88%,#ffd76b22 0 22%,transparent 58%),linear-gradient(180deg,transparent 25%,#4125003f 100%)}
+.effect-vajra-golden-dome .summon-persistent-field>i{top:87%;width:min(88vmin,760px);aspect-ratio:1;border:3px double #ffd97866;border-bottom-color:transparent;box-shadow:inset 0 0 68px #ffcf5114,0 0 32px #ffbd3e29;clip-path:inset(0 0 50% 0);animation-name:persistent-dome-breathe;animation-duration:4.6s}
+.effect-vajra-golden-dome .summon-persistent-field>i:nth-child(2){width:min(70vmin,610px);border-style:dashed;animation-duration:9s}
+.effect-vajra-golden-dome .summon-persistent-field>i:nth-child(3){width:min(49vmin,420px);border-style:solid;animation-duration:6.4s;animation-direction:reverse}
+.effect-vajra-golden-dome .summon-persistent-field>b{top:55%;color:#ffd9785c;text-shadow:0 0 18px #fff2ac,0 0 44px #f7a51f}
+.effect-vajra-golden-dome .summon-effect-callout{border-color:#ffd978ac;background:linear-gradient(90deg,transparent,#2e1d08e9 15%,#6a3e0ee5 50%,#2e1d08e9 85%,transparent);box-shadow:0 0 48px #ffc3482e}
+.effect-vajra-golden-dome .summon-effect-callout strong{color:#fff4bd;text-shadow:0 0 9px #fff2a8,0 0 30px #f5a51f}
+.effect-vajra-golden-dome .summon-persistent-card{border:1px double #ffd978;border-right-width:4px;background:linear-gradient(115deg,#2e1d08f5,#75420de8);box-shadow:0 12px 30px #000a,0 0 28px #ffbd3b36}
+
+.summon-persistent-vfx.effect-black-tortoise-shell{
+  --persistent-primary:#8fc9bb;--persistent-secondary:#274f55;--persistent-accent:#e8ffe7;--persistent-shadow:#061819;
+}
+.summon-persistent-vfx.effect-black-tortoise-shell::before{background:radial-gradient(ellipse at 50% 72%,#8fc9bb1d 0 25%,transparent 62%),linear-gradient(0deg,#071a1b66,transparent 62%)}
+.effect-black-tortoise-shell .summon-persistent-field>i{top:64%;width:min(76vmin,650px);aspect-ratio:1.42;border:2px solid #8fc9bb52;border-radius:45% 45% 30% 30%;clip-path:polygon(50% 0,91% 24%,100% 68%,75% 100%,25% 100%,0 68%,9% 24%);box-shadow:inset 0 0 72px #4b9d8c12,0 0 28px #7ddcc425;animation-name:persistent-shell-pulse;animation-duration:5.8s}
+.effect-black-tortoise-shell .summon-persistent-field>i:nth-child(2){width:min(56vmin,480px);border-style:dashed;animation-delay:-1.8s}
+.effect-black-tortoise-shell .summon-persistent-field>i:nth-child(3){width:min(37vmin,320px);border-color:#e8ffe75c;animation-delay:-3.6s}
+.effect-black-tortoise-shell .summon-persistent-field>b{top:59%;color:#9fe1d05c;text-shadow:0 0 12px #dfffe8,0 0 42px #39766e}
+.effect-black-tortoise-shell .summon-effect-callout{border-color:#8fc9bba6;background:linear-gradient(90deg,transparent,#061819ed 14%,#173e40e5 50%,#061819ed 86%,transparent);box-shadow:0 0 44px #78c9b525}
+.effect-black-tortoise-shell .summon-effect-callout strong{color:#e8ffe7;text-shadow:0 0 9px #dcffe9,0 0 30px #5fb3a0}
+.effect-black-tortoise-shell .summon-persistent-card{border-radius:14px 14px 4px 4px;border-bottom:3px solid #8fc9bb;background:linear-gradient(120deg,#061819f5,#21494be8);box-shadow:0 12px 30px #000a,0 0 25px #78c9b52b}
+
+.summon-persistent-vfx.effect-sun-wheel-sanctuary{
+  --persistent-primary:#ffe38b;--persistent-secondary:#e8682c;--persistent-accent:#fffbe0;--persistent-shadow:#351703;
+}
+.summon-persistent-vfx.effect-sun-wheel-sanctuary::before{background:radial-gradient(circle at 50% 25%,#fffbd744 0 7%,#ffb32d17 24%,transparent 51%),linear-gradient(180deg,#ff9d180d,transparent 63%)}
+.effect-sun-wheel-sanctuary .summon-persistent-field>i{top:28%;width:min(47vmin,400px);border:2px solid #ffe38b70;box-shadow:inset 0 0 48px #fff2a91f,0 0 42px #ff9e2a40;animation-name:persistent-sun-wheel;animation-duration:12s}
+.effect-sun-wheel-sanctuary .summon-persistent-field>i:nth-child(2){width:min(35vmin,300px);border:1px dashed #fffbe092;animation-duration:7s;animation-direction:reverse}
+.effect-sun-wheel-sanctuary .summon-persistent-field>i:nth-child(3){width:min(24vmin,205px);border:3px double #ffe38b8c;animation-duration:4.4s}
+.effect-sun-wheel-sanctuary .summon-persistent-field>b{top:28%;color:#fff4a473;text-shadow:0 0 14px #fffbdc,0 0 46px #ff9d2c}
+.effect-sun-wheel-sanctuary .summon-effect-callout{border-color:#ffe38bb5;background:linear-gradient(90deg,transparent,#351703eb 14%,#923c0bdf 50%,#351703eb 86%,transparent);box-shadow:0 0 52px #ff9d2e38}
+.effect-sun-wheel-sanctuary .summon-effect-callout strong{color:#fffbe0;text-shadow:0 0 9px #fff,0 0 31px #ffb027}
+.effect-sun-wheel-sanctuary .summon-persistent-card{border-radius:20px 4px 20px 4px;border-right-color:#ffe38b;background:linear-gradient(118deg,#351703f3,#82320de8);box-shadow:0 12px 30px #0009,0 0 30px #ffb1263b}
+
+@keyframes persistent-ice-lotus-turn{to{transform:translate(-50%,-50%) scale(.7) rotate(405deg)}}
+@keyframes persistent-healing-breathe{0%,100%{transform:translate(-50%,-50%) scale(.63);opacity:.38}50%{transform:translate(-50%,-50%) scale(.78);opacity:.95}}
+@keyframes persistent-crane-wing{0%,100%{transform:translate(-50%,-50%) scale(.66) rotate(-5deg)}50%{transform:translate(-50%,-54%) scale(.74) rotate(5deg)}}
+@keyframes persistent-feather-halo{to{transform:translate(-50%,-50%) scale(.7) rotate(360deg)}}
+@keyframes persistent-dome-breathe{0%,100%{transform:translate(-50%,-50%) scale(.68);opacity:.68}50%{transform:translate(-50%,-51%) scale(.72);opacity:1}}
+@keyframes persistent-shell-pulse{0%,100%{transform:translate(-50%,-50%) scale(.68);opacity:.62}50%{transform:translate(-50%,-50%) scale(.73);opacity:.95}}
+@keyframes persistent-sun-wheel{to{transform:translate(-50%,-50%) scale(.7) rotate(360deg)}}
+
+@media(max-width:760px){
+  .effect-silver-moon-lotus .summon-persistent-field>i{top:60%;width:78vmin}
+  .effect-azure-ice-lotus .summon-persistent-field>i{top:79%;width:74vmin}
+  .effect-snow-crane-ward .summon-persistent-field>i{width:70vmin}
+  .effect-vajra-golden-dome .summon-persistent-field>i{top:88%;width:92vmin}
+  .effect-black-tortoise-shell .summon-persistent-field>i{width:82vmin}
+  .effect-sun-wheel-sanctuary .summon-persistent-field>i{top:25%;width:54vmin}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .effect-silver-moon-lotus .summon-persistent-field>i,
+  .effect-azure-ice-lotus .summon-persistent-field>i,
+  .effect-snow-crane-ward .summon-persistent-field>i,
+  .effect-vajra-golden-dome .summon-persistent-field>i,
+  .effect-black-tortoise-shell .summon-persistent-field>i,
+  .effect-sun-wheel-sanctuary .summon-persistent-field>i{animation:none;opacity:.72}
+  .effect-silver-moon-lotus .summon-persistent-card,
+  .effect-azure-ice-lotus .summon-persistent-card,
+  .effect-snow-crane-ward .summon-persistent-card,
+  .effect-vajra-golden-dome .summon-persistent-card,
+  .effect-black-tortoise-shell .summon-persistent-card,
+  .effect-sun-wheel-sanctuary .summon-persistent-card{transition:none}
+}

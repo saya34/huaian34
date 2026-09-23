@@ -24,6 +24,8 @@ export type UnifiedItemStack = {
   rarity: UnifiedRarity;
   amount: number;
   sourceTags: string[];
+  /** Monotonic acquisition order. Refreshes whenever this stack gains items. */
+  lastAcquiredAt?: number;
   locked?: boolean;
   quality?: string;
   mutation?: string;

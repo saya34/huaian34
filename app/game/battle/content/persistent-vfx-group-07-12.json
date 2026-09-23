@@ -1,0 +1,68 @@
+[
+  {
+    "effectId": "silver-moon-lotus",
+    "effectText": "月魄冰莲",
+    "mechanicText": "冻结全场 4.2 秒 · 九次碎冰持续伤害",
+    "glyph": "霜",
+    "particleKind": "snow",
+    "particleCount": 68,
+    "fieldClass": "effect-silver-moon-lotus",
+    "centerDurationMs": 3200,
+    "cardDurationMs": 9000
+  },
+  {
+    "effectId": "azure-ice-lotus",
+    "effectText": "青璃净莲",
+    "mechanicText": "持续 30 秒回复生命 · 3 秒无敌 · 攻速 +35%",
+    "glyph": "莲",
+    "particleKind": "petal",
+    "particleCount": 58,
+    "fieldClass": "effect-azure-ice-lotus",
+    "centerDurationMs": 3100,
+    "cardDurationMs": 9000
+  },
+  {
+    "effectId": "snow-crane-ward",
+    "effectText": "雪鹤羽阵",
+    "mechanicText": "20 秒完全免伤 · 移动速度 +45%",
+    "glyph": "鹤",
+    "particleKind": "feather",
+    "particleCount": 48,
+    "fieldClass": "effect-snow-crane-ward",
+    "centerDurationMs": 3000,
+    "cardDurationMs": 9000
+  },
+  {
+    "effectId": "vajra-golden-dome",
+    "effectText": "无相金钟",
+    "mechanicText": "20 秒完全免伤 · 六次全场震伤 · 伤害 +35%",
+    "glyph": "护",
+    "particleKind": "rune",
+    "particleCount": 52,
+    "fieldClass": "effect-vajra-golden-dome",
+    "centerDurationMs": 3300,
+    "cardDurationMs": 9500
+  },
+  {
+    "effectId": "black-tortoise-shell",
+    "effectText": "玄武龟甲",
+    "mechanicText": "12 秒完全免伤 · 十六次生命回复 · 伤害 +60%",
+    "glyph": "玄",
+    "particleKind": "shard",
+    "particleCount": 44,
+    "fieldClass": "effect-black-tortoise-shell",
+    "centerDurationMs": 3300,
+    "cardDurationMs": 9500
+  },
+  {
+    "effectId": "sun-wheel-sanctuary",
+    "effectText": "大日日轮",
+    "mechanicText": "25 秒攻击翻倍 · 攻速 +55% · 移速 +25%",
+    "glyph": "曜",
+    "particleKind": "spark",
+    "particleCount": 64,
+    "fieldClass": "effect-sun-wheel-sanctuary",
+    "centerDurationMs": 3200,
+    "cardDurationMs": 9500
+  }
+]

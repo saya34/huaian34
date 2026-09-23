@@ -7,6 +7,7 @@ import {
   ContainerKind,
   EXPEDITION_PHASES,
   LootOffer,
+  PARTNERS,
   PartnerDefinition,
   PlacedTreasure,
   RARITY_META,
@@ -62,6 +63,10 @@ import { lockBattleSession, type LockedBattleSession } from "./run-session";
 import { CardSystem, CharacterProgression, EquipmentSystem, SkillStudySystem, WeaponManager } from "./BattleManagementPanels";
 import { InventoryGrid, RunEquipmentGrid, writeTreasureDrag, type HeldTreasure } from "./BattleInventoryPanels";
 import { skillArtwork, skillVisual } from "./skill-art";
+import { SummonCinematic } from "./SummonCinematic";
+import { SummonPersistentVfx } from "./SummonPersistentVfx";
+import { resolveSummonEffect, summonEffectDuration, type SummonEffectDefinition } from "./summon-effects";
+import { SUMMON_SHOWCASE_CARDS } from "./summon-showcase";
 
 type Screen = "loading" | "menu" | "preparing" | "battle" | "result";
 type BattleCeremony = {
@@ -131,8 +136,9 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
   const [phaseAlert, setPhaseAlert] = useState<{ name: string; subtitle: string } | null>(null);
   const [battleCeremony, setBattleCeremony] = useState<BattleCeremony | null>(null);
   const [preparedSupplyName, setPreparedSupplyName] = useState<string | undefined>();
-  const [partnerCast, setPartnerCast] = useState<{ partner: PartnerDefinition; resonance: boolean } | null>(null);
+  const [partnerCast, setPartnerCast] = useState<{ partner: PartnerDefinition; resonance: boolean; effect: SummonEffectDefinition } | null>(null);
   const [cardChoices, setCardChoices] = useState<UnifiedCardInstance[]>([]);
+  const [summonShowcaseOpen, setSummonShowcaseOpen] = useState(false);
   const [heldTreasure, setHeldTreasure] = useState<HeldTreasure | null>(null);
   const [heldPointer, setHeldPointer] = useState({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -143,6 +149,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
   const [joystickKnob, setJoystickKnob] = useState({ x: 0, y: 0 });
   const phaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const partnerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSummonCardRef = useRef<{ card: UnifiedCardInstance; effect: SummonEffectDefinition } | null>(null);
   const ceremonyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const announcedBossRef = useRef<string | null>(null);
   const runSessionRef = useRef<LockedBattleSession | null>(null);
@@ -203,6 +210,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
       if (ceremonyTimer.current) clearTimeout(ceremonyTimer.current);
       runSessionRef.current = null;
       settledSessionRef.current = null;
+      pendingSummonCardRef.current = null;
     };
   }, [autoStart]);
 
@@ -220,6 +228,13 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
     toastTimer.current = setTimeout(() => setToast(""), 1500);
   }, []);
 
+  const playSummonCinematic = useCallback((partner: PartnerDefinition, resonance: boolean, card?: UnifiedCardInstance | null, resolvedEffect?: SummonEffectDefinition) => {
+    const effect = resolvedEffect ?? resolveSummonEffect(card, partner, resonance);
+    setPartnerCast({ partner, resonance, effect });
+    if (partnerTimer.current) clearTimeout(partnerTimer.current);
+    partnerTimer.current = setTimeout(() => setPartnerCast(null), summonEffectDuration(effect, resonance) + effect.gameplay.durationSeconds * 1000 + 700);
+  }, []);
+
   const requestCardSummon = useCallback(() => {
     const equippedIds = new Set(meta.cardSlots.slice(0, meta.cardSlotCount).filter(Boolean));
     const equippedPool = unifiedState.shared.cards.filter((card) => card.mode === "active" && equippedIds.has(card.id));
@@ -232,9 +247,24 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
   const chooseCardSummon = (card: UnifiedCardInstance) => {
     const partnerId = card.activeEffect === "healing" ? "pill-fairy" : card.activeEffect === "ward" ? "vajra-monk" : card.activeEffect === "frost" ? "moon-demon" : card.activeEffect === "assault" ? "thunder-lord" : "sword-sister";
     const [name, ...titleParts] = card.name.split("·");
+    const partner = { ...basePartnerForCard(card), name, title: titleParts.join("·") || "命格显化", art: card.art };
+    const effect = resolveSummonEffect(card, partner, false);
     setCardChoices([]);
+    pendingSummonCardRef.current = { card, effect };
     engineRef.current?.setInventoryPaused(false);
-    engineRef.current?.summonPartner(partnerId, { name, title: titleParts.join("·") || "命格显化", art: card.art });
+    engineRef.current?.summonPartner(partnerId, { name, title: titleParts.join("·") || "命格显化", art: card.art }, effect.gameplay, summonEffectDuration(effect, false) / 1000 * .88);
+  };
+
+  const testCardSummon = (card: UnifiedCardInstance) => {
+    const partnerId = card.activeEffect === "healing" ? "pill-fairy" : card.activeEffect === "ward" ? "vajra-monk" : card.activeEffect === "frost" ? "moon-demon" : card.activeEffect === "assault" ? "thunder-lord" : "sword-sister";
+    const basePartner = PARTNERS.find((partner) => partner.id === partnerId) ?? PARTNERS[0];
+    const [name, ...titleParts] = card.name.split("·");
+    const partner = { ...basePartner, name, title: titleParts.join("·") || "命格显化", art: card.art };
+    const effect = resolveSummonEffect(card, partner, false);
+    setSummonShowcaseOpen(false);
+    engineRef.current?.setInventoryPaused(false);
+    engineRef.current?.testSummonEffect(effect.gameplay, summonEffectDuration(effect, false) / 1000 * .88);
+    playSummonCinematic(partner, false, card, effect);
   };
 
   const beginBattle = useCallback(async () => {
@@ -315,9 +345,9 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
       onLoot: setLoot,
       onPartnerRequest: requestCardSummon,
       onPartner: (partner, resonance) => {
-        setPartnerCast({ partner, resonance });
-        if (partnerTimer.current) clearTimeout(partnerTimer.current);
-        partnerTimer.current = setTimeout(() => setPartnerCast(null), resonance ? 2400 : 1200);
+        const pending = pendingSummonCardRef.current;
+        pendingSummonCardRef.current = null;
+        playSummonCinematic(partner, resonance, pending?.card, pending?.effect);
       },
     });
     engineRef.current = engine;
@@ -350,7 +380,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
       setError(reason instanceof Error ? reason.message : "战场初始化失败");
       setScreen("menu");
     }
-  }, [applyEffects, data, feedback, heroId, mapId, meta, permanentAttributes, permanentTraits, requestCardSummon, setMeta, showToast, unifiedState.shared.items, unifiedState.shared.luck, waveId]);
+  }, [applyEffects, data, feedback, heroId, mapId, meta, permanentAttributes, permanentTraits, playSummonCinematic, requestCardSummon, setMeta, showToast, unifiedState.shared.items, unifiedState.shared.luck, waveId]);
 
   useEffect(() => {
     if (screen === "preparing") {
@@ -632,6 +662,10 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
             </button>
           </div>
 
+          <button className="summon-showcase-trigger" onClick={() => { engineRef.current?.setInventoryPaused(true); setSummonShowcaseOpen(true); }}>
+            <i>演</i><span>特效试炼</span><small>无灵气消耗</small>
+          </button>
+
           {snapshot.extraction && (
             <div className="extraction-compass">
               <i style={{ transform: `rotate(${snapshot.extraction.angle}rad)` }}>➤</i>
@@ -810,24 +844,10 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
         </div>
       )}
 
-      {partnerCast && screen === "battle" && (
-        <>
-          <div className={`partner-world-effect power-${partnerCast.partner.power} ${partnerCast.resonance ? "resonance" : ""}`}>
-            <div className="world-effect-core" />
-            <div className="world-effect-runes" />
-            <div className="world-effect-strike" />
-          </div>
-          <div className={`partner-cast power-${partnerCast.partner.power} ${partnerCast.resonance ? "resonance" : ""}`}>
-            <div className="partner-ink" />
-            <img src={partnerCast.partner.art} alt={partnerCast.partner.name} />
-            <div>
-              <small>{partnerCast.resonance ? `同源共鸣 · ${partnerCast.partner.tag}` : `${partnerCast.partner.tag}系伙伴`}</small>
-              <h3>{partnerCast.partner.name}</h3>
-              <strong>{partnerCast.partner.title}</strong>
-            </div>
-          </div>
-        </>
-      )}
+      {partnerCast && screen === "battle" && <>
+        <SummonCinematic partner={partnerCast.partner} resonance={partnerCast.resonance} effect={partnerCast.effect} />
+        <SummonPersistentVfx partner={partnerCast.partner} resonance={partnerCast.resonance} effect={partnerCast.effect} />
+      </>}
 
       {heldTreasure && (loot || bagOpen) && (
         <div
@@ -988,10 +1008,28 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
       {cardChoices.length > 0 && <section className="card-choice-overlay" aria-label="选择人物卡">
         <div className="card-choice-panel"><small>太虚名册 · 元气已满</small><h2>择一人入梦相助</h2><div className="card-choice-grid">{cardChoices.map((card) => <button key={card.id} onClick={() => chooseCardSummon(card)}><img src={card.art} alt="" /><span><b>{card.name}</b><em>{card.rarity >= 7 ? "神品" : card.rarity >= 6 ? "仙品" : "人物卡"}</em></span></button>)}</div></div>
       </section>}
+      {summonShowcaseOpen && <section className="summon-showcase-overlay" aria-label="召灵特效试炼">
+        <div className="summon-showcase-panel">
+          <header><div><small>TAIXU SHOWCASE · 30 / 30</small><h2>召灵演出试炼</h2><p>选取人物卡可直接施放；不消耗灵气，并会测试真实伤害、护体或增益效果。</p></div><button type="button" onClick={() => { setSummonShowcaseOpen(false); engineRef.current?.setInventoryPaused(false); }} aria-label="关闭特效试炼">×</button></header>
+          <div className="summon-showcase-grid">{SUMMON_SHOWCASE_CARDS.map((card, index) => {
+            const previewPartner = PARTNERS.find((partner) => partner.id === (card.activeEffect === "healing" ? "pill-fairy" : card.activeEffect === "ward" ? "vajra-monk" : card.activeEffect === "frost" ? "moon-demon" : card.activeEffect === "assault" ? "thunder-lord" : "sword-sister")) ?? PARTNERS[0];
+            const effect = resolveSummonEffect(card, previewPartner, false);
+            return <button type="button" key={card.id} style={{ "--showcase-accent": effect.palette.primary, "--showcase-order": index } as CSSProperties} onClick={() => testCardSummon(card)}>
+              <span className="summon-showcase-art">{/* Showcase portraits use local full-frame art and do not benefit from image optimization. */}{/* eslint-disable-next-line @next/next/no-img-element */}<img src={card.art} alt="" /><b>{String(index + 1).padStart(2, "0")}</b><em>{effect.glyph}</em></span>
+              <span className="summon-showcase-copy"><small>{effect.categoryLabel}</small><strong>{card.name.split("·")[0]}</strong><i>{effect.name}</i></span>
+            </button>;
+          })}</div>
+        </div>
+      </section>}
       </main>
   );
 }
 
 function clampWave(waveId: number) {
   return Math.max(1, Math.min(21, waveId));
+}
+
+function basePartnerForCard(card: UnifiedCardInstance) {
+  const partnerId = card.activeEffect === "healing" ? "pill-fairy" : card.activeEffect === "ward" ? "vajra-monk" : card.activeEffect === "frost" ? "moon-demon" : card.activeEffect === "assault" ? "thunder-lord" : "sword-sister";
+  return PARTNERS.find((partner) => partner.id === partnerId) ?? PARTNERS[0];
 }

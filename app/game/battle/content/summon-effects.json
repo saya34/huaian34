@@ -1,0 +1,54 @@
+{
+  "durationMs": 2300,
+  "exactBindings": {
+    "story-shen-sword-1": "frost-sword-heaven"
+  },
+  "skillPools": {
+    "sword": ["frost-sword-heaven", "blood-moon-cleave", "jade-gale-blades", "ink-raven-raid", "jade-dragon-rise", "north-star-array", "vermilion-chi-dragon"],
+    "assault": ["violet-tribulation", "cyan-thunder-chain", "golden-heaven-strike", "vermillion-phoenix", "ghost-blade-step", "falling-comet-array", "seven-star-execution"],
+    "healing": ["spring-return-bloom", "ninefold-pill-flame", "moon-dew-revival", "azure-ice-lotus", "bamboo-wind-domain", "white-phoenix-nirvana", "emerald-phoenix-song"],
+    "ward": ["vajra-golden-dome", "black-tortoise-shell", "sun-wheel-sanctuary", "snow-crane-ward", "white-phoenix-nirvana", "black-tide-dragon", "cloud-wind-domain"],
+    "frost": ["silver-moon-lotus", "azure-ice-lotus", "snow-crane-ward", "cyan-thunder-chain", "north-star-array", "starless-shadow", "storm-eye-domain"]
+  },
+  "variants": [
+    {"id":"frost-sword-heaven","template":"sword-rift","category":"attack","categoryLabel":"斩击 · 全屏肃清","name":"霜华裂天","incantation":"一剑照雪，万邪俱寂","glyph":"剑","particle":"shard","particleCount":52,"intensity":1.08,"shake":0.74,"palette":{"primary":"#bceeff","secondary":"#5f9fff","accent":"#ffffff","shadow":"#071d2b"}},
+    {"id":"blood-moon-cleave","template":"sword-rift","category":"attack","categoryLabel":"斩击 · 重创","name":"血月断潮","incantation":"月赤如刃，断尽妖潮","glyph":"斩","particle":"spark","particleCount":46,"intensity":1.15,"shake":0.88,"palette":{"primary":"#ff6c64","secondary":"#8b1630","accent":"#ffe1bd","shadow":"#28070d"}},
+    {"id":"jade-gale-blades","template":"sword-rift","category":"attack","categoryLabel":"斩击 · 连刃","name":"碧岚千刃","incantation":"风过竹海，皆成飞剑","glyph":"刃","particle":"leaf","particleCount":58,"intensity":0.96,"shake":0.56,"palette":{"primary":"#8ff2c4","secondary":"#2b9b83","accent":"#efffd2","shadow":"#09251e"}},
+
+    {"id":"violet-tribulation","template":"thunder-seal","category":"attack","categoryLabel":"雷法 · 精英追击","name":"紫霄天劫","incantation":"九霄垂怒，雷殛群魔","glyph":"雷","particle":"spark","particleCount":58,"intensity":1.2,"shake":0.92,"palette":{"primary":"#c69cff","secondary":"#6554ff","accent":"#f8f4ff","shadow":"#150b35"}},
+    {"id":"cyan-thunder-chain","template":"thunder-seal","category":"control","categoryLabel":"雷法 · 连锁禁锢","name":"青霆锁妖","incantation":"青电成锁，无处遁形","glyph":"霆","particle":"rune","particleCount":44,"intensity":1.02,"shake":0.68,"palette":{"primary":"#7ff5ff","secondary":"#2087c7","accent":"#eaffff","shadow":"#051c2c"}},
+    {"id":"golden-heaven-strike","template":"thunder-seal","category":"attack","categoryLabel":"雷法 · 天罚","name":"金阙神雷","incantation":"金阙开门，神雷问罪","glyph":"罚","particle":"spark","particleCount":48,"intensity":1.12,"shake":0.84,"palette":{"primary":"#ffe079","secondary":"#d07921","accent":"#fff8d6","shadow":"#2f1b05"}},
+
+    {"id":"silver-moon-lotus","template":"frost-lotus","category":"control","categoryLabel":"寒法 · 全场冻结","name":"月魄冰莲","incantation":"莲开霜境，万籁无声","glyph":"霜","particle":"snow","particleCount":64,"intensity":1.02,"shake":0.42,"palette":{"primary":"#d8f7ff","secondary":"#759edb","accent":"#ffffff","shadow":"#0a1b32"}},
+    {"id":"azure-ice-lotus","template":"frost-lotus","category":"healing","categoryLabel":"寒法 · 净化回元","name":"青璃净莲","incantation":"冰心不灭，清光自生","glyph":"莲","particle":"petal","particleCount":54,"intensity":0.92,"shake":0.3,"palette":{"primary":"#9fffe4","secondary":"#46b9c5","accent":"#eeffff","shadow":"#082a2a"}},
+    {"id":"snow-crane-ward","template":"frost-lotus","category":"protect","categoryLabel":"寒法 · 护体","name":"雪鹤守心","incantation":"鹤羽覆雪，道心无尘","glyph":"鹤","particle":"feather","particleCount":42,"intensity":0.9,"shake":0.24,"palette":{"primary":"#eefcff","secondary":"#9fbad8","accent":"#ffffff","shadow":"#142235"}},
+
+    {"id":"vajra-golden-dome","template":"golden-ward","category":"protect","categoryLabel":"护法 · 金身屏障","name":"无相金身","incantation":"金身不坏，诸邪退散","glyph":"护","particle":"rune","particleCount":40,"intensity":1.08,"shake":0.48,"palette":{"primary":"#ffd978","secondary":"#b87427","accent":"#fff4bd","shadow":"#2e1d08"}},
+    {"id":"black-tortoise-shell","template":"golden-ward","category":"protect","categoryLabel":"护法 · 减伤反震","name":"玄武镇岳","incantation":"玄甲负岳，不动如山","glyph":"玄","particle":"shard","particleCount":36,"intensity":1.0,"shake":0.58,"palette":{"primary":"#8fc9bb","secondary":"#274f55","accent":"#e8ffe7","shadow":"#071a1b"}},
+    {"id":"sun-wheel-sanctuary","template":"golden-ward","category":"buff","categoryLabel":"护法 · 攻守增幅","name":"大日轮光","incantation":"日轮高悬，百脉同明","glyph":"曜","particle":"spark","particleCount":46,"intensity":1.12,"shake":0.38,"palette":{"primary":"#ffe38b","secondary":"#e8682c","accent":"#fffbe0","shadow":"#351703"}},
+
+    {"id":"spring-return-bloom","template":"healing-bloom","category":"healing","categoryLabel":"回春 · 生命恢复","name":"青囊回春","incantation":"春风入脉，枯木生花","glyph":"生","particle":"petal","particleCount":62,"intensity":0.94,"shake":0.18,"palette":{"primary":"#9affb8","secondary":"#3aaf7c","accent":"#f3ffd5","shadow":"#09271b"}},
+    {"id":"ninefold-pill-flame","template":"healing-bloom","category":"buff","categoryLabel":"丹火 · 回元增幅","name":"九转丹霞","incantation":"丹火九转，真元再续","glyph":"丹","particle":"ember","particleCount":48,"intensity":1.0,"shake":0.3,"palette":{"primary":"#ffbc6c","secondary":"#da5260","accent":"#fff0b8","shadow":"#32100c"}},
+    {"id":"moon-dew-revival","template":"healing-bloom","category":"healing","categoryLabel":"月华 · 持续恢复","name":"月露凝生","incantation":"月露垂华，润泽灵台","glyph":"露","particle":"drop","particleCount":52,"intensity":0.86,"shake":0.12,"palette":{"primary":"#b7eaff","secondary":"#767be2","accent":"#f7f0ff","shadow":"#101435"}},
+
+    {"id":"vermillion-phoenix","template":"phoenix-descent","category":"attack","categoryLabel":"炎法 · 范围焚灭","name":"朱雀焚天","incantation":"南明离火，振翼燎原","glyph":"炎","particle":"ember","particleCount":70,"intensity":1.2,"shake":0.86,"palette":{"primary":"#ff814f","secondary":"#d5222d","accent":"#ffe08a","shadow":"#310704"}},
+    {"id":"emerald-phoenix-song","template":"phoenix-descent","category":"buff","categoryLabel":"灵火 · 迅捷增幅","name":"青鸾长鸣","incantation":"青羽乘风，灵脉同歌","glyph":"鸾","particle":"feather","particleCount":58,"intensity":0.98,"shake":0.36,"palette":{"primary":"#68f0c1","secondary":"#208da8","accent":"#e8ffaf","shadow":"#062526"}},
+    {"id":"white-phoenix-nirvana","template":"phoenix-descent","category":"protect","categoryLabel":"神火 · 涅槃庇护","name":"白凤涅槃","incantation":"一羽不灭，命火重燃","glyph":"凰","particle":"feather","particleCount":54,"intensity":1.06,"shake":0.46,"palette":{"primary":"#fff2d6","secondary":"#e0a1bc","accent":"#ffffff","shadow":"#291426"}},
+
+    {"id":"ink-raven-raid","template":"shadow-assault","category":"attack","categoryLabel":"影袭 · 多段穿杀","name":"墨鸦夜袭","incantation":"墨落无声，鸦过留刃","glyph":"影","particle":"ink","particleCount":58,"intensity":1.05,"shake":0.62,"palette":{"primary":"#b6a2e8","secondary":"#3f315e","accent":"#f0d9ff","shadow":"#05040a"}},
+    {"id":"ghost-blade-step","template":"shadow-assault","category":"attack","categoryLabel":"影袭 · 瞬身斩","name":"幽刃无踪","incantation":"身隐隙间，刃现身后","glyph":"幽","particle":"shard","particleCount":48,"intensity":1.12,"shake":0.78,"palette":{"primary":"#8de9dd","secondary":"#3c5184","accent":"#ffffff","shadow":"#050b15"}},
+    {"id":"starless-shadow","template":"shadow-assault","category":"debuff","categoryLabel":"影法 · 衰弱妖群","name":"无星长夜","incantation":"星光尽敛，妖念俱沉","glyph":"夜","particle":"mist","particleCount":40,"intensity":0.94,"shake":0.34,"palette":{"primary":"#787cae","secondary":"#26213c","accent":"#d8d5ff","shadow":"#020207"}},
+
+    {"id":"cloud-wind-domain","template":"wind-domain","category":"buff","categoryLabel":"风域 · 移速攻速","name":"流云御风","incantation":"云无定迹，风助我行","glyph":"风","particle":"mist","particleCount":52,"intensity":0.92,"shake":0.2,"palette":{"primary":"#c4fff0","secondary":"#5aa79d","accent":"#ffffff","shadow":"#0c2b29"}},
+    {"id":"bamboo-wind-domain","template":"wind-domain","category":"buff","categoryLabel":"风域 · 破甲增幅","name":"竹海听涛","incantation":"万叶同声，摧锋破甲","glyph":"竹","particle":"leaf","particleCount":68,"intensity":1.02,"shake":0.38,"palette":{"primary":"#9be384","secondary":"#34764b","accent":"#efffb6","shadow":"#0b2514"}},
+    {"id":"storm-eye-domain","template":"wind-domain","category":"control","categoryLabel":"风域 · 聚怪牵引","name":"归墟风眼","incantation":"风归一处，万物随旋","glyph":"旋","particle":"mist","particleCount":60,"intensity":1.12,"shake":0.54,"palette":{"primary":"#91d9ff","secondary":"#3569a0","accent":"#e8fbff","shadow":"#071a32"}},
+
+    {"id":"north-star-array","template":"starfall-array","category":"buff","categoryLabel":"星阵 · 命中增幅","name":"北斗照命","incantation":"斗柄东指，命火长明","glyph":"斗","particle":"star","particleCount":50,"intensity":0.98,"shake":0.22,"palette":{"primary":"#d9e7ff","secondary":"#6c75d9","accent":"#ffffff","shadow":"#0a0e2d"}},
+    {"id":"seven-star-execution","template":"starfall-array","category":"attack","categoryLabel":"星阵 · 七段轰击","name":"七曜诛邪","incantation":"七曜垂芒，共诛邪祟","glyph":"星","particle":"star","particleCount":62,"intensity":1.14,"shake":0.72,"palette":{"primary":"#ffdc83","secondary":"#6d61d6","accent":"#fff9db","shadow":"#161039"}},
+    {"id":"falling-comet-array","template":"starfall-array","category":"attack","categoryLabel":"星阵 · 范围爆裂","name":"天外流火","incantation":"星坠九野，长夜如昼","glyph":"陨","particle":"ember","particleCount":72,"intensity":1.22,"shake":0.94,"palette":{"primary":"#ff9a62","secondary":"#c43d55","accent":"#fff2c2","shadow":"#2c0812"}},
+
+    {"id":"black-tide-dragon","template":"ink-dragon","category":"protect","categoryLabel":"水墨 · 吞噬伤害","name":"玄潮墨龙","incantation":"玄潮衔月，墨龙护身","glyph":"龙","particle":"ink","particleCount":54,"intensity":1.08,"shake":0.46,"palette":{"primary":"#80b9b0","secondary":"#182c35","accent":"#e4fff7","shadow":"#020707"}},
+    {"id":"jade-dragon-rise","template":"ink-dragon","category":"attack","categoryLabel":"水墨 · 龙形冲击","name":"苍龙出渊","incantation":"苍龙离渊，山河俱动","glyph":"苍","particle":"drop","particleCount":62,"intensity":1.16,"shake":0.84,"palette":{"primary":"#66e0bc","secondary":"#176b79","accent":"#dcffbf","shadow":"#041e20"}},
+    {"id":"vermilion-chi-dragon","template":"ink-dragon","category":"buff","categoryLabel":"水墨 · 战意沸腾","name":"赤螭战魂","incantation":"赤螭绕臂，战魂不息","glyph":"战","particle":"ember","particleCount":60,"intensity":1.1,"shake":0.68,"palette":{"primary":"#ff7d68","secondary":"#8c2432","accent":"#ffe0a8","shadow":"#240508"}}
+  ]
+}

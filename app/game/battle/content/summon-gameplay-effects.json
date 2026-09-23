@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "effects": [
+    {"effectId":"frost-sword-heaven","summary":"霜剑连续肃清全场，并冻结妖群","durationSeconds":9,"visual":"sword","color":"#bceeff","accent":"#ffffff","damage":{"mode":"pulse","interval":0.72,"hits":8,"maxHpRatio":0.09,"bossScale":0.42,"minDamage":90},"control":{"freezeSeconds":1.4}},
+    {"effectId":"blood-moon-cleave","summary":"血月三斩重创全场，同时汲取生命","durationSeconds":10,"visual":"blood","color":"#ff665f","accent":"#ffe1bd","damage":{"mode":"pulse","interval":0.72,"hits":3,"maxHpRatio":0.22,"bossScale":0.38,"minDamage":180},"heal":{"interval":0.72,"ticks":3,"maxHpRatio":0.08}},
+    {"effectId":"jade-gale-blades","summary":"千刃穿场，并使攻速与移速大幅提升","durationSeconds":22,"visual":"wind","color":"#8ff2c4","accent":"#efffd2","damage":{"mode":"pulse","interval":0.42,"hits":12,"maxHpRatio":0.045,"bossScale":0.55,"minDamage":65},"buff":{"damageBonus":0.55,"hasteBonus":0.75,"speedBonus":0.55}},
+
+    {"effectId":"violet-tribulation","summary":"九道天雷追击全场精英与首领","durationSeconds":10,"visual":"lightning","color":"#c69cff","accent":"#f8f4ff","damage":{"mode":"pulse","interval":0.58,"hits":9,"maxHpRatio":0.085,"bossScale":0.58,"minDamage":120}},
+    {"effectId":"cyan-thunder-chain","summary":"青霆反复轰击并长时间禁锢妖群","durationSeconds":14,"visual":"lightning","color":"#7ff5ff","accent":"#eaffff","damage":{"mode":"dot","interval":0.8,"hits":10,"maxHpRatio":0.055,"bossScale":0.52,"minDamage":80},"control":{"freezeSeconds":2.4}},
+    {"effectId":"golden-heaven-strike","summary":"金雷重罚全场，随后获得八秒天威护体","durationSeconds":12,"visual":"lightning","color":"#ffe079","accent":"#fff8d6","damage":{"mode":"burst","interval":0.1,"hits":1,"maxHpRatio":0.72,"bossScale":0.34,"minDamage":480},"buff":{"invulnerableSeconds":8,"damageBonus":0.45}},
+
+    {"effectId":"silver-moon-lotus","summary":"冰莲镇场，冻结全场并持续碎冰伤害","durationSeconds":16,"visual":"frost","color":"#d8f7ff","accent":"#ffffff","damage":{"mode":"dot","interval":1,"hits":9,"maxHpRatio":0.055,"bossScale":0.45,"minDamage":70},"control":{"freezeSeconds":4.2}},
+    {"effectId":"azure-ice-lotus","summary":"净莲护脉，三十秒持续回元并净化伤势","durationSeconds":30,"visual":"healing","color":"#79f6c8","accent":"#eeffff","heal":{"interval":1,"ticks":30,"maxHpRatio":0.035},"buff":{"invulnerableSeconds":3,"hasteBonus":0.35}},
+    {"effectId":"snow-crane-ward","summary":"雪鹤覆身，二十秒内不受任何伤害","durationSeconds":20,"visual":"ward","color":"#eefcff","accent":"#ffffff","buff":{"invulnerableSeconds":20,"speedBonus":0.45}},
+
+    {"effectId":"vajra-golden-dome","summary":"金钟护体二十秒，并以梵光震伤全场","durationSeconds":20,"visual":"ward","color":"#ffd978","accent":"#fff4bd","damage":{"mode":"pulse","interval":2,"hits":6,"maxHpRatio":0.08,"bossScale":0.45,"minDamage":100},"buff":{"invulnerableSeconds":20,"damageBonus":0.35}},
+    {"effectId":"black-tortoise-shell","summary":"玄甲镇岳，获得长效庇护与双倍生命恢复","durationSeconds":24,"visual":"ward","color":"#8fc9bb","accent":"#e8ffe7","heal":{"interval":1.5,"ticks":16,"maxHpRatio":0.045},"buff":{"invulnerableSeconds":12,"damageBonus":0.6}},
+    {"effectId":"sun-wheel-sanctuary","summary":"大日加持，攻击翻倍且攻速提升五成","durationSeconds":25,"visual":"ward","color":"#ffe38b","accent":"#fffbe0","buff":{"damageBonus":1,"hasteBonus":0.55,"speedBonus":0.25}},
+
+    {"effectId":"spring-return-bloom","summary":"春风随身三十秒，持续恢复大量生命","durationSeconds":30,"visual":"healing","color":"#8cffad","accent":"#f3ffd5","heal":{"interval":1,"ticks":30,"maxHpRatio":0.03},"buff":{"speedBonus":0.2}},
+    {"effectId":"ninefold-pill-flame","summary":"丹霞灌体，持续回血并令攻击提升一倍","durationSeconds":24,"visual":"healing","color":"#ffb765","accent":"#fff0b8","heal":{"interval":1.2,"ticks":20,"maxHpRatio":0.025},"buff":{"damageBonus":1.1,"hasteBonus":0.4}},
+    {"effectId":"moon-dew-revival","summary":"月露凝生，立即回满并持续三十秒回元","durationSeconds":30,"visual":"healing","color":"#9fdfff","accent":"#f7f0ff","heal":{"interval":1.5,"ticks":20,"maxHpRatio":0.05,"initialMaxHpRatio":1}},
+
+    {"effectId":"vermillion-phoenix","summary":"南明离火焚烧全场，造成长时间持续伤害","durationSeconds":14,"visual":"phoenix","color":"#ff7142","accent":"#ffe08a","damage":{"mode":"dot","interval":0.65,"hits":14,"maxHpRatio":0.055,"bossScale":0.5,"minDamage":95}},
+    {"effectId":"emerald-phoenix-song","summary":"青鸾长鸣，攻速翻倍并大幅提升移速","durationSeconds":30,"visual":"phoenix","color":"#68f0c1","accent":"#e8ffaf","buff":{"damageBonus":0.5,"hasteBonus":1,"speedBonus":0.75}},
+    {"effectId":"white-phoenix-nirvana","summary":"白凤庇护，十五秒无敌并持续涅槃回血","durationSeconds":25,"visual":"phoenix","color":"#fff2d6","accent":"#ffffff","heal":{"interval":1,"ticks":25,"maxHpRatio":0.035,"initialMaxHpRatio":0.35},"buff":{"invulnerableSeconds":15,"damageBonus":0.45}},
+
+    {"effectId":"ink-raven-raid","summary":"墨鸦十二连袭，所有妖物承受多段斩击","durationSeconds":9,"visual":"shadow","color":"#b6a2e8","accent":"#f0d9ff","damage":{"mode":"pulse","interval":0.22,"hits":12,"maxHpRatio":0.045,"bossScale":0.62,"minDamage":72}},
+    {"effectId":"ghost-blade-step","summary":"幽刃瞬斩全场，并令自身进入极速杀戮","durationSeconds":22,"visual":"shadow","color":"#8de9dd","accent":"#ffffff","damage":{"mode":"burst","interval":0.1,"hits":1,"maxHpRatio":0.58,"bossScale":0.42,"minDamage":360},"buff":{"damageBonus":0.8,"hasteBonus":1.2,"speedBonus":0.65}},
+    {"effectId":"starless-shadow","summary":"无星长夜压制妖群，持续侵蚀并封锁行动","durationSeconds":16,"visual":"shadow","color":"#8e91c8","accent":"#d8d5ff","damage":{"mode":"dot","interval":1,"hits":12,"maxHpRatio":0.05,"bossScale":0.52,"minDamage":76},"control":{"freezeSeconds":1.8}},
+
+    {"effectId":"cloud-wind-domain","summary":"流云随行，三十秒攻速翻倍且身法暴增","durationSeconds":30,"visual":"wind","color":"#b8ffeb","accent":"#ffffff","buff":{"damageBonus":0.4,"hasteBonus":1,"speedBonus":0.85}},
+    {"effectId":"bamboo-wind-domain","summary":"竹海成锋，三十秒内攻击伤害翻倍","durationSeconds":30,"visual":"wind","color":"#9be384","accent":"#efffb6","damage":{"mode":"pulse","interval":1.1,"hits":5,"maxHpRatio":0.07,"bossScale":0.55,"minDamage":90},"buff":{"damageBonus":1,"hasteBonus":0.35}},
+    {"effectId":"storm-eye-domain","summary":"风眼牵引全场妖物，并反复造成撕裂伤害","durationSeconds":15,"visual":"wind","color":"#91d9ff","accent":"#e8fbff","damage":{"mode":"dot","interval":0.7,"hits":14,"maxHpRatio":0.04,"bossScale":0.6,"minDamage":65},"control":{"pullStrength":190,"freezeSeconds":0.35}},
+
+    {"effectId":"north-star-array","summary":"北斗照命，三十秒内攻伤翻倍并获短暂无敌","durationSeconds":30,"visual":"star","color":"#d9e7ff","accent":"#ffffff","buff":{"damageBonus":1.2,"hasteBonus":0.4,"invulnerableSeconds":6}},
+    {"effectId":"seven-star-execution","summary":"七曜依次落下，对全场造成七段诛邪轰击","durationSeconds":10,"visual":"star","color":"#ffdc83","accent":"#fff9db","damage":{"mode":"pulse","interval":0.48,"hits":7,"maxHpRatio":0.09,"bossScale":0.58,"minDamage":130}},
+    {"effectId":"falling-comet-array","summary":"三颗天外流火坠落，造成三次毁灭爆裂","durationSeconds":9,"visual":"star","color":"#ff8f55","accent":"#fff2c2","damage":{"mode":"pulse","interval":0.9,"hits":3,"maxHpRatio":0.26,"bossScale":0.36,"minDamage":320}},
+
+    {"effectId":"black-tide-dragon","summary":"墨龙盘身二十秒免伤，并不断吞潮回元","durationSeconds":24,"visual":"dragon","color":"#80b9b0","accent":"#e4fff7","heal":{"interval":1,"ticks":24,"maxHpRatio":0.028},"buff":{"invulnerableSeconds":20,"damageBonus":0.35}},
+    {"effectId":"jade-dragon-rise","summary":"苍龙八次冲阵全场，并强化攻击与身法","durationSeconds":18,"visual":"dragon","color":"#66e0bc","accent":"#dcffbf","damage":{"mode":"pulse","interval":0.65,"hits":8,"maxHpRatio":0.085,"bossScale":0.5,"minDamage":115},"buff":{"damageBonus":0.75,"speedBonus":0.5}},
+    {"effectId":"vermilion-chi-dragon","summary":"赤螭战魂附体，三十秒攻击与攻速同时翻倍","durationSeconds":30,"visual":"dragon","color":"#ff7d68","accent":"#ffe0a8","buff":{"damageBonus":1.25,"hasteBonus":0.85,"speedBonus":0.5}}
+  ]
+}

@@ -1,0 +1,68 @@
+[
+  {
+    "effectId": "spring-return-bloom",
+    "effectText": "青囊回春",
+    "mechanicText": "持续 30 秒｜每秒恢复 3% 最大生命 · 移速 +20%",
+    "glyph": "生",
+    "particleKind": "petal",
+    "particleCount": 62,
+    "fieldClass": "spring-bloom-field",
+    "centerDurationMs": 3300,
+    "cardDurationMs": 9200
+  },
+  {
+    "effectId": "ninefold-pill-flame",
+    "effectText": "九转丹霞",
+    "mechanicText": "持续 24 秒｜每 1.2 秒恢复 2.5% 生命 · 伤害 +110% · 攻速 +40%",
+    "glyph": "丹",
+    "particleKind": "ember",
+    "particleCount": 48,
+    "fieldClass": "ninefold-flame-field",
+    "centerDurationMs": 3200,
+    "cardDurationMs": 9000
+  },
+  {
+    "effectId": "moon-dew-revival",
+    "effectText": "月露凝生",
+    "mechanicText": "立即回满生命｜30 秒内每 1.5 秒恢复 5% 最大生命",
+    "glyph": "露",
+    "particleKind": "drop",
+    "particleCount": 52,
+    "fieldClass": "moon-dew-field",
+    "centerDurationMs": 3400,
+    "cardDurationMs": 9400
+  },
+  {
+    "effectId": "vermillion-phoenix",
+    "effectText": "朱雀焚天",
+    "mechanicText": "全场 14 次灼烧｜每次造成 5.5% 最大生命伤害",
+    "glyph": "炎",
+    "particleKind": "ember",
+    "particleCount": 70,
+    "fieldClass": "vermillion-phoenix-field",
+    "centerDurationMs": 3500,
+    "cardDurationMs": 8400
+  },
+  {
+    "effectId": "emerald-phoenix-song",
+    "effectText": "青鸾长鸣",
+    "mechanicText": "持续 30 秒｜伤害 +50% · 攻速 +100% · 移速 +75%",
+    "glyph": "鸾",
+    "particleKind": "feather",
+    "particleCount": 58,
+    "fieldClass": "emerald-phoenix-field",
+    "centerDurationMs": 3300,
+    "cardDurationMs": 9600
+  },
+  {
+    "effectId": "white-phoenix-nirvana",
+    "effectText": "白凤涅槃",
+    "mechanicText": "恢复 35% 生命｜15 秒无敌 · 每秒恢复 3.5% · 伤害 +45%",
+    "glyph": "凰",
+    "particleKind": "feather",
+    "particleCount": 54,
+    "fieldClass": "white-phoenix-field",
+    "centerDurationMs": 3600,
+    "cardDurationMs": 9800
+  }
+]

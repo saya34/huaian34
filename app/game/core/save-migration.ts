@@ -17,6 +17,7 @@ import { inventoryProjection, syncAlchemyProductInventory } from "./inventory-se
 import { normalizePlayerGrowth } from "./progression-service";
 import { SAVE_VERSION, type ActivityReceipt, type AlchemyProgress, type UnifiedCardInstance, type UnifiedGameState, type UnifiedItemStack } from "./types";
 import { createInitialKitchen, normalizeKitchen } from "../kitchen/service";
+import { mergeSummonShowcaseCards } from "../battle/summon-showcase";
 
 const ITEM_TYPES = new Set(["gift", "material", "pill", "food", "equipment", "card", "treasure", "quest", "fish", "manual"]);
 const PERIODS = new Set(["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"]);
@@ -92,6 +93,7 @@ function sanitizeItems(value: unknown): Record<string, UnifiedItemStack> {
       rarity,
       amount,
       sourceTags: stringArray(item.sourceTags),
+      ...(typeof item.lastAcquiredAt === "number" && Number.isFinite(item.lastAcquiredAt) ? { lastAcquiredAt: Math.max(0, Math.floor(item.lastAcquiredAt)) } : {}),
       ...(typeof item.templateId === "string" ? { templateId: item.templateId } : {}),
       ...(typeof item.quality === "string" ? { quality: item.quality } : {}),
       ...(typeof item.mutation === "string" ? { mutation: item.mutation } : {}),
@@ -139,7 +141,11 @@ function sanitizeActivityReceipt(value: unknown): ActivityReceipt | undefined {
 }
 
 export function cloneInitial(): UnifiedGameState {
-  const romance = { ...INITIAL_STATE, inventory: { ...INITIAL_STATE.inventory }, relationships: { ...INITIAL_STATE.relationships }, flags: { ...INITIAL_STATE.flags }, playerLevel: 1, teacherSkillRanks: {}, learnedSkillIds: [], ownedCardIds: ["story-shen-sword-1", "story-liu-ward-1"], completedDungeons: [], alchemyResults: [], inventoryRarities: {}, inventoryItems: {}, pendingUnifiedEffects: [] };
+  const starterCards = mergeSummonShowcaseCards([
+    { id: "story-shen-sword-1", characterId: "shen", name: "沈清霜·霜华一剑", rarity: 4, mode: "active", source: "story", art: "/assets/characters/portrait-refresh/shen-qingshuang.png", activeEffect: "sword" },
+    { id: "story-liu-ward-1", characterId: "liu", name: "柳知意·青囊护道", rarity: 3, mode: "passive", source: "story", art: "/assets/characters/portrait-refresh/liu-zhiyi.png", bonuses: { health: 60, defense: 18 } },
+  ]);
+  const romance = { ...INITIAL_STATE, inventory: { ...INITIAL_STATE.inventory }, relationships: { ...INITIAL_STATE.relationships }, flags: { ...INITIAL_STATE.flags }, playerLevel: 1, teacherSkillRanks: {}, learnedSkillIds: [], ownedCardIds: starterCards.map((card) => card.id), completedDungeons: [], alchemyResults: [], inventoryRarities: {}, inventoryItems: {}, pendingUnifiedEffects: [] };
   romance.spiritStones = 5000;
   const giftItems = Object.fromEntries(Object.entries(romance.inventory).map(([itemId, amount]) => [itemId, { itemId, itemType: "gift" as const, rarity: 2 as const, amount, sourceTags: ["romance", "starter"] }]));
   const materialItems = Object.fromEntries(MATERIALS.map((item) => [item.id, { itemId: item.id, itemType: "material" as const, rarity: Math.max(1, Math.min(7, item.rarity)) as 1|2|3|4|5|6|7, amount: item.count, sourceTags: ["alchemy", "starter"] }]));
@@ -159,10 +165,7 @@ export function cloneInitial(): UnifiedGameState {
   return {
     version: SAVE_VERSION,
     updatedAt: Date.now(),
-    shared: { spiritStones: romance.spiritStones, stamina: romance.stamina, playerLevel: 1, playerExperience: romance.experience, items, cards: [
-      { id: "story-shen-sword-1", characterId: "shen", name: "沈清霜·霜华一剑", rarity: 4, mode: "active", source: "story", art: "/assets/characters/portrait-refresh/shen-qingshuang.png", activeEffect: "sword" },
-      { id: "story-liu-ward-1", characterId: "liu", name: "柳知意·青囊护道", rarity: 3, mode: "passive", source: "story", art: "/assets/characters/portrait-refresh/liu-zhiyi.png", bonuses: { health: 60, defense: 18 } },
-    ], learnedSkills: [], globalKeys: { ...romance.flags }, luck: { bonus: 0, charges: 0, source: "" } },
+    shared: { spiritStones: romance.spiritStones, stamina: romance.stamina, playerLevel: 1, playerExperience: romance.experience, items, cards: starterCards, learnedSkills: [], globalKeys: { ...romance.flags }, luck: { bonus: 0, charges: 0, source: "" } },
     romance,
     alchemy: {
       materialCounts: Object.fromEntries(MATERIALS.map((item) => [item.id, item.count])), productStacks: {}, characterCards: [], mythicRareUses: {}, marketOffers: [], manualRefreshCount: 0, refreshResetAt: 0, soldOutRefreshAt: 0, commissions: [], commissionRefreshAt: 0, discoveredRecipes: [],
@@ -234,7 +237,7 @@ export function mergeSave(saved: unknown) {
     playerLevel: integer(savedShared.playerLevel, base.shared.playerLevel, 1, 60),
     playerExperience: finiteNumber(savedShared.playerExperience, base.shared.playerExperience, 0),
     items,
-    cards: sanitizeCards(savedShared.cards, base.shared.cards),
+    cards: mergeSummonShowcaseCards(sanitizeCards(savedShared.cards, base.shared.cards)),
     learnedSkills: numberArray(savedShared.learnedSkills, base.shared.learnedSkills),
     globalKeys: booleanRecord(savedShared.globalKeys, base.shared.globalKeys),
     luck: {
@@ -265,6 +268,7 @@ export function mergeSave(saved: unknown) {
       spiritStones: shared.spiritStones,
       stamina: shared.stamina,
       experience: shared.playerExperience,
+      ownedCardIds: shared.cards.map((card) => card.id),
       relationships: numberRecord(savedRomance.relationships, base.romance.relationships, 0, 100) as typeof base.romance.relationships,
       inventory: numberRecord(savedRomance.inventory, base.romance.inventory, 0) as typeof base.romance.inventory,
       flags: booleanRecord(savedRomance.flags, base.romance.flags),

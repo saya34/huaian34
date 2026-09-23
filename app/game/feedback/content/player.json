@@ -2,7 +2,7 @@
   "player.levelTitle": "修途精进",
   "player.levelIcon": "破",
   "player.staminaIcon": "息",
-  "player.levelBody": "人物等级提升至 {level}，新的成长空间已经开启。",
+  "player.levelBody": "人物等级提升至 {level}，获得 {points} 点属性点，可前往人物界面分配。",
   "player.levelLabel": "人物等级",
   "player.expLabel": "当前修为",
   "player.expBody": "修为用于推进人物等级与部分修行门槛，不会在修行后被清零。",

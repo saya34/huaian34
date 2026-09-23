@@ -1000,7 +1000,13 @@ export default function GameDemo() {
         onConsumeItem={(itemId)=>applyUnifiedEffects([{ type:"remove_item", itemId, amount:1 }])}
         onGainLoot={gainTurnCombatLoot}
       />}
-      {systemPanel && <FusionSystemPanel panel={systemPanel} onClose={() => setSystemPanel(null)} />}
+      {systemPanel && <FusionSystemPanel
+        panel={systemPanel}
+        onClose={() => setSystemPanel(null)}
+        giftTargetName={hasPresentCharacter&&!game.activeEvent&&!mapOpen&&!activeModule?character.name:undefined}
+        onUseGift={(giftId)=>{giveGift(giftId as GiftId);setSystemPanel(null)}}
+        onEatGift={(giftId)=>{eatGift(giftId as GiftId);setSystemPanel(null)}}
+      />}
       {activeModule && <div className={`fusion-module-backdrop module-${activeModule.kind}`} role="presentation"><section className="fusion-module-window" role="dialog" aria-modal="true" aria-label={activeModule.kind === "battle" ? `${activeModule.dungeon.name}秘境战斗` : "玄火丹炉"}>
         <button type="button" className="fusion-module-close" onClick={() => setActiveModule(null)} aria-label={feedbackText("system.close")}>‹</button>
         <div className="fusion-module-native">

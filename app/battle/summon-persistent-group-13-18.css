@@ -1,0 +1,175 @@
+.summon-persistent-vfx.effect-spring-return-bloom{
+  --persistent-primary:#8cffad;
+  --persistent-secondary:#2b9c6c;
+  --persistent-accent:#f3ffd5;
+  --persistent-shadow:#082319;
+}
+.summon-persistent-vfx.effect-spring-return-bloom::before{
+  background:
+    radial-gradient(ellipse at 50% 100%,color-mix(in srgb,var(--persistent-primary) 25%,transparent),transparent 54%),
+    linear-gradient(180deg,transparent 46%,color-mix(in srgb,#0f4428 24%,transparent));
+}
+.effect-spring-return-bloom .summon-persistent-field>i{
+  border-color:color-mix(in srgb,var(--persistent-primary) 32%,transparent);
+  border-style:dotted;
+  box-shadow:inset 0 0 35px #8cffad12,0 0 25px #8cffad1c;
+}
+.effect-spring-return-bloom .summon-persistent-field>b{
+  color:#adffbd;
+  text-shadow:0 0 18px #edffd7,0 0 56px #53dc83;
+  animation:spring-life-breath 2.8s ease-in-out infinite;
+}
+.effect-spring-return-bloom .summon-effect-callout{border-color:#9dffc7aa;background:linear-gradient(90deg,transparent,#08271fdd 18%,#123b25e8 50%,#08271fdd 82%,transparent)}
+.effect-spring-return-bloom .summon-persistent-card{border-color:#8cffad99;background:linear-gradient(110deg,#071c17ed,#194c31e8)}
+
+.summon-persistent-vfx.effect-ninefold-pill-flame{
+  --persistent-primary:#ffb765;
+  --persistent-secondary:#d54e5b;
+  --persistent-accent:#fff0b8;
+  --persistent-shadow:#32100c;
+}
+.summon-persistent-vfx.effect-ninefold-pill-flame::before{
+  background:
+    radial-gradient(circle at 50% 67%,#fff0b81c 0 7%,#ff8f421d 22%,transparent 54%),
+    linear-gradient(180deg,transparent 40%,#4a100f35);
+}
+.effect-ninefold-pill-flame .summon-persistent-field>i{
+  border-color:#ffb76572;
+  border-style:dashed;
+  box-shadow:inset 0 0 30px #d54e5b16,0 0 34px #ff7d4525;
+}
+.effect-ninefold-pill-flame .summon-persistent-field>i:nth-child(2){border-style:dotted;animation-duration:5.4s}
+.effect-ninefold-pill-flame .summon-persistent-field>b{
+  color:#ffc979;
+  text-shadow:0 0 15px #fff0b8,0 0 52px #ec473f;
+  animation:pill-flame-breath 1.65s ease-in-out infinite;
+}
+.effect-ninefold-pill-flame .summon-effect-callout{border-color:#ffb765aa;background:linear-gradient(90deg,transparent,#32100ce8 17%,#4b1815ed 50%,#32100ce8 83%,transparent)}
+.effect-ninefold-pill-flame .summon-persistent-card{border-color:#ffb765a6;background:linear-gradient(110deg,#2a0b09ed,#5a1f22e8)}
+
+.summon-persistent-vfx.effect-moon-dew-revival{
+  --persistent-primary:#9fdfff;
+  --persistent-secondary:#767be2;
+  --persistent-accent:#f7f0ff;
+  --persistent-shadow:#101435;
+}
+.summon-persistent-vfx.effect-moon-dew-revival::before{
+  background:
+    radial-gradient(circle at 78% 18%,#f7f0ff29 0 4%,#9fdfff17 14%,transparent 32%),
+    linear-gradient(180deg,#20336d22,transparent 52%,#28377a1f);
+}
+.effect-moon-dew-revival .summon-persistent-field>i{
+  border-color:#b4e8ff52;
+  border-style:solid;
+  transform:translate(-50%,-50%) scale(.7) rotateX(66deg);
+  box-shadow:0 0 35px #9fdfff26,inset 0 0 20px #f7f0ff12;
+  animation:moon-dew-ripple 5.8s ease-in-out infinite;
+}
+.effect-moon-dew-revival .summon-persistent-field>i:nth-child(2){animation-delay:-1.7s}.effect-moon-dew-revival .summon-persistent-field>i:nth-child(3){animation-delay:-3.2s}
+.effect-moon-dew-revival .summon-persistent-field>b{color:#dff4ff;text-shadow:0 0 22px #fff,0 0 58px #768fe2;animation:moon-dew-glimmer 3.6s ease-in-out infinite}
+.effect-moon-dew-revival .summon-effect-callout{border-color:#bfeeff9c;background:linear-gradient(90deg,transparent,#101435e6 17%,#202967e8 50%,#101435e6 83%,transparent)}
+.effect-moon-dew-revival .summon-persistent-card{border-color:#b6e8ffa1;background:linear-gradient(110deg,#0d1232ed,#272b6be8)}
+
+.summon-persistent-vfx.effect-vermillion-phoenix{
+  --persistent-primary:#ff7142;
+  --persistent-secondary:#d5222d;
+  --persistent-accent:#ffe08a;
+  --persistent-shadow:#310704;
+}
+.summon-persistent-vfx.effect-vermillion-phoenix::before{
+  background:
+    radial-gradient(ellipse at 50% 62%,#ffe08a22,#ff5a241f 26%,transparent 57%),
+    linear-gradient(180deg,transparent 30%,#5a09063d);
+}
+.effect-vermillion-phoenix .summon-persistent-field>i{
+  border-color:#ff7b4f61;
+  border-style:dashed;
+  box-shadow:0 0 42px #e7323228,inset 0 0 38px #ffbe5917;
+  animation:vermillion-fire-wheel 4.2s linear infinite;
+}
+.effect-vermillion-phoenix .summon-persistent-field>i:nth-child(2){animation-duration:2.9s}.effect-vermillion-phoenix .summon-persistent-field>i:nth-child(3){animation-duration:2s}
+.effect-vermillion-phoenix .summon-persistent-field>b{color:#ff9c54;text-shadow:0 0 13px #ffe08a,0 0 43px #ff2d1d,0 0 70px #a6000b;animation:vermillion-heartbeat 1.15s ease-in-out infinite}
+.effect-vermillion-phoenix .summon-effect-callout{border-color:#ff865fbd;background:linear-gradient(90deg,transparent,#310704ed 15%,#60100ce8 50%,#310704ed 85%,transparent);box-shadow:0 0 32px #ff3b221f}
+.effect-vermillion-phoenix .summon-persistent-card{border-color:#ff7142bc;background:linear-gradient(110deg,#260503f2,#5b0e0ded);box-shadow:0 10px 28px #000a,0 0 28px #ff4b2a33}
+
+.summon-persistent-vfx.effect-emerald-phoenix-song{
+  --persistent-primary:#68f0c1;
+  --persistent-secondary:#208da8;
+  --persistent-accent:#e8ffaf;
+  --persistent-shadow:#062526;
+}
+.summon-persistent-vfx.effect-emerald-phoenix-song::before{
+  background:
+    linear-gradient(112deg,transparent 0 19%,#68f0c10d 34%,transparent 48%,#55cfc210 65%,transparent 82%),
+    radial-gradient(ellipse at 52% 60%,#9dffd919,transparent 52%);
+}
+.effect-emerald-phoenix-song .summon-persistent-field>i{
+  width:min(88vmin,760px);
+  aspect-ratio:1.75;
+  border-color:#68f0c159;
+  border-style:dashed;
+  box-shadow:0 0 31px #68f0c122,inset 0 0 28px #e8ffaf10;
+  animation:emerald-wind-wheel 6.5s linear infinite;
+}
+.effect-emerald-phoenix-song .summon-persistent-field>i:nth-child(2){width:min(61vmin,520px);animation-duration:4.8s}.effect-emerald-phoenix-song .summon-persistent-field>i:nth-child(3){width:min(36vmin,310px);animation-duration:3.4s}
+.effect-emerald-phoenix-song .summon-persistent-field>b{color:#82ffd0;text-shadow:0 0 19px #e8ffaf,0 0 55px #2fd2bd;animation:emerald-song-float 3.2s ease-in-out infinite}
+.effect-emerald-phoenix-song .summon-effect-callout{border-color:#68f0c1a6;background:linear-gradient(90deg,transparent,#062526e8 16%,#0d4849e8 50%,#062526e8 84%,transparent)}
+.effect-emerald-phoenix-song .summon-persistent-card{border-color:#68f0c1a8;background:linear-gradient(110deg,#041d1eed,#0d4c50e8)}
+
+.summon-persistent-vfx.effect-white-phoenix-nirvana{
+  --persistent-primary:#fff2d6;
+  --persistent-secondary:#e0a1bc;
+  --persistent-accent:#ffffff;
+  --persistent-shadow:#291426;
+}
+.summon-persistent-vfx.effect-white-phoenix-nirvana::before{
+  background:
+    radial-gradient(ellipse at 50% 58%,#fff 0 1%,#fff2d620 19%,#e0a1bc12 39%,transparent 66%),
+    linear-gradient(180deg,#fff5e907,transparent 42%,#50264521);
+}
+.effect-white-phoenix-nirvana .summon-persistent-field>i{
+  border-color:#fff2d67a;
+  box-shadow:0 0 38px #fff4df35,inset 0 0 38px #e0a1bc1c;
+  animation:white-phoenix-halo 7.6s linear infinite;
+}
+.effect-white-phoenix-nirvana .summon-persistent-field>i:nth-child(2){border-style:dotted;animation-duration:5.1s}.effect-white-phoenix-nirvana .summon-persistent-field>i:nth-child(3){animation-duration:3.8s}
+.effect-white-phoenix-nirvana .summon-persistent-field>b{color:#fff9eb;text-shadow:0 0 17px #fff,0 0 48px #ffd8e8,0 0 74px #d78bb2;animation:white-phoenix-rise 3.4s ease-in-out infinite}
+.effect-white-phoenix-nirvana .summon-effect-callout{border-color:#fff2d6b8;background:linear-gradient(90deg,transparent,#291426eb 15%,#4f2944e8 50%,#291426eb 85%,transparent);box-shadow:0 0 35px #fff2d61c}
+.effect-white-phoenix-nirvana .summon-persistent-card{border-color:#fff2d6bd;background:linear-gradient(110deg,#21101ff2,#542b48e8);box-shadow:0 10px 28px #0009,0 0 28px #fff2d629}
+
+@keyframes spring-life-breath{0%,100%{opacity:.18;transform:translate(-50%,-50%) scale(.96)}50%{opacity:.38;transform:translate(-50%,-52%) scale(1.05)}}
+@keyframes pill-flame-breath{0%,100%{opacity:.2;transform:translate(-50%,-50%) scale(.94)}45%{opacity:.44;transform:translate(-50%,-53%) scale(1.08)}}
+@keyframes moon-dew-ripple{0%,100%{opacity:.22;transform:translate(-50%,-50%) scale(.62) rotateX(66deg)}50%{opacity:.48;transform:translate(-50%,-50%) scale(.86) rotateX(66deg)}}
+@keyframes moon-dew-glimmer{0%,100%{opacity:.18;transform:translate(-50%,-50%) translateY(2px)}50%{opacity:.36;transform:translate(-50%,-50%) translateY(-5px)}}
+@keyframes vermillion-fire-wheel{to{transform:translate(-50%,-50%) scale(.7) rotate(360deg)}}
+@keyframes vermillion-heartbeat{0%,100%{opacity:.2;transform:translate(-50%,-50%) scale(.93)}38%{opacity:.48;transform:translate(-50%,-51%) scale(1.1)}}
+@keyframes emerald-wind-wheel{to{transform:translate(-50%,-50%) scale(.7) rotate(360deg)}}
+@keyframes emerald-song-float{0%,100%{opacity:.19;transform:translate(-50%,-50%) rotate(-2deg)}50%{opacity:.39;transform:translate(-50%,-54%) rotate(2deg)}}
+@keyframes white-phoenix-halo{to{transform:translate(-50%,-50%) scale(.7) rotate(360deg)}}
+@keyframes white-phoenix-rise{0%,100%{opacity:.2;transform:translate(-50%,-48%) scale(.96)}50%{opacity:.43;transform:translate(-50%,-54%) scale(1.07)}}
+
+@media(max-width:760px){
+  .effect-emerald-phoenix-song .summon-persistent-field>i{width:92vmin}
+  .effect-vermillion-phoenix .summon-effect-callout strong,.effect-white-phoenix-nirvana .summon-effect-callout strong{letter-spacing:.1em}
+  .effect-spring-return-bloom .summon-persistent-field>b,.effect-ninefold-pill-flame .summon-persistent-field>b,.effect-moon-dew-revival .summon-persistent-field>b,.effect-vermillion-phoenix .summon-persistent-field>b,.effect-emerald-phoenix-song .summon-persistent-field>b,.effect-white-phoenix-nirvana .summon-persistent-field>b{font-size:29vmin}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .effect-spring-return-bloom .summon-persistent-field>b,
+  .effect-ninefold-pill-flame .summon-persistent-field>b,
+  .effect-moon-dew-revival .summon-persistent-field>i,
+  .effect-moon-dew-revival .summon-persistent-field>b,
+  .effect-vermillion-phoenix .summon-persistent-field>i,
+  .effect-vermillion-phoenix .summon-persistent-field>b,
+  .effect-emerald-phoenix-song .summon-persistent-field>i,
+  .effect-emerald-phoenix-song .summon-persistent-field>b,
+  .effect-white-phoenix-nirvana .summon-persistent-field>i,
+  .effect-white-phoenix-nirvana .summon-persistent-field>b{animation:none}
+  .effect-moon-dew-revival .summon-persistent-field>i{transform:translate(-50%,-50%) scale(.7) rotateX(66deg)}
+  .effect-spring-return-bloom .summon-persistent-field>b,
+  .effect-ninefold-pill-flame .summon-persistent-field>b,
+  .effect-moon-dew-revival .summon-persistent-field>b,
+  .effect-vermillion-phoenix .summon-persistent-field>b,
+  .effect-emerald-phoenix-song .summon-persistent-field>b,
+  .effect-white-phoenix-nirvana .summon-persistent-field>b{opacity:.28;transform:translate(-50%,-50%)}
+}
