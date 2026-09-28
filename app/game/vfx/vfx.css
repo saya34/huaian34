@@ -188,17 +188,31 @@
 
 .scene-vfx-fog > i {
   top: var(--vfx-fog-y);
-  left: -38%;
-  width: 92%;
-  height: 19%;
+  left: -46%;
+  width: clamp(150px, 44%, 330px);
+  height: clamp(52px, 11%, 94px);
   border-radius: 50%;
-  opacity: var(--vfx-opacity-soft);
-  background: radial-gradient(ellipse, rgba(224, 232, 221, .48), rgba(207, 220, 216, .16) 45%, transparent 72%);
-  transform: scaleX(1.4);
-  animation: vfx-fog-drift var(--vfx-duration-fog) ease-in-out var(--vfx-delay) infinite alternate;
+  opacity: .28;
+  background:
+    radial-gradient(ellipse at 14% 68%, rgba(239, 245, 237, .56) 0 14%, transparent 47%),
+    radial-gradient(ellipse at 35% 48%, rgba(229, 239, 232, .5) 0 21%, transparent 55%),
+    radial-gradient(ellipse at 60% 58%, rgba(218, 231, 226, .42) 0 22%, transparent 58%),
+    radial-gradient(ellipse at 84% 70%, rgba(235, 241, 235, .36) 0 14%, transparent 48%);
+  filter: blur(3px) drop-shadow(0 5px 9px rgba(218, 231, 225, .12));
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 13% 87%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 13% 87%, transparent);
+  animation: vfx-fog-drift var(--vfx-duration-fog) linear var(--vfx-delay) infinite;
 }
-.scene-vfx-fog .vfx-atmosphere { background: linear-gradient(180deg, rgba(212, 225, 218, .08), rgba(214, 225, 219, .18) 58%, transparent 90%); }
-@keyframes vfx-fog-drift { to { transform: translate3d(86vw, 4vh, 0) scaleX(1.7); opacity: .12; } }
+.scene-vfx-fog > i:nth-of-type(2n){top:calc(var(--vfx-fog-y) + 9%);width:clamp(120px,36%,270px);height:clamp(44px,9%,76px);opacity:.18;animation-duration:32s}
+.scene-vfx-fog > i:nth-of-type(3n){top:calc(var(--vfx-fog-y) - 7%);width:clamp(180px,51%,380px);opacity:.23;animation-duration:24s}
+.scene-vfx-fog .vfx-atmosphere { background: none; }
+@keyframes vfx-fog-drift {
+  0% { transform: translate3d(-8vw, 0, 0) scale(.9); opacity: 0; }
+  12% { opacity: .28; }
+  50% { transform: translate3d(74vw, -1.5vh, 0) scale(1.04); }
+  88% { opacity: .18; }
+  100% { transform: translate3d(154vw, 1vh, 0) scale(.96); opacity: 0; }
+}
 
 .scene-vfx-leaves > i {
   top: -10%;

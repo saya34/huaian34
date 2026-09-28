@@ -8,6 +8,7 @@ export type FeedbackVariant =
   | "project-milestone"
   | "rare-reward"
   | "identification-reveal"
+  | "item-acquired"
   | "action-toast"
   | "floating-text"
   | "info-popover"
@@ -22,6 +23,14 @@ export type FeedbackLevel = "L0" | "L1" | "L2" | "L3" | "D";
 export type FeedbackOutcome = "success" | "damaged" | "failed" | "discovered" | "changed" | "neutral";
 export type FeedbackDismissPolicy = "auto" | "click" | "manual" | "decision";
 export type FeedbackBusyScope = "story" | "audio" | "fishing" | "combat" | "turn-combat" | "rare-reveal";
+
+export type ItemAcquiredPresentation = {
+  name: string;
+  amount: number;
+  description: string;
+  imageSrc: string;
+  imagePosition?: string;
+};
 
 export type FeedbackDetail = {
   labelKey: string;
@@ -63,6 +72,7 @@ export type FeedbackInput = {
   params?: FeedbackTextParams;
   icon?: string;
   imageSrc?: string;
+  itemAcquired?: ItemAcquiredPresentation;
   details?: FeedbackDetail[];
   actions?: FeedbackAction[];
   durationMs?: number;

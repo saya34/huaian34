@@ -3,9 +3,9 @@ import { MYTHIC_CARD_OPTIONS, MYTHIC_MAX_OPTIONS, MYTHIC_RARE_MAX_USES, isMythic
 import { MUTATIONS, mutationDisplayName, productStackKey, rollMutation, type MutationId } from "./commissions";
 import { checkActionAdmission } from "../core/action-service";
 import { withAlchemyState } from "../core/alchemy-projection";
-import { normalizeCardName } from "../core/card-service";
 import { reduceGameEffects } from "../core/game-state-reducer";
 import type { UnifiedCardInstance, UnifiedGameState } from "../core/types";
+import { createAlchemyCardInstance } from "./card-function-service";
 
 export type AlchemyBatch = {
   id: string;
@@ -64,13 +64,7 @@ export function claimAlchemyBatch(state: UnifiedGameState, id: string, now: numb
     const record = batch.card;
     if (alchemy.characterCards.some((entry) => entry.id === record.id)) return state;
     alchemy.characterCards.push(record);
-    const mythic = isMythicCardRecord(record);
-    const profileId = mythic ? MYTHIC_CARD_OPTIONS.find((option) => record.optionIds.includes(option.id) && option.page === "character")?.characterId : record.profileId;
-    const profile = CHARACTER_PROFILES.find((entry) => entry.id === profileId);
-    card = { id: record.id, characterId: profileId ?? "taichu", name: mythic ? `太初·${profile?.name ?? "人物卡"}` : normalizeCardName(`${profile?.title ?? "命定"}·${profile?.name ?? "人物卡"}`),
-      rarity: mythic ? 7 : 6, mode: state.alchemy.characterCards.length % 2 === 0 ? "active" : "passive",
-      source: "alchemy", art: mythic ? profile?.images[0] ?? "/assets/mythic-scroll-backdrop.webp" : record.image,
-      activeEffect: mythic ? "ward" : "sword", bonuses: mythic ? { damage: .08, health: 80, defense: 20 } : { damage: .035, health: 35 }, alchemyRecord: record };
+    card = createAlchemyCardInstance(record) ?? undefined;
   } else {
     const key = productStackKey(batch.productId, batch.mutation);
     alchemy.productStacks[key] = { productId: batch.productId, mutation: batch.mutation, count: (alchemy.productStacks[key]?.count ?? 0) + 1 };

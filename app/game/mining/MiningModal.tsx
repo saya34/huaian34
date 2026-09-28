@@ -5,7 +5,7 @@ import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import {
   KEY_DEFINITIONS, SOIL_DEFINITIONS, activeMiningMaze, assembleTreasureMap, descendResidentMine,
   miningLocationById, openMineChest, repairPickaxe, repairPrice,
-  strikeMineTile, type MineTile, type MiningLocationId, type MiningReward,
+  revealRouteFromFishingClue, strikeMineTile, type MineTile, type MiningLocationId, type MiningReward,
 } from "./mining";
 import { useFeedback } from "../feedback/FeedbackProvider";
 import { feedbackText } from "../feedback/texts";
@@ -14,8 +14,10 @@ import { resolveGatheringOutcome } from "../gathering/engine";
 import GatheringFocusHud from "../gathering/GatheringFocusHud";
 import { GATHERING_PRESENTATION, gatheringCopy } from "../gathering/content";
 import { createActivityReceipt } from "../core/activity-receipt";
+import { FISHING_LINK_CONTENT } from "../cross-system/fishing-links";
+import type { FishingLocationId } from "../fishing/fishing";
 
-type Props={locationId:MiningLocationId;randomSpotId?:string;day:number;period:string;onClose:()=>void;onNotice:(message:string)=>void};
+type Props={locationId:MiningLocationId;randomSpotId?:string;day:number;period:string;onClose:()=>void;onNotice:(message:string)=>void;onOpenFishing?:(locationId:FishingLocationId)=>void};
 type CavePoint={x:number;y:number};
 
 function cavePoint(tile:MineTile,width:number,height:number):CavePoint{
@@ -32,8 +34,8 @@ function tunnelStyle(from:MineTile,to:MineTile,width:number,height:number):React
 }
 function isPassage(tile:MineTile){return tile.state==="dug"||tile.state==="opened";}
 
-export default function MiningModal({locationId,randomSpotId,day,onClose,onNotice}:Props){
-  const{state,setMining,setGathering,applyEffects}=useUnifiedGame();const location=miningLocationById(locationId)!;const mining=state.mining;const maze=activeMiningMaze(mining,location,randomSpotId);
+export default function MiningModal({locationId,randomSpotId,day,onClose,onNotice,onOpenFishing}:Props){
+  const{state,setMining,setFishing,setGathering,applyEffects}=useUnifiedGame();const location=miningLocationById(locationId)!;const mining=state.mining;const maze=activeMiningMaze(mining,location,randomSpotId);
   const feedback=useFeedback();
   const [message,setMessage]=useState("从入口开始开掘。只有清除当前土块，四周相邻区域才会显现。");
   const [selectedId,setSelectedId]=useState(maze?.tiles.find(tile=>tile.state==="revealed")?.id??"");
@@ -72,6 +74,11 @@ export default function MiningModal({locationId,randomSpotId,day,onClose,onNotic
     if(tile.kind==="chest"||tile.kind==="deep-chest"){openChest(tile);return;}
     const result=strikeMineTile(mining,{location,spotId:randomSpotId,tileId:tile.id});if(!result.ok){setMessage(result.message);feedback.toast({titleKey:"system.dynamicMessage",params:{message:result.message},icon:"镐",tone:"danger",dedupeKey:`mine-fail:${result.message}`});return;}
     setMining(result.progress);setStrikeFx(tile.id);window.setTimeout(()=>setStrikeFx(null),520);setMessage(result.message);
+    const pond=FISHING_LINK_CONTENT.miningPond;
+    if(result.cleared&&result.progress.totalMined>=pond.unlockAfterMinedTiles&&!state.fishing.links.unlockedLocationIds.includes(pond.locationId)){
+      setFishing(current=>({...current,links:{...current.links,discoveredIds:[...new Set([...current.links.discoveredIds,pond.discoveryId])],unlockedLocationIds:[...new Set([...current.links.unlockedLocationIds,pond.locationId])]}}));
+      feedback.publish({variant:"world-announcement",level:"L2",tone:"jade",titleKey:"system.dynamicMessage",bodyKey:"system.dynamicMessage",params:{message:`发现永久钓点 · ${pond.name}`},icon:"潭",rewards:[pond.name],impacts:[pond.description,"以后可从矿洞整备栏直接前往"],dedupeKey:`mining-pond:${pond.discoveryId}`});
+    }
     if(result.reward){setLoot([result.reward]);setLootAt(tile.id);window.setTimeout(()=>setLootAt(null),1800);grant([result.reward]);}
   }
   function openChest(tile:MineTile){
@@ -84,6 +91,12 @@ export default function MiningModal({locationId,randomSpotId,day,onClose,onNotic
   function mend(){const price=repairPrice(mining);if(mining.pickaxeDurability>=mining.pickaxeMaxDurability){setMessage("玄铁灵镐状态完好。 ");return;}if(state.shared.spiritStones<price){setMessage(`修复灵镐需要 ${price} 灵石。`);return;}setMining(repairPickaxe(mining).progress);applyEffects([{type:"add_currency",amount:-price}]);feedback.toast({titleKey:"mining.repairTitle",bodyKey:"mining.repairBody",params:{value:mining.pickaxeMaxDurability,cost:price},icon:"修",dedupeKey:`mine-repair:${day}:${mining.pickaxeDurability}`});announce(`玄铁灵镐修复完成 · 灵石 -${price}`);}
   function descend(){const result=descendResidentMine(mining);if(!result.ok){setMessage(result.message);return;}setMining(result.progress);setSelectedId(result.progress.residentMaze.tiles.find(tile=>tile.state==="revealed")?.id??"");setChestFx(null);setLoot([]);setLootAt(null);announce(result.message);}
   function assemble(){const result=assembleTreasureMap(mining);if(!result.ok){setMessage(result.message);return;}setMining(result.progress);applyEffects([{type:"remove_item",itemId:"treasure-map-fragment",amount:3},{type:"add_item",item:{itemId:"complete-treasure-map",itemType:"quest",rarity:6,amount:1,sourceTags:["挖矿","太虚藏宝图"]}},{type:"reveal_dungeon",dungeonId:"treasure-map-vault"}]);announce(result.message);}
+  function useFishingClue(){
+    if(state.fishing.links.miningClues<1){announce("尚未从鱼获中找到可用的矿纹线索。 ");return;}
+    const result=revealRouteFromFishingClue(mining,{location,spotId:randomSpotId});if(!result.ok){announce(result.message);return;}
+    setMining(result.progress);setFishing(current=>({...current,links:{...current.links,miningClues:Math.max(0,current.links.miningClues-1)}}));setSelectedId(result.tileId);announce(result.message);
+    feedback.publish({variant:"progression-milestone",level:"L1",tone:"gold",titleKey:"system.dynamicMessage",bodyKey:"system.dynamicMessage",params:{message:result.message},icon:"纹",impacts:["一处深层晶簇已越过相邻限制直接显形","线索已消耗 1 份"],dedupeKey:`mine-clue:${result.tileId}:${day}`});
+  }
   function close(){if(location.kind==="random"&&maze?.completed)setMining(current=>({...current,randomSpots:current.randomSpots.filter(spot=>spot.id!==randomSpotId)}));onClose();}
   function tileCopy(tile?:MineTile){if(!tile)return"选择一个已显现的土块";if(tile.kind==="wall")return"无法开掘 · 必须绕行";if(tile.kind==="entrance")return"本层入口 · 安全甬道";if(tile.kind==="chest")return`${KEY_DEFINITIONS[tile.keyId!].name}开启`;if(tile.kind==="deep-chest")return"太古秘藏 · 无需钥匙";const soil=SOIL_DEFINITIONS[tile.kind],chance=Math.min(94,Math.round((.28+soil.rarity*.11+tile.depth/9*.2)*100));return`${soil.name} · 耐久 ${soil.durabilityCost}/击 · 坚固 ${tile.hp}/${tile.maxHp} · 发现率约 ${chance}%`;}
   function inspectTile(tile?:MineTile){if(!tile)return;const soil=tile.kind in SOIL_DEFINITIONS?SOIL_DEFINITIONS[tile.kind as keyof typeof SOIL_DEFINITIONS]:null;const chance=soil?Math.min(94,Math.round((.28+soil.rarity*.11+tile.depth/9*.2)*100)):0;feedback.inspect({titleKey:tile.kind==="deep-chest"?"mining.deepChestTitle":tile.kind==="chest"?"mining.chestTitle":"mining.tileTitle",bodyKey:"world.changeBody",params:{message:tileCopy(tile)},icon:tile.kind.includes("chest")?"匣":"岩",details:[{labelKey:"mining.typeLabel",value:soil?.name??tileCopy(tile),emphasis:true},{labelKey:"mining.hpLabel",value:`${tile.hp}/${tile.maxHp}`},{labelKey:"mining.costLabel",value:soil?.durabilityCost??feedbackText("system.none")},{labelKey:"mining.depthLabel",value:tile.depth+1},{labelKey:"mining.dropLabel",value:soil?`${chance}%`:feedbackText("system.none")},{labelKey:"mining.reachableLabel",value:feedbackText(tile.state==="revealed"?"system.yes":"system.no")},{labelKey:"mining.pickaxeLabel",value:`${mining.pickaxeDurability}/${mining.pickaxeMaxDurability}`},{labelKey:"mining.keyLabel",value:tile.keyId?KEY_DEFINITIONS[tile.keyId].name:feedbackText("system.none")}],dedupeKey:`mining:inspect:${tile.id}:${tile.hp}`});}
@@ -117,6 +130,7 @@ export default function MiningModal({locationId,randomSpotId,day,onClose,onNotic
             <button type="button" className={`mine-selected-info feedback-mining-inspect ${selected?.state==="revealed"?"actionable":""}`} onClick={()=>inspectTile(selected)}><small>当前目标 · 点击详查</small><h3>{selected?.kind==="deep-chest"?"太古秘藏":selected?.kind==="chest"?"封印宝箱":selected?.kind&&selected.kind in SOIL_DEFINITIONS?SOIL_DEFINITIONS[selected.kind as keyof typeof SOIL_DEFINITIONS].name:selected?.kind==="wall"?"镇脉黑墙":"地宫甬道"}</h3><p>{tileCopy(selected)}</p></button>
             <section className="mine-keyring"><header>地宫钥环</header>{(Object.keys(KEY_DEFINITIONS) as Array<keyof typeof KEY_DEFINITIONS>).map(id=><span key={id}><i>{KEY_DEFINITIONS[id].glyph}</i><b>{KEY_DEFINITIONS[id].name}</b><em>×{mining.keys[id]}</em></span>)}</section>
             <section className="mine-map-scroll"><span><i>{mining.treasureMapAssembled?"图":"卷"}</i><b>{mining.treasureMapAssembled?"太虚藏宝图已成":"藏宝图残卷"}</b><small>{mining.treasureMapAssembled?"特殊副本已出现在云州地图":`${mining.treasureMapFragments}/3 · 深层秘藏产出`}</small></span>{!mining.treasureMapAssembled&&<button type="button" disabled={mining.treasureMapFragments<3} onClick={assemble}>拼合藏宝图</button>}</section>
+            <section className="mine-fishing-links"><header><span>听澜寻脉</span><small>钓鱼 × 挖矿</small></header><button type="button" disabled={state.fishing.links.miningClues<1} onClick={useFishingClue}><i>纹</i><span><b>循鱼腹矿纹寻路</b><small>线索 ×{state.fishing.links.miningClues} · 显出一条深层晶脉</small></span></button>{state.fishing.links.unlockedLocationIds.includes(FISHING_LINK_CONTENT.miningPond.locationId)?<button type="button" className="pond-link" onClick={()=>onOpenFishing?.(FISHING_LINK_CONTENT.miningPond.locationId)}><i>潭</i><span><b>前往地脉镜潭</b><small>永久秘钓点 · 深层鱼影与鱼珠</small></span></button>:<div className="pond-link locked"><i>?</i><span><b>岩后似有潮声</b><small>累计挖通 {Math.min(mining.totalMined,FISHING_LINK_CONTENT.miningPond.unlockAfterMinedTiles)}/{FISHING_LINK_CONTENT.miningPond.unlockAfterMinedTiles} 块土层</small></span></div>}</section>
             <section className="mine-tools-dock"><button type="button" onClick={mend}><i>修</i><span><b>修复灵镐</b><small>◉ {repairPrice(mining)} · 恢复全部耐久</small></span></button>{location.kind==="resident"&&maze.completed&&<button type="button" className="descend-button" onClick={descend}><i>下</i><span><b>进入下一层</b><small>更深地层 · 更珍稀掉落</small></span></button>}</section>
           </div>
         </div>

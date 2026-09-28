@@ -32,7 +32,8 @@ import ShopModal from "./ShopModal";
 import { getProficiencyProfile } from "./proficiency-engine";
 import { canInspectPeriod, getInspectionHints, hasInspectedScene, inspectionSlot, rollInspectionEvent } from "./inspection-engine";
 import type { CultivationEntry } from "./cultivation-engine";
-import { getAvailableActivities, isMarketReminderDay, marketReminderKey, type PeriodicActivityId } from "./periodic-activities";
+import { getAvailableActivities, getMarketReminder, marketReminderLeadDays, restoreMarketReminder, type PeriodicActivityId } from "./periodic-activities";
+import monthlyMarketContent from "./content/monthly-market.json";
 import { drawDailyFortune, FORTUNE_STORAGE_KEY, fortuneBoosts, fortuneEffectLabel, getFortuneSign, getLocalDateKey, type FortuneDrawRecord } from "./fortune-engine";
 import type { CharacterId, CharacterMessageDefinition, EasterEggItemDefinition, EventDefinition, GiftDefinition, GiftId, GameState, GlobalKeyDefinition, Period, RelationshipStageDefinition, SceneDefinition, SceneId, TriggerContext } from "./types";
 import { useUnifiedGame } from "./core/UnifiedGameProvider";
@@ -41,7 +42,8 @@ import FusionSystemPanel, { type FusionPanelId } from "./ui/FusionSystemPanel";
 import CharacterLedger from "./ui/CharacterLedger";
 import SpiritFarmScene from "./farm/SpiritFarmScene";
 import FishingModal from "./fishing/FishingModal";
-import { FISHING_LOCATIONS, ensureRandomFishingSpots, type FishingLocationId } from "./fishing/fishing";
+import { FISHING_LOCATIONS, ensureRandomFishingSpots, remainingFishingAttempts, type FishingLocationId } from "./fishing/fishing";
+import { availableRelicFor, fishGiftFor, npcFishingIntel, ownedFishGifts } from "./cross-system/fishing-links";
 import MiningModal from "./mining/MiningModal";
 import { ensureRandomMiningSpots, type MiningLocationId } from "./mining/mining";
 import IntelligenceBureauScene from "./forum/IntelligenceBureauScene";
@@ -83,6 +85,9 @@ import DaybreakTransition, { NightfallNotice, type DaybreakPresentation } from "
 import { DAYBREAK_CONTENT, daybreakStoryForDay, markDaybreakStorySeen } from "./daybreak/content";
 import { sceneVfxFor, storyVfxFor } from "./vfx/content";
 import { SceneEffectsLayer, StoryEffectsLayer } from "./vfx/VfxLayers";
+import SceneObjectLayer from "./scene-objects/SceneObjectLayer";
+import { itemAcquiredFeedback } from "./feedback/item-acquired";
+import { attributePointEffect, completeTeachingSession, getDailyTeachingOffer, TEACHING_STAT_LABELS, teachingScheduleLabel, type TeachingOffer } from "./teaching/service";
 
 const PERIODS: Period[] = WORLD_PERIODS;
 
@@ -102,7 +107,7 @@ type ExplorePoint = { eventId: string; x: number; y: number };
 type InspectionReveal = { scene: SceneDefinition; event: EventDefinition | null };
 
 export default function GameDemo() {
-  const { state: unifiedState, setRomance: setGame, setFishing, setMining, applyEffects: applyUnifiedEffects, hydrated, resetGame } = useUnifiedGame();
+  const { state: unifiedState, setRomance: setGame, setFishing, setMining, applyEffects: applyUnifiedEffects, transact, hydrated, resetGame } = useUnifiedGame();
   const feedback = useFeedback();
   const game = unifiedState.romance;
   const { characters, scenes, gifts, messageDefinitions, dialogueProfiles, globalKeys, eventDefinitions, definitionsReady, contentReady } = useWorldContent();
@@ -258,20 +263,16 @@ export default function GameDemo() {
   },[feedback,game,hydrated,messageDefinitions]);
 
   useEffect(() => {
-    if (!hydrated || !isMarketReminderDay(game.day)) return;
-    const reminderId = marketReminderKey(game.day);
+    if (!hydrated) return;
+    const reminder = getMarketReminder(game.day);
+    if (!reminder) return;
+    const reminderId = reminder.id;
     if (game.activityNotices.includes(reminderId)) return;
-    const reminder: CharacterMessageDefinition = {
-      id: reminderId,
-      senderCharacterId: "hua",
-      title: "明日云市开门",
-      body: "明日是十五，云州市集会开一整日。拍卖行有新到的旧物，石坊也运来一批星髓原石。若你想去，我在市口等你。",
-      signature: "花照影",
-      conditions: [],
-    };
     setMessageQueue((queue) => queue.some((item) => item.id === reminderId) ? queue : [...queue, reminder]);
     setGame((state) => ({ ...state, activityNotices: [...state.activityNotices, reminderId] }));
-    feedback.publish({variant:"world-announcement",level:"L2",titleKey:"system.dynamicMessage",params:{message:"收到传音 · 明日云州市集开市"},icon:"笺",dedupeKey:reminderId,actions:[{labelKey:"system.details",tone:"primary",onSelect:()=>setMessageInboxOpen(true)}]});
+    const leadDays = marketReminderLeadDays(game.day) ?? 1;
+    const copy = monthlyMarketContent.reminders[String(leadDays) as keyof typeof monthlyMarketContent.reminders];
+    feedback.publish({variant:"world-announcement",level:"L2",titleKey:"system.dynamicMessage",params:{message:`收到传音 · ${copy?.announcement ?? reminder.title}`},icon:"市",dedupeKey:reminderId,actions:[{labelKey:"system.details",tone:"primary",onSelect:()=>setMessageInboxOpen(true)}]});
   }, [feedback,game.activityNotices, game.day, hydrated]);
 
   useEffect(() => {
@@ -346,7 +347,8 @@ export default function GameDemo() {
   const drinkingProficiency=getProficiencyProfile(game.proficiencyExperience.drinking??0);
   const bondFeedback = bondQueue[0] ?? null;
   const activeMessage=messageOpen?(replayMessage??messageQueue[0]??null):null;
-  const inboxMessages=[...messageDefinitions.filter((message)=>game.receivedMessages.includes(message.id)),...messageQueue.filter((message)=>!messageDefinitions.some((definition)=>definition.id===message.id))];
+  const persistedActivityMessages=useMemo(()=>game.activityNotices.map(restoreMarketReminder).filter((message):message is CharacterMessageDefinition=>Boolean(message)),[game.activityNotices]);
+  const inboxMessages=[...messageDefinitions.filter((message)=>game.receivedMessages.includes(message.id)),...persistedActivityMessages.filter((message)=>!messageDefinitions.some((definition)=>definition.id===message.id)),...messageQueue.filter((message)=>!messageDefinitions.some((definition)=>definition.id===message.id)&&!persistedActivityMessages.some((persisted)=>persisted.id===message.id))];
   const calendarDate = getCalendarDate(game.day);
   const sceneEventHints = useMemo(() => getSceneEventHints(game, eventDefinitions, playableScenes.map((item) => item.id)), [eventDefinitions, game, playableScenes]);
   const visibleMapEvents = useMemo(() => getVisibleMapEvents(game, eventDefinitions), [eventDefinitions, game]);
@@ -359,6 +361,11 @@ export default function GameDemo() {
   const storyVfx=storyVfxFor(activeDefinition,node?.storyEffect??activeDefinition?.defaultStoryEffect);
   const claimableQuestCount=QUESTS.filter((quest)=>questView(quest,unifiedState.quests,unifiedState).status==="claimable").length;
   const availableQuestOffer=findQuestOffer(character.id,unifiedState.quests);
+  const activeTeachingOffer=useMemo(()=>getDailyTeachingOffer(character.id,game.day,relationship),[character.id,game.day,relationship]);
+  const linkedFishGifts=useMemo(()=>ownedFishGifts(character.id,unifiedState.shared.items),[character.id,unifiedState.shared.items]);
+  const fishingRelic=useMemo(()=>availableRelicFor(character.id,unifiedState.shared.items,unifiedState.fishing.links),[character.id,unifiedState.fishing.links,unifiedState.shared.items]);
+  const fishingIntel=useMemo(()=>npcFishingIntel(character.id,relationship),[character.id,relationship]);
+  const hasConversationOptions=Boolean(availableQuestOffer||activeTeachingOffer||fishingRelic||fishingIntel);
 
   useEffect(()=>{if(activeDefinition?.cardStyle==="audio")setAudioIndex(0)},[activeDefinition?.id, activeDefinition?.cardStyle]);
 
@@ -452,7 +459,7 @@ export default function GameDemo() {
 
   function talk() {
     if (game.activeEvent) return;
-    if (availableQuestOffer) {
+    if (hasConversationOptions) {
       setInteractionMenuOpen(false);
       setQuestConversationMenuOpen((open)=>!open);
       return;
@@ -474,6 +481,50 @@ export default function GameDemo() {
     setQuestOffer(availableQuestOffer);
   }
 
+  async function beginTeaching(offer: TeachingOffer) {
+    setQuestConversationMenuOpen(false);
+    const statLabel=TEACHING_STAT_LABELS[offer.stat];
+    const effect=attributePointEffect(offer.stat);
+    const accepted=await feedback.confirm({
+      titleKey:"player.teachingConfirmTitle",
+      bodyKey:"player.teachingConfirmBody",
+      params:{name:character.name,lesson:offer.name,line:offer.teacherLine,stamina:offer.staminaCost,feeText:offer.fee?`，另收 ${offer.fee} 灵石`:"",stat:statLabel,effect},
+      icon:offer.mark,
+      imageSrc:character.image,
+      tone:"gold",
+      costs:[`体力 -${offer.staminaCost}`,...(offer.fee?[`灵石 -${offer.fee}`]:[])],
+      details:[
+        {labelKey:"player.teachingLessonLabel",value:offer.name,emphasis:true},
+        {labelKey:"player.teachingGainLabel",value:`${statLabel} ${effect}`,delta:"up"},
+        {labelKey:"player.teachingRepeatLabel",value:feedbackText("player.teachingRepeatValue")},
+      ],
+      dedupeKey:`teaching-confirm:${offer.characterId}:${offer.day}:${offer.id}`,
+    });
+    if(!accepted)return;
+    if(unifiedState.shared.stamina<offer.staminaCost||unifiedState.shared.spiritStones<offer.fee){
+      const message=unifiedState.shared.stamina<offer.staminaCost?feedbackText("player.teachingStaminaMissing",{stamina:offer.staminaCost}):feedbackText("player.teachingCurrencyMissing",{fee:offer.fee});
+      feedback.toast({titleKey:"player.teachingFailedTitle",bodyKey:"system.dynamicMessage",params:{message},icon:"阻",tone:"danger",durationMs:2400,dedupeKey:`teaching-failed:${message}`});
+      return;
+    }
+    transact((current)=>completeTeachingSession(current,offer).state);
+    feedback.publish({
+      variant:"progression-milestone",
+      level:"L2",
+      outcome:"success",
+      titleKey:"player.teachingSuccessTitle",
+      bodyKey:"player.teachingSuccessBody",
+      params:{name:character.name,lesson:offer.name,stat:statLabel,effect},
+      icon:offer.mark,
+      imageSrc:character.image,
+      tone:"gold",
+      rewards:[`${statLabel}永久提升 ${effect}`],
+      costs:[`体力 -${offer.staminaCost}`,...(offer.fee?[`灵石 -${offer.fee}`]:[])],
+      impacts:[feedbackText("player.teachingImpact")],
+      durationMs:3000,
+      dedupeKey:`teaching-success:${offer.characterId}:${offer.day}:${offer.id}:${Date.now()}`,
+    });
+  }
+
   function giveGift(giftId: GiftId) {
     if (game.inventory[giftId] <= 0) return;
     setGiftOpen(false);
@@ -487,7 +538,8 @@ export default function GameDemo() {
     if (game.activeEvent) return;
     const preview = previewTimeAdvance(game, mode);
     setInteractionMenuOpen(false);setTimeMenuOpen(false);
-    if(preview.day===game.day)setNotice(mode==="rest"?`短休一时段 · 体力 +${Math.min(preview.restGain,10-game.stamina)}`:`等待至 · ${preview.period}`);
+    if(preview.day>game.day)setNotice(feedbackText("player.daybreakStaminaRestored"));
+    else setNotice(mode==="rest"?`短休一时段 · 体力 +${Math.min(preview.restGain,10-game.stamina)}`:`等待至 · ${preview.period}`);
     setGame((state)=>{
       const transition = prepareTimeTransition({ state, mode, characters, events: eventDefinitions, globalKeys });
       const transitioned = transition.state;
@@ -512,6 +564,34 @@ export default function GameDemo() {
     setGame((state)=>startTransient(markEasterEggShown(state,itemId,character.id),event,context));
   }
 
+  function showFishingRelic(){
+    if(!fishingRelic)return;
+    setQuestConversationMenuOpen(false);
+    setFishing((current)=>({...current,links:{...current.links,relicsShownTo:{...current.links.relicsShownTo,[fishingRelic.id]:[...new Set([...(current.links.relicsShownTo[fishingRelic.id]??[]),character.id])]}}}));
+    applyUnifiedEffects([{type:"add_relationship",characterId:character.id,amount:fishingRelic.relationshipGain}]);
+    setBondQueue((queue)=>[...queue,{id:++bondId.current,characterId:character.id,amount:fishingRelic.relationshipGain,source:"故物重逢"}]);
+    feedback.publish({variant:"relationship-reveal",level:"L2",tone:"gold",titleKey:"system.dynamicMessage",bodyKey:"system.dynamicMessage",params:{message:fishingRelic.reaction},icon:"忆",imageSrc:fishingRelic.image,rewards:[`${character.name}缘分 +${fishingRelic.relationshipGain}`],impacts:["遗物仍保留在行囊，可继续向其他关联人物出示"],dedupeKey:`fishing-relic:${fishingRelic.id}:${character.id}`});
+  }
+
+  function useFishingIntel(){
+    if(!fishingIntel)return;
+    setQuestConversationMenuOpen(false);
+    const received=unifiedState.fishing.links.npcIntelReceived.includes(fishingIntel.id);
+    if(received){setFishingTarget({locationId:fishingIntel.locationId});return;}
+    setFishing((current)=>({...current,links:{...current.links,npcIntelReceived:[...new Set([...current.links.npcIntelReceived,fishingIntel.id])],unlockedLocationIds:[...new Set([...current.links.unlockedLocationIds,fishingIntel.locationId])]}}));
+    feedback.publish({variant:"world-announcement",level:"L2",tone:"jade",titleKey:"system.dynamicMessage",bodyKey:"system.dynamicMessage",params:{message:fishingIntel.reaction},icon:"图",imageSrc:character.image,rewards:[`新钓点 · ${fishingIntel.name}`],impacts:["再次交谈可直接前往该秘钓点"],dedupeKey:`fishing-intel:${fishingIntel.id}`});
+  }
+
+  function giveLinkedFish(fishId:string){
+    const profile=fishGiftFor(character.id,fishId);const fish=linkedFishGifts.find((entry)=>entry.fishId===fishId)?.fish;
+    if(!profile||!fish||(unifiedState.shared.items[fishId]?.amount??0)<1)return;
+    setGiftOpen(false);
+    applyUnifiedEffects([{type:"remove_item",itemId:fishId,amount:1},{type:"add_relationship",characterId:character.id,amount:profile.relationshipGain}]);
+    setGame((current)=>advanceOneStage(current));
+    setBondQueue((queue)=>[...queue,{id:++bondId.current,characterId:character.id,amount:profile.relationshipGain,source:"亲手钓得"}]);
+    feedback.publish({variant:"relationship-reveal",level:"L1",tone:"gold",titleKey:"system.dynamicMessage",bodyKey:"system.dynamicMessage",params:{message:profile.reaction},icon:fish.icon,imageSrc:fish.art,costs:[`${fish.name} -1`],rewards:[`${character.name}缘分 +${profile.relationshipGain}`],dedupeKey:`fish-gift:${character.id}:${fishId}:${game.day}:${game.period}`});
+  }
+
   function useQuickDestination(destination: QuickDestination) {
     if (destination.kind === "alchemy") {
       setActiveModule({ kind: "alchemy" });
@@ -530,7 +610,7 @@ export default function GameDemo() {
   function currentInitialState(): GameState {
     const firstScene = playableScenes.find((item) => item.id === "lingxiao") ?? playableScenes[0] ?? scenes[0];
     const firstCharacter = firstScene?.characters[0] ?? characters[0]?.id ?? "shen";
-    return { ...INITIAL_STATE, sceneId: firstScene?.id ?? "lingxiao", selectedCharacterId: firstCharacter, spiritStones: 600, stamina:10, experience:0, marketTreasures: {}, activityNotices: [], relationships: Object.fromEntries(characters.map((item) => [item.id, 4])), inventory: Object.fromEntries(gifts.map((item) => [item.id, item.initialCount])), flags: Object.fromEntries(globalKeys.map((item)=>[item.id,item.initialValue])), announcedGlobalKeys: [], receivedMessages: [], claimedMessages: [], discoveredGiftPreferences: {}, seekingEncounterDays: {}, mapEventSchedules: {}, calendarEventRuns: {}, collectedEasterEggs:[], easterEggProgress:{}, daybreakStoryRuns:[], daybreakAcknowledgedDays:[], completedEvents: [], eventRuns: {}, talkCounts: {}, presentCharacters: {}, appearanceTriggersUsed: [], sceneVisits: {}, sceneInspectionDays:{}, sceneInspectionSlots:{}, interactionCounts:{}, proficiencyExperience:{}, activeEvent: null, lastContext: null };
+    return { ...INITIAL_STATE, sceneId: firstScene?.id ?? "lingxiao", selectedCharacterId: firstCharacter, spiritStones: 600, stamina:10, experience:0, marketTreasures: {}, activityNotices: [], relationships: Object.fromEntries(characters.map((item) => [item.id, 4])), inventory: Object.fromEntries(gifts.map((item) => [item.id, item.initialCount])), flags: Object.fromEntries(globalKeys.map((item)=>[item.id,item.initialValue])), announcedGlobalKeys: [], receivedMessages: [], claimedMessages: [], discoveredGiftPreferences: {}, seekingEncounterDays: {}, mapEventSchedules: {}, calendarEventRuns: {}, collectedEasterEggs:[], easterEggProgress:{}, sceneObjectStates:{}, daybreakStoryRuns:[], daybreakAcknowledgedDays:[], completedEvents: [], eventRuns: {}, talkCounts: {}, presentCharacters: {}, appearanceTriggersUsed: [], sceneVisits: {}, sceneInspectionDays:{}, sceneInspectionSlots:{}, interactionCounts:{}, proficiencyExperience:{}, activeEvent: null, lastContext: null };
   }
 
   function recoverGifts() {
@@ -597,15 +677,28 @@ export default function GameDemo() {
     setEggRewardNotice(item);window.setTimeout(()=>setEggRewardNotice(null),2200);
   }
 
+  function openInboxMessage(message:CharacterMessageDefinition){
+    const alreadyClaimed=game.claimedMessages.includes(message.id);
+    setMessageInboxOpen(false);
+    setReplayMessage(message);
+    setMessageOpen(true);
+    if(alreadyClaimed)return;
+    setGame((state)=>{
+      if(state.claimedMessages.includes(message.id))return state;
+      const sender=characterMap[message.senderCharacterId]??characters[0];const before=relationshipStage(sender,state.relationships[sender.id]??0);const amount=message.relationshipAmount??0;const relationship=Math.min(100,(state.relationships[sender.id]??0)+amount);const after=relationshipStage(sender,relationship);
+      if(before.id!==after.id)queueMicrotask(()=>setStageNotice({characterId:sender.id,stage:after}));
+      return {...state,claimedMessages:[...new Set([...state.claimedMessages,message.id])],relationships:{...state.relationships,[sender.id]:relationship},inventory:message.giftId?{...state.inventory,[message.giftId]:(state.inventory[message.giftId]??0)+(message.giftAmount??1)}:state.inventory,flags:message.setFlagKey?{...state.flags,[message.setFlagKey]:true}:state.flags};
+    });
+    setMessageQueue((queue)=>queue.filter((entry)=>entry.id!==message.id));
+    if(message.giftId){
+      const gift=giftMap[message.giftId];
+      feedback.publish(itemAcquiredFeedback({name:gift?.name??message.giftId,amount:message.giftAmount??1,description:gift?.description??feedbackText("relationship.messageAttachmentBody",{item:message.giftId,amount:message.giftAmount??1}),imageSrc:gift?.image??"/assets/feedback/jade-announcement-scroll.png",imagePosition:gift?.imagePosition,rarity:2,eventId:`message-attachment:${message.id}`,presentationOwner:"world"}));
+    }
+  }
+
   function closeMessage(){
     if(!activeMessage)return;
-    if(replayMessage){setReplayMessage(null);setMessageOpen(false);return}
-    setGame((state)=>{
-      const sender=characterMap[activeMessage.senderCharacterId]??characters[0];const before=relationshipStage(sender,state.relationships[sender.id]??0);const amount=activeMessage.relationshipAmount??0;const relationship=Math.min(100,(state.relationships[sender.id]??0)+amount);const after=relationshipStage(sender,relationship);
-      if(before.id!==after.id)queueMicrotask(()=>setStageNotice({characterId:sender.id,stage:after}));
-      return {...state,claimedMessages:[...new Set([...state.claimedMessages,activeMessage.id])],relationships:{...state.relationships,[sender.id]:relationship},inventory:activeMessage.giftId?{...state.inventory,[activeMessage.giftId]:(state.inventory[activeMessage.giftId]??0)+(activeMessage.giftAmount??1)}:state.inventory,flags:activeMessage.setFlagKey?{...state.flags,[activeMessage.setFlagKey]:true}:state.flags};
-    });
-    setMessageQueue((queue)=>queue.filter((message)=>message.id!==activeMessage.id));
+    setReplayMessage(null);
     setMessageOpen(false);
   }
 
@@ -686,6 +779,8 @@ export default function GameDemo() {
 
   function buyMarketGift(giftId: GiftId, _name: string) {
     setGame((state) => ({ ...state, inventory: { ...state.inventory, [giftId]: (state.inventory[giftId] ?? 0) + 1 } }));
+    const gift=giftMap[giftId];
+    if(gift)feedback.publish(itemAcquiredFeedback({name:gift.name,amount:1,description:gift.description,imageSrc:gift.image,imagePosition:gift.imagePosition,rarity:2,dedupeKey:`monthly-market:${giftId}:${Date.now()}`,presentationOwner:"world"}));
   }
 
   function openActivity(id: PeriodicActivityId) {
@@ -849,7 +944,7 @@ export default function GameDemo() {
           <button type="button" onClick={() => setPanel("characters")}>人物谱</button>
           <a className="em-entry" href="/em">EM 管理台</a>
           <button type="button" onClick={() => setPanel("events")}>事件簿 <b>{completedCount}/{totalEvents}</b></button>
-          <button type="button" onClick={()=>setMessageInboxOpen(true)}>传音 <b>{game.receivedMessages.length}</b></button>
+          <button type="button" onClick={()=>setMessageInboxOpen(true)}>传音 <b>{inboxMessages.length}</b></button>
           <button type="button" onClick={() => setGalleryOpen(true)}>展馆 <b>{unlockedAudioEvents.length}/{audioEvents.length}</b></button>
           <button type="button" onClick={()=>setGiftOpen(true)}>行囊</button>
           <button type="button" onClick={feedback.openHistory}>讯息录</button>
@@ -862,7 +957,7 @@ export default function GameDemo() {
 
       <section className="scene-tabs" aria-label="场景选择">
         {playableScenes.map((item) => (
-          <button type="button" key={item.id} className={item.id === game.sceneId ? "active" : ""} onClick={(event) => item.id === game.sceneId ? feedback.popover({ titleKey:"world.sceneTitle", bodyKey:"world.sceneBody", params:{name:item.name}, icon:"境", anchor:{x:event.clientX,y:event.clientY}, details:[{labelKey:"world.locationLabel",value:item.name,emphasis:true},{labelKey:"world.atmosphereLabel",value:item.atmosphere},{labelKey:"world.sceneEffectLabel",value:item.description},{labelKey:"world.travelCostLabel",value:feedbackText("world.travelCostValue")},{labelKey:"world.sceneNpcLabel",value:item.characters.map(id=>characterMap[id]?.name??id).join(feedbackText("system.listSeparator"))||feedbackText("system.none")},{labelKey:"world.sceneActivityLabel",value:item.id===game.sceneId?availableActivities.slice(0,1).map(activity=>activity.name).join(feedbackText("system.listSeparator"))||feedbackText("system.none"):feedbackText("world.sceneActivityUnknown")},{labelKey:"projects.statusLabel",value:feedbackText(`projects.status.${game.medicineShortage.status}`)}] }) : enterScene(item.id)}>
+          <button type="button" key={item.id} className={item.id === game.sceneId ? "active" : ""} onClick={(event) => item.id === game.sceneId ? feedback.popover({ titleKey:"world.sceneTitle", bodyKey:"world.sceneBody", params:{name:item.name}, icon:"境", anchor:{x:event.clientX,y:event.clientY}, details:[{labelKey:"world.locationLabel",value:item.name,emphasis:true},{labelKey:"world.atmosphereLabel",value:item.atmosphere},{labelKey:"world.sceneEffectLabel",value:item.description},{labelKey:"world.travelCostLabel",value:feedbackText("world.travelCostValue")},{labelKey:"world.sceneNpcLabel",value:item.characters.map(id=>characterMap[id]?.name??id).join(feedbackText("system.listSeparator"))||feedbackText("system.none")},{labelKey:"world.sceneActivityLabel",value:item.id===game.sceneId?availableActivities.map(activity=>activity.name).join(feedbackText("system.listSeparator"))||feedbackText("system.none"):feedbackText("world.sceneActivityUnknown")},{labelKey:"projects.statusLabel",value:feedbackText(`projects.status.${game.medicineShortage.status}`)}] }) : enterScene(item.id)}>
             <span>{item.shortName}</span><strong>{item.name}</strong>
           </button>
         ))}
@@ -875,27 +970,33 @@ export default function GameDemo() {
         {game.activeEvent && <StoryEffectsLayer effect={storyVfx} eventKey={`${game.activeEvent.eventId}-${game.activeEvent.nodeId}`} />}
         {worldHudVisible && !game.activeEvent && <WorldQuickDock currentSceneId={game.sceneId} currentFarmModule={currentFarmModule} period={game.period} nextPeriod={PERIODS[(Math.max(0, PERIODS.indexOf(game.period)) + 1) % PERIODS.length]} onDestination={useQuickDestination} onAdvanceTime={() => advanceTime("wait")} />}
         <div className="scene-title"><p>{scene.atmosphere}</p><h2>{scene.name}</h2><span>{scene.description}</span></div>
+        <SceneObjectLayer
+          sceneId={scene.id}
+          day={game.day}
+          hidden={Boolean(game.activeEvent || activeExploration || currentFarmModule || kitchenOpen)}
+        />
         {!game.activeEvent && !unifiedState.activity.last && <CurrentQuestCard onOpen={()=>setQuestOpen(true)} onNavigate={navigateToQuest}/>}
           {!game.activeEvent && !questOpen && !activeModule && !projectOpen && unifiedState.activity.last && <RecentOutcomeCard receipt={unifiedState.activity.last} history={unifiedState.activity.history} onNext={() => navigateFromOutcome(unifiedState.activity.last!.nextStep.target)} onDismiss={() => applyUnifiedEffects([{ type: "clear_activity" }])} />}
         {restoredClinic&&!game.activeEvent&&<div className="clinic-restored-chip"><i>医</i><span><small>{feedbackText("projects.worldResultKicker")}</small><strong>{feedbackText("projects.worldResultClinic")}</strong></span></div>}
-        {activeFortuneSign&&activeFortuneSign.effect!=="none"&&<div className="fortune-buff-chip"><i>✦</i><span><small>今日金运 · {activeFortuneSign.rank}</small><strong>{activeFortuneSign.title}</strong><em>{fortuneEffectLabel(activeFortuneSign.effect).replace("金运 · ","")}</em></span></div>}
+        {activeFortuneSign&&activeFortuneSign.effect!=="none"&&<Inspectable mode="popover" className="fortune-buff-chip" aria-label={`展开今日签文：${activeFortuneSign.title}`} feedback={{titleKey:"system.dynamicMessage",bodyKey:"system.dynamicMessage",params:{message:`${activeFortuneSign.rank} · ${activeFortuneSign.title}`},icon:"签",tone:"gold",details:[{labelKey:"system.effect",value:fortuneEffectLabel(activeFortuneSign.effect),emphasis:true},{labelKey:"calendar.dateLabel",value:realDateKey},{labelKey:"system.status",value:"今日生效"}]}}><i>签</i><b>金运</b><span>{activeFortuneSign.rank}</span></Inspectable>}
         {!game.activeEvent&&!activeExploration&&explorePoints.map((point)=>{const event=eventDefinitions.find((item)=>item.id===point.eventId);if(!event)return null;const egg=event.cardStyle==="easter_egg";const config=event.exploration;return <button type="button" key={event.id} className={`explore-light ${egg?"easter-light":"trigger-light"}`} style={{left:`${point.x}%`,top:`${point.y}%`,"--egg-accent":config?.accent??"#f4cf72"} as CSSProperties} onClick={()=>setActiveExploration(event)} aria-label={egg?`${config?.interactionLabel??"发现彩蛋"}：${event.title}`:"发现剧情光点"}><i/><b className="explore-glyph">{egg?(config?.icon??"拾"):"寻"}</b><span>{egg?(config?.interactionLabel??"拾取"):"循光"}</span></button>})}
-        {!game.activeEvent && !activeExploration && residentFishingLocation && <button type="button" className="resident-fishing-point" onClick={() => setFishingTarget({ locationId: residentFishingLocation.id })} aria-label={`在${residentFishingLocation.name}钓鱼`}><span><b>钓</b><i /></span><em><strong>{residentFishingLocation.name}</strong><small>常驻钓点 · 今日可钓 {Math.max(0, 6 - (unifiedState.fishing.dailyDay === game.day ? unifiedState.fishing.dailyAttempts : 0))} 竿</small></em></button>}
+        {!game.activeEvent && !activeExploration && residentFishingLocation && <button type="button" className="resident-fishing-point" onClick={() => setFishingTarget({ locationId: residentFishingLocation.id })} aria-label={`在${residentFishingLocation.name}钓鱼`}><span><b>钓</b><i /></span><em><strong>{residentFishingLocation.name}</strong><small>常驻钓点 · 今日可钓 {remainingFishingAttempts(unifiedState.fishing, game.day)} 竿</small></em></button>}
         {scene.id !== "spirit-farm" && <aside className="present-characters" aria-label="当前在场人物">
           <p>此间人物</p>
           {!activeCharacters.length && <span className="nobody-present">此时无人</span>}
-          {activeCharacters.map((item) => (
-            <button type="button" key={item.id} className={`${item.id === character.id ? "active" : ""} ${findQuestOffer(item.id,unifiedState.quests)?"has-quest-offer":""}`} onClick={(event) => item.id === character.id ? feedback.popover({ titleKey:"relationship.profileTitle", icon:"缘", imageSrc:item.image, anchor:{x:event.clientX,y:event.clientY}, bodyKey:"relationship.stageBody", params:{name:item.name,stage:relationshipStage(item,game.relationships[item.id]??0).name,description:relationshipStage(item,game.relationships[item.id]??0).description}, details:[{labelKey:"relationship.roleLabel",value:item.role},{labelKey:"relationship.scheduleLabel",value:`${scene.name} · ${game.period}`},{labelKey:"relationship.preferenceLabel",value:(game.discoveredGiftPreferences[item.id]??[]).map((id)=>giftMap[id]?.name??id).join(" · ")||feedbackText("system.none")},{labelKey:"relationship.appointmentLabel",value:feedbackText("relationship.appointmentValue")},{labelKey:"relationship.worldImpactLabel",value:item.id==="liu"&&game.flags.medicine_supply_restored?feedbackText("relationship.clinicRestored"):feedbackText("relationship.worldStable")}] }) : selectCharacter(item.id)} aria-label={`选择${item.name}`}>
-              <img src={item.image} alt="" /><span>{item.name.slice(0, 1)}</span>{findQuestOffer(item.id,unifiedState.quests)&&<b aria-label={questText("offerAvailable")}>!</b>}
+          {activeCharacters.map((item) => {const questOffer=findQuestOffer(item.id,unifiedState.quests);const teachingOffer=getDailyTeachingOffer(item.id,game.day,game.relationships[item.id]??4);return (
+            <button type="button" key={item.id} className={`${item.id === character.id ? "active" : ""} ${questOffer?"has-quest-offer":""} ${teachingOffer?"has-teaching-offer":""}`} onClick={(event) => item.id === character.id ? feedback.popover({ titleKey:"relationship.profileTitle", icon:"缘", imageSrc:item.image, anchor:{x:event.clientX,y:event.clientY}, bodyKey:"relationship.stageBody", params:{name:item.name,stage:relationshipStage(item,game.relationships[item.id]??0).name,description:relationshipStage(item,game.relationships[item.id]??0).description}, details:[{labelKey:"relationship.roleLabel",value:item.role},{labelKey:"relationship.scheduleLabel",value:item.id.startsWith("teacher-")?teachingScheduleLabel(item.id):`${scene.name} · ${game.period}`},{labelKey:"player.teachingTodayLabel",value:teachingOffer?`${teachingOffer.name} · ${TEACHING_STAT_LABELS[teachingOffer.stat]} ${attributePointEffect(teachingOffer.stat)}`:feedbackText("player.teachingNoneToday")},{labelKey:"relationship.preferenceLabel",value:(game.discoveredGiftPreferences[item.id]??[]).map((id)=>giftMap[id]?.name??id).join(" · ")||feedbackText("system.none")},{labelKey:"relationship.appointmentLabel",value:feedbackText("relationship.appointmentValue")},{labelKey:"relationship.worldImpactLabel",value:item.id==="liu"&&game.flags.medicine_supply_restored?feedbackText("relationship.clinicRestored"):feedbackText("relationship.worldStable")}] }) : selectCharacter(item.id)} aria-label={`选择${item.name}`}>
+              <img src={item.image} alt="" /><span>{item.name.slice(0, 1)}</span>{questOffer?<b aria-label={questText("offerAvailable")}>!</b>:teachingOffer&&<b className="teaching-badge" aria-label={feedbackText("player.teachingAvailable")}>练</b>}
             </button>
-          ))}
-          {!game.activeEvent && <ActivityCards activities={availableActivities.slice(0,1)} completedIds={activeFortune?["daily-divination"]:[]} onOpen={openActivity} />}
+          )})}
+          {!game.activeEvent && <ActivityCards activities={availableActivities} completedIds={activeFortune?["daily-divination"]:[]} onOpen={openActivity} />}
         </aside>}
 
         {hasPresentCharacter && !isSpecialEvent && <div className={`portrait-wrap portrait-${character.id}`} key={character.id}>
           <div className="portrait-halo" style={{ "--accent": character.accent } as React.CSSProperties} />
           <img className="main-portrait" src={character.image} alt={`${character.name}人物立绘`} />
           {availableQuestOffer&&<span className="npc-quest-marker"><b>!</b><em>{questText("offerAvailable")}</em></span>}
+          {!availableQuestOffer&&activeTeachingOffer&&<span className="npc-teaching-marker"><b>{activeTeachingOffer.mark}</b><em>{feedbackText("player.teachingAvailable")}</em></span>}
         </div>}
         {isSpecialEvent && <div className="special-portrait-wrap" key={`${game.activeEvent?.eventId}-${character.id}`}><div className="special-portrait-aura" /><img className="special-portrait-image" key={specialPortrait} src={specialPortrait} alt={`${character.name}特殊事件立绘`} /></div>}
         {hasPresentCharacter && <Inspectable className="character-plaque" aria-label={`查看${character.name}详情`} feedback={{ titleKey:"relationship.profileTitle", icon:"缘", imageSrc:character.image, bodyKey:"relationship.stageBody", params:{name:character.name,stage:currentStage.name,description:currentStage.description}, details:[{labelKey:"relationship.nameLabel",value:character.name,emphasis:true},{labelKey:"relationship.roleLabel",value:character.role},{labelKey:"relationship.stageLabel",value:currentStage.name},{labelKey:"relationship.valueLabel",value:relationship},{labelKey:"relationship.addressLabel",value:`「${currentStage.addressing}」`}] }}><p>{character.role}</p><h3>{character.name}</h3><span>{currentStage.name} · 唤你「{currentStage.addressing}」</span></Inspectable>}
@@ -910,14 +1011,14 @@ export default function GameDemo() {
         {!game.activeEvent && hasPresentCharacter && (
           <div className={`interaction-dock ${character.id === "ning" || character.id === "huo" ? "has-shop" : ""}`}>
             {canDrink&&interactionMenuOpen&&<div className="interaction-popover"><p>与{character.name}互动</p><button type="button" onClick={()=>{setInteractionMenuOpen(false);setGiftOpen(true)}}><i>礼</i><span><strong>赠予心意</strong><small>从行囊中选择礼物 · 消耗 1 体力</small></span></button><button type="button" onClick={()=>{setInteractionMenuOpen(false);setDrinkingOpen(true)}}><i>酌</i><span><strong>月下共饮</strong><small>{drinkingProficiency.level}阶「{drinkingProficiency.name}」 · 酒兴 {game.interactionCounts[drinkingCountKey]??0}/{drinkingConfig?.specialWinCount}</small></span></button></div>}
-            {availableQuestOffer&&questConversationMenuOpen&&<div className="interaction-popover quest-conversation-popover"><p>{questText("conversationChoiceTitle",{name:character.name})}</p><button type="button" onClick={startCasualConversation}><i>言</i><span><strong>{questText("casualConversation")}</strong><small>{questText("casualConversationHint")}</small></span></button><button type="button" onClick={openQuestConversation}><i>任</i><span><strong>{questText("viewCommission")}</strong><small>{questText("viewCommissionHint",{name:availableQuestOffer.name})}</small></span></button></div>}
+            {hasConversationOptions&&questConversationMenuOpen&&<div className="interaction-popover quest-conversation-popover"><p>{questText("conversationChoiceTitle",{name:character.name})}</p><button type="button" onClick={startCasualConversation}><i>言</i><span><strong>{questText("casualConversation")}</strong><small>{questText("casualConversationHint")}</small></span></button>{availableQuestOffer&&<button type="button" onClick={openQuestConversation}><i>任</i><span><strong>{questText("viewCommission")}</strong><small>{questText("viewCommissionHint",{name:availableQuestOffer.name})}</small></span></button>}{activeTeachingOffer&&<button type="button" className="teaching-choice" onClick={()=>void beginTeaching(activeTeachingOffer)}><i>{activeTeachingOffer.mark}</i><span><strong>{activeTeachingOffer.name}</strong><small>{TEACHING_STAT_LABELS[activeTeachingOffer.stat]} {attributePointEffect(activeTeachingOffer.stat)} · 体力 {activeTeachingOffer.staminaCost}{activeTeachingOffer.fee?` · ${activeTeachingOffer.fee} 灵石`:""}</small></span></button>}{fishingRelic&&<button type="button" className="fishing-relic-choice" onClick={showFishingRelic}><i>忆</i><span><strong>出示 · {fishingRelic.name}</strong><small>这件鱼获故物也许属于{character.name}</small></span></button>}{fishingIntel&&<button type="button" className="fishing-intel-choice" onClick={useFishingIntel}><i>{unifiedState.fishing.links.npcIntelReceived.includes(fishingIntel.id)?"钓":"图"}</i><span><strong>{unifiedState.fishing.links.npcIntelReceived.includes(fishingIntel.id)?`前往 · ${fishingIntel.name}`:"请教水脉情报"}</strong><small>{unifiedState.fishing.links.npcIntelReceived.includes(fishingIntel.id)?"从人物对话直接进入秘钓点":fishingIntel.hint}</small></span></button>}</div>}
             <div className="bond-panel">
               <div><span>缘分 · {currentStage.name}</span><strong>{relationship}</strong></div>
               <div className="bond-track"><i style={{ width: `${relationship}%` }} /></div>
               <p>{nextHint}</p>
             </div>
             {(character.id === "ning" || character.id === "huo") && <button type="button" className="shop-action" onClick={() => {setQuestConversationMenuOpen(false);setShopOpen(true)}}><span className="action-glyph">商</span><span><small>进入</small>{character.id === "huo" ? "玄锋号" : "栖珍阁"}</span></button>}
-            <button type="button" className={`ink-action ${availableQuestOffer?"has-quest-offer":""} ${questConversationMenuOpen?"active":""}`} onClick={talk}><span className="action-glyph">{availableQuestOffer?"!":"言"}</span><span><small>{availableQuestOffer?questText("offerAvailable"):"与她"}</small>{availableQuestOffer?questText("chooseConversation"):"交谈"}</span></button>
+            <button type="button" className={`ink-action ${availableQuestOffer?"has-quest-offer":""} ${activeTeachingOffer?"has-teaching-offer":""} ${questConversationMenuOpen?"active":""}`} onClick={talk}><span className="action-glyph">{availableQuestOffer?"!":activeTeachingOffer?activeTeachingOffer.mark:"言"}</span><span><small>{availableQuestOffer?questText("offerAvailable"):activeTeachingOffer?feedbackText("player.teachingInvitation"):"与她"}</small>{hasConversationOptions?questText("chooseConversation"):"交谈"}</span></button>
             <button type="button" className={`gold-action ${interactionMenuOpen?"active":""}`} onClick={() => {setQuestConversationMenuOpen(false);canDrink?setInteractionMenuOpen(value=>!value):setGiftOpen(true)}}><span className="action-glyph">{canDrink?"互":"礼"}</span><span><small>{canDrink?"展开":"赠予"}</small>{canDrink?"互动":"心意"}</span></button>
           </div>
         )}
@@ -968,10 +1069,10 @@ export default function GameDemo() {
         <button type="button" className={mapOpen ? "active" : ""} disabled={Boolean(game.activeEvent)} onClick={() => { setSystemPanel(null); setMapOpen(true); }}><i>山</i><span>山河地图</span>{visibleMapEvents.length > 0 && <b>{visibleMapEvents.length}</b>}</button>
         <button type="button" className={questOpen ? "active" : ""} onClick={() => { setSystemPanel(null); setQuestOpen(true); }}><i>任</i><span>{questText("panelTitle")}</span>{claimableQuestCount>0&&<b>{claimableQuestCount}</b>}</button>
         <button type="button" onClick={() => setPanel("characters")}><i>缘</i><span>人物谱</span></button>
-        <button type="button" className={utilityOpen ? "active" : ""} onClick={() => setUtilityOpen(true)}><i>匣</i><span>百宝匣</span><b>{game.receivedMessages.length}</b></button>
+        <button type="button" className={utilityOpen ? "active" : ""} onClick={() => setUtilityOpen(true)}><i>匣</i><span>百宝匣</span><b>{inboxMessages.length}</b></button>
       </nav>
 
-      <MobileUtilityDrawer open={utilityOpen} stamina={game.stamina} stones={game.spiritStones} cardCount={unifiedState.shared.cards.length} messageCount={game.receivedMessages.length} galleryCount={unlockedAudioEvents.length} onClose={() => setUtilityOpen(false)} onAction={(id) => {
+      <MobileUtilityDrawer open={utilityOpen} stamina={game.stamina} stones={game.spiritStones} cardCount={unifiedState.shared.cards.length} messageCount={inboxMessages.length} galleryCount={unlockedAudioEvents.length} onClose={() => setUtilityOpen(false)} onAction={(id) => {
         setUtilityOpen(false);
         if (id === "inventory" || id === "equipment" || id === "cards" || id === "skills") setSystemPanel(id);
         else if (id === "events") setPanel("events");
@@ -990,7 +1091,7 @@ export default function GameDemo() {
       {forumOpen&&<ForumModal day={game.day} period={game.period} onClose={()=>setForumOpen(false)} player={{name:"槐安行者",title:"云州新秀",level:unifiedState.shared.playerLevel,cultivation:game.experience,dungeons:unifiedState.dungeons.completed.length,bondName:characters.reduce((best,item)=>(game.relationships[item.id]??0)>(game.relationships[best.id]??0)?item:best,characters[0]).name,bond:Math.max(...characters.map(item=>game.relationships[item.id]??0))}}/>}
       {kitchenOpen&&<KitchenModal onClose={()=>setKitchenOpen(false)} onNotice={setNotice}/>}
       {fishingTarget && <FishingModal locationId={fishingTarget.locationId} randomSpotId={fishingTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setFishingTarget(null)} onNotice={setNotice} />}
-      {miningTarget && <MiningModal locationId={miningTarget.locationId} randomSpotId={miningTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setMiningTarget(null)} onNotice={setNotice} />}
+      {miningTarget && <MiningModal locationId={miningTarget.locationId} randomSpotId={miningTarget.randomSpotId} day={game.day} period={game.period} onClose={() => setMiningTarget(null)} onNotice={setNotice} onOpenFishing={(locationId)=>{setMiningTarget(null);setFishingTarget({locationId})}} />}
       {turnCombatRequest && <TurnCombatModule
         encounterId={turnCombatRequest.encounterId}
         player={createPlayerTurnProfile(unifiedState)}
@@ -1016,7 +1117,7 @@ export default function GameDemo() {
       {battleReturnReceipt && <BattleReturnPanel receipt={battleReturnReceipt} onOpenTasks={() => { setBattleReturnReceipt(null); setQuestOpen(true); }} onOpenPanel={(panel) => { setBattleReturnReceipt(null); setSystemPanel(panel); }} onClose={() => setBattleReturnReceipt(null)} />}
       {nightfallVisible&&!game.activeEvent&&!daybreakPresentation&&<NightfallNotice onSleep={()=>{setNightfallDismissedKey(nightfallKey);advanceTime("sleep")}} onDismiss={()=>setNightfallDismissedKey(nightfallKey)}/>}
       {daybreakPresentation&&<DaybreakTransition key={daybreakPresentation.day} presentation={daybreakPresentation} onComplete={()=>setGame((state)=>{const story=daybreakStoryForDay(state.day,state.daybreakStoryRuns);const homeScene=scenes.find((item)=>item.id===DAYBREAK_CONTENT.homeSceneId);return{...state,sceneId:DAYBREAK_CONTENT.homeSceneId,selectedCharacterId:homeScene?.characters[0]??state.selectedCharacterId,daybreakStoryRuns:markDaybreakStorySeen(state.daybreakStoryRuns,story?.id),daybreakAcknowledgedDays:[...new Set([...state.daybreakAcknowledgedDays,state.day])].slice(-60)}})}/>}
-      {calendarOpen && <CalendarModal state={game} events={eventDefinitions} onClose={() => setCalendarOpen(false)} />}
+      {calendarOpen && <CalendarModal state={game} events={eventDefinitions} onClose={() => setCalendarOpen(false)} onTravelToActivity={(sceneId)=>{setCalendarOpen(false);enterScene(sceneId)}} />}
       {activeActivity === "tavern-gambling" && <GamblingModal stones={game.spiritStones} stamina={game.stamina} portrait={characterMap.hua?.image ?? "/assets/characters/hua-zhaoying.webp"} onClose={() => setActiveActivity(null)} onSpend={spendSpiritStones} onSpendStamina={spendStamina} onPayout={gainSpiritStones} onBond={gainHuaBond} />}
       {activeActivity === "monthly-market" && <MarketModal stones={game.spiritStones} stamina={game.stamina} treasures={game.marketTreasures} onClose={() => setActiveActivity(null)} onSpend={spendSpiritStones} onSpendStamina={spendStamina} onTreasure={collectMarketTreasure} onBuyGift={buyMarketGift} />}
       {activeActivity === "daily-divination" && <FortuneModal dateKey={realDateKey} portrait={characterMap.liu?.image ?? "/assets/characters/portrait-refresh/liu-zhiyi.png"} initialRecord={fortuneHistory[realDateKey]} onClose={()=>setActiveActivity(null)} onDraw={drawFortuneToday}/>}
@@ -1036,9 +1137,9 @@ export default function GameDemo() {
       {preferenceNotice&&<div className="preference-discovery"><span>✦</span>{preferenceNotice}</div>}
       {stageNotice&&!game.activeEvent&&!activeAudioEvent&&<div className={`stage-notice-backdrop ${stageNotice.stage.id==="devoted"?"stage-notice-major":""}`}><section className="stage-notice" role="dialog" aria-modal="true"><img src={characterMap[stageNotice.characterId]?.image} alt=""/><div><p>RELATIONSHIP ADVANCED · 关系进展</p><h3>{characterMap[stageNotice.characterId]?.name} · {stageNotice.stage.name}</h3><blockquote>{stageNotice.stage.description}</blockquote><span>从今往后，她会唤你「{stageNotice.stage.addressing}」</span><button type="button" onClick={()=>setStageNotice(null)}>记下此刻</button></div></section></div>}
 
-      {activeMessage&&<div className="message-backdrop"><section className="character-message" role="dialog" aria-modal="true" aria-label={activeMessage.title}><img src={characterMap[activeMessage.senderCharacterId]?.image} alt=""/><div><p>CHARACTER LETTER · {characterMap[activeMessage.senderCharacterId]?.name}</p><h3>{activeMessage.title}</h3><blockquote>{activeMessage.body}</blockquote><span>—— {activeMessage.signature}</span>{!replayMessage&&(activeMessage.giftId||activeMessage.relationshipAmount)&&<small>{activeMessage.giftId?`随信附赠：${giftMap[activeMessage.giftId]?.name} × ${activeMessage.giftAmount??1}`:""}{activeMessage.giftId&&activeMessage.relationshipAmount?" · ":""}{activeMessage.relationshipAmount?`缘分 +${activeMessage.relationshipAmount}`:""}</small>}<button type="button" onClick={closeMessage}>{replayMessage?"收起旧笺":"收下传音"}</button></div></section></div>}
+      {activeMessage&&<div className="message-backdrop"><section className="character-message" role="dialog" aria-modal="true" aria-label={activeMessage.title}><img src={characterMap[activeMessage.senderCharacterId]?.image} alt=""/><div><p>CHARACTER LETTER · {characterMap[activeMessage.senderCharacterId]?.name}</p><h3>{activeMessage.title}</h3><blockquote>{activeMessage.body}</blockquote><span>—— {activeMessage.signature}</span>{activeMessage.giftId&&<div className="message-attachment-receipt"><i>附</i><span><small>{feedbackText("relationship.messageAttachmentBadge")}</small><strong>{giftMap[activeMessage.giftId]?.name??activeMessage.giftId} ×{activeMessage.giftAmount??1}</strong><em>{feedbackText("relationship.messageAttachmentClaimed")}</em></span></div>}{activeMessage.relationshipAmount&&<small>缘分 +{activeMessage.relationshipAmount}</small>}<button type="button" onClick={closeMessage}>收起传音</button></div></section></div>}
 
-      {messageInboxOpen&&!activeMessage&&<div className="modal-backdrop message-inbox-backdrop" onMouseDown={()=>setMessageInboxOpen(false)}><section className="message-inbox" role="dialog" aria-modal="true" onMouseDown={(event)=>event.stopPropagation()}><div className="sheet-heading"><div><p>LETTERS & WHISPERS</p><h3>传音匣</h3></div><button type="button" onClick={()=>setMessageInboxOpen(false)}>×</button></div><div className="message-list">{inboxMessages.map((message)=>{const claimed=game.claimedMessages.includes(message.id);return <button type="button" className={claimed?"claimed":"unread"} key={message.id} onClick={()=>{setMessageInboxOpen(false);if(claimed)setReplayMessage(message);else setMessageQueue((queue)=>[message,...queue.filter((item)=>item.id!==message.id)]);setMessageOpen(true)}}><img src={characterMap[message.senderCharacterId]?.image} alt=""/><span><small>{characterMap[message.senderCharacterId]?.name}</small><strong>{message.title}</strong><p>{message.body}</p></span><i>{claimed?"重读":"未读"}</i></button>})}{!inboxMessages.length&&<div className="em-empty">传音匣尚空。随着关系与时间推进，她们会主动写信给你。</div>}</div></section></div>}
+      {messageInboxOpen&&!activeMessage&&<div className="modal-backdrop message-inbox-backdrop" onMouseDown={()=>setMessageInboxOpen(false)}><section className="message-inbox" role="dialog" aria-modal="true" onMouseDown={(event)=>event.stopPropagation()}><div className="sheet-heading"><div><p>LETTERS & WHISPERS</p><h3>传音匣</h3></div><button type="button" onClick={()=>setMessageInboxOpen(false)}>×</button></div><div className="message-list">{inboxMessages.map((message)=>{const claimed=game.claimedMessages.includes(message.id);return <button type="button" className={`${claimed?"claimed":"unread"} ${message.giftId?"has-attachment":""}`} key={message.id} onClick={()=>openInboxMessage(message)}><img src={characterMap[message.senderCharacterId]?.image} alt=""/><span><small>{characterMap[message.senderCharacterId]?.name}</small><strong>{message.title}</strong><p>{message.body}</p>{message.giftId&&<em className="message-attachment-hint">{claimed?feedbackText("relationship.messageAttachmentClaimed"):feedbackText("relationship.messageAttachmentPending")}</em>}</span><i>{claimed?"重读":"未读"}</i></button>})}{!inboxMessages.length&&<div className="em-empty">传音匣尚空。随着关系与时间推进，她们会主动写信给你。</div>}</div></section></div>}
 
       {galleryOpen&&!replayEvent&&<div className="modal-backdrop gallery-backdrop" role="presentation" onMouseDown={()=>setGalleryOpen(false)}><section className="memory-gallery" role="dialog" aria-modal="true" aria-label="音画展馆" onMouseDown={event=>event.stopPropagation()}><div className="sheet-heading"><div><p>COLLECTED MEMORIES</p><h3>云上展馆</h3></div><button type="button" onClick={()=>setGalleryOpen(false)}>×</button></div><p className="gallery-intro">已解锁的音画事件会成为回忆卡片。点击卡片进入回忆模式，从第一段重新播放。</p><div className="gallery-card-grid">{audioEvents.map((event,index)=>{const unlocked=game.completedEvents.includes(event.id);const cover=event.audioSegments?.[0]?.image;return <button type="button" key={event.id} className={unlocked?"unlocked":"locked"} disabled={!unlocked} onClick={()=>{setGalleryOpen(false);setReplayEvent(event);setAudioIndex(0)}}><span className="gallery-card-art" style={{backgroundImage:cover?`url(${cover})`:undefined}}><img src={getAudioFrame(event.audioFrameId).src} alt=""/></span><small>{String(index+1).padStart(2,"0")} · {event.chapter}</small><strong>{unlocked?(event.unlockTitle||event.title):"未解锁回忆"}</strong><i>{unlocked?`${event.audioSegments?.length??0} 段音画 · 点击回放`:event.clue}</i></button>})}{!audioEvents.length&&<div className="em-empty">尚未发布音画事件。可在 EM 中创建第一张音画事件卡。</div>}</div></section></div>}
 
@@ -1047,6 +1148,7 @@ export default function GameDemo() {
           <section className="gift-sheet" role="dialog" aria-modal="true" aria-label="选择礼物" onMouseDown={(event) => event.stopPropagation()}>
             <div className="sheet-heading"><div><p>INVENTORY · 行囊</p><h3>{hasPresentCharacter?`挑一份心意赠予${character.name}`:"查看随身物品"}</h3></div><button type="button" onClick={() => setGiftOpen(false)} aria-label="关闭">×</button></div>
             {hasPresentCharacter&&giftEggShowcases.length>0&&<section className="gift-easter-showcase"><header><span>✦</span><div><small>PERSONAL CLUE · 可向此人展示</small><strong>有些旧物，只会让特定的人开口</strong></div></header><div>{giftEggShowcases.map(({definition,showcase})=>{const item=easterEggItemMap[definition.itemId];if(!item)return null;return <article key={definition.itemId}><EasterEggArtwork item={item}/><span><small>藏珍 · 置顶线索</small><strong>{item.name}</strong><p>{showcase.subtitle}</p></span><button type="button" onClick={()=>showEasterEgg(definition.itemId)}>展示</button></article>})}</div></section>}
+            {hasPresentCharacter&&linkedFishGifts.length>0&&<section className="gift-fish-showcase"><header><span>鱼</span><div><small>HAND-CAUGHT GIFT · 亲手钓得</small><strong>{character.name}会对某些鱼获有自己的偏好</strong></div></header><div>{linkedFishGifts.map(({fish,relationshipGain})=><article key={fish.id}><img src={fish.art} alt=""/><span><small>水产赠礼 · 缘分 +{relationshipGain}</small><strong>{fish.name}</strong><p>{fish.description}</p></span><b>×{unifiedState.shared.items[fish.id]?.amount??0}</b><button type="button" onClick={()=>giveLinkedFish(fish.id)}>赠鱼</button></article>)}</div></section>}
             <div className="gift-grid">
               {gifts.map((gift) => {
                 const count = game.inventory[gift.id];

@@ -32,6 +32,7 @@ export const INITIAL_STATE: GameState = {
   calendarEventRuns: {},
   collectedEasterEggs: [],
   easterEggProgress: {},
+  sceneObjectStates: {},
   daybreakStoryRuns: [],
   daybreakAcknowledgedDays: [],
   completedEvents: [],

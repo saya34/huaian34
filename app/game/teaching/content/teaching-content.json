@@ -1,0 +1,127 @@
+{
+  "scene": {
+    "id": "training-hall",
+    "name": "听风练功房",
+    "shortName": "练功房",
+    "description": "山下旧武馆改成的练功房。木桩、石锁与护身阵各占一隅，三位教头按周轮值授课。",
+    "atmosphere": "拳风 · 木鸣",
+    "image": "/assets/maps/mountain-village.jpg",
+    "characters": ["teacher-tie", "teacher-luo", "teacher-yue"]
+  },
+  "teachers": [
+    {
+      "id": "teacher-tie",
+      "name": "铁无咎",
+      "role": "破军拳师 · 伤害教头",
+      "courtesy": "铁教头",
+      "bio": "曾任山门外院拳师，出手直接，最擅长把一分灵力压成三分杀伤。每逢周一、周三、周五在馆中授课。",
+      "sceneId": "training-hall",
+      "image": "/assets/commission-npcs/tie-wujiu.webp",
+      "accent": "#b86b4e",
+      "lovedGift": "peachWine",
+      "presence": {
+        "mode": "random",
+        "guaranteedRules": [],
+        "randomRules": [
+          { "id": "teacher-tie-weekly", "label": "周一、周三、周五轮值", "periods": ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"], "weekdays": [1, 3, 5], "conditions": [], "probability": 100 }
+        ]
+      },
+      "relationshipAddresses": ["学员", "小友", "你", "得意门生"],
+      "giftPreferences": [
+        { "giftId": "peachWine", "tier": "loved", "reaction": "他把酒坛放在拳架旁，说今日最后一式可以多教半寸。" },
+        { "giftId": "osmanthusCake", "tier": "liked", "reaction": "他三口吃完糕点，示意你继续扎马。" }
+      ],
+      "ambientLines": [
+        "力从足起，不是从嗓门里起。再来。",
+        "招式不必好看，打中才算本事。",
+        "今日我值馆。两百灵石一课，练到你自己喊停。"
+      ]
+    },
+    {
+      "id": "teacher-luo",
+      "name": "洛轻尘",
+      "role": "流光器师 · 攻速教头",
+      "courtesy": "洛先生",
+      "bio": "以飞针与短刃闻名的器师，讲究呼吸、指诀和法器节拍。每逢周二、周四、周六在馆中授课。",
+      "sceneId": "training-hall",
+      "image": "/assets/commission-npcs/gu-changfeng.webp",
+      "accent": "#6c9ca0",
+      "lovedGift": "snowTea",
+      "presence": {
+        "mode": "random",
+        "guaranteedRules": [],
+        "randomRules": [
+          { "id": "teacher-luo-weekly", "label": "周二、周四、周六轮值", "periods": ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"], "weekdays": [2, 4, 6], "conditions": [], "probability": 100 }
+        ]
+      },
+      "relationshipAddresses": ["学员", "道友", "你", "同调之人"],
+      "giftPreferences": [
+        { "giftId": "snowTea", "tier": "loved", "reaction": "他以茶盖轻敲三下杯沿，说这正是御器所需的节拍。" },
+        { "giftId": "herbSachet", "tier": "liked", "reaction": "他将香囊系在腕侧，说气息稳了，出手自然更快。" }
+      ],
+      "ambientLines": [
+        "快不是乱。每一次出手，都要踩在上一道灵光消散之前。",
+        "指尖放松，神识先到，法器才会跟上。",
+        "周二、周四、周六我在。课钱两百，不赊账。"
+      ]
+    },
+    {
+      "id": "teacher-yue",
+      "name": "岳沉璧",
+      "role": "磐石武师 · 防御教头",
+      "courtesy": "岳师傅",
+      "bio": "精通卸力与护体罡气的武师，话少而耐心。周三、周六、周日在馆中守阵。",
+      "sceneId": "training-hall",
+      "image": "/assets/commission-npcs/shen-qingluo.webp",
+      "accent": "#778b68",
+      "lovedGift": "herbSachet",
+      "presence": {
+        "mode": "random",
+        "guaranteedRules": [],
+        "randomRules": [
+          { "id": "teacher-yue-weekly", "label": "周三、周六、周日轮值", "periods": ["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"], "weekdays": [3, 6, 7], "conditions": [], "probability": 100 }
+        ]
+      },
+      "relationshipAddresses": ["学员", "孩子", "你", "可托后背的人"],
+      "giftPreferences": [
+        { "giftId": "herbSachet", "tier": "loved", "reaction": "她将香囊压在护腕下，点头让你站进阵心。" },
+        { "giftId": "snowTea", "tier": "liked", "reaction": "她慢慢饮完茶，才重新替你校正护体姿势。" }
+      ],
+      "ambientLines": [
+        "站稳。能把第一击接住，才有资格谈第二招。",
+        "护体不是硬扛，是让力从你身边过去。",
+        "今日若我当值，两百灵石便可入阵练一课。"
+      ]
+    }
+  ],
+  "system": {
+    "staminaCost": 2,
+    "defaultInvitationChance": 38,
+    "defaultLessons": [
+      { "id": "daily-body", "name": "吐纳锻体", "stat": "health", "mark": "体", "description": "调匀气血，在反复吐纳中夯实体魄。", "teacherLine": "随我走一遍周天。别急，气血稳住才算练成。", "weight": 2 },
+      { "id": "daily-guard", "name": "护体拆招", "stat": "defense", "mark": "御", "description": "从攻防拆解中掌握卸力和护身诀窍。", "teacherLine": "先守住这一式，再谈如何反击。", "weight": 2 },
+      { "id": "daily-dao", "name": "道法点拨", "stat": "damage", "mark": "法", "description": "凝练灵力运行，使术法落点更为锋锐。", "teacherLine": "把散开的灵力收回来，只留最锋利的一线。", "weight": 2 },
+      { "id": "daily-swiftness", "name": "御器节拍", "stat": "attackSpeed", "mark": "器", "description": "修正指诀与呼吸间隔，提高连续施法速度。", "teacherLine": "听准呼吸，下一式要在回气前出手。", "weight": 2 },
+      { "id": "daily-step", "name": "身法对练", "stat": "dodge", "mark": "身", "description": "在短距拆招中磨炼闪避判断。", "teacherLine": "别盯着兵刃，先看肩与腰的变化。", "weight": 1 },
+      { "id": "daily-travel", "name": "踏风练习", "stat": "moveSpeed", "mark": "行", "description": "以轻身步法反复绕桩，提升移动效率。", "teacherLine": "脚下再轻些。留下脚印，就算你输了。", "weight": 1 }
+    ],
+    "profiles": [
+      { "characterId": "shen", "chance": 72, "lessonIds": ["master-dao", "master-dao", "master-dao", "master-guard", "master-body"] },
+      { "characterId": "su", "chance": 58, "lessonIds": ["daily-step", "daily-travel", "daily-swiftness"] },
+      { "characterId": "hua", "chance": 46, "lessonIds": ["daily-swiftness", "daily-step"] },
+      { "characterId": "liu", "chance": 68, "minRelationship": 15, "lessonIds": ["liu-body"], "fee": 200 },
+      { "characterId": "teacher-tie", "chance": 100, "weekdays": [1, 3, 5], "lessonIds": ["hall-damage"], "fee": 200 },
+      { "characterId": "teacher-luo", "chance": 100, "weekdays": [2, 4, 6], "lessonIds": ["hall-speed"], "fee": 200 },
+      { "characterId": "teacher-yue", "chance": 100, "weekdays": [3, 6, 7], "lessonIds": ["hall-defense"], "fee": 200 }
+    ],
+    "specialLessons": [
+      { "id": "master-dao", "name": "霜华引气", "stat": "damage", "mark": "法", "description": "由沈清霜亲自校正经脉与剑意，使道法伤害永久提升。", "teacherLine": "剑意不是声势。凝神，我只替你引这一遍。" },
+      { "id": "master-guard", "name": "寒息守元", "stat": "defense", "mark": "御", "description": "以寒息稳住护体灵力，使防御永久提升。", "teacherLine": "肩放松。越是害怕受伤，气息越容易散。" },
+      { "id": "master-body", "name": "雪阶负重", "stat": "health", "mark": "体", "description": "沿问剑峰雪阶锻炼气血，使生命永久提升。", "teacherLine": "走不动便说。逞强受伤，我会生气。" },
+      { "id": "liu-body", "name": "青囊固本", "stat": "health", "mark": "体", "description": "柳知意以药息配合吐纳，为你温养体魄。", "teacherLine": "这不是治伤，是替你把根基养稳。两百灵石是药材钱，不许与我争。" },
+      { "id": "hall-damage", "name": "破军三叠劲", "stat": "damage", "mark": "破", "description": "铁无咎教授的爆发练法，永久提升一阶伤害。", "teacherLine": "三重劲只落一个点。站稳，跟我的拳路来。" },
+      { "id": "hall-speed", "name": "流光御器课", "stat": "attackSpeed", "mark": "迅", "description": "洛轻尘校正施法节拍，永久提升一阶攻速。", "teacherLine": "今天只练出手间隔。快一息不难，难的是每一息都快。" },
+      { "id": "hall-defense", "name": "磐石卸力阵", "stat": "defense", "mark": "磐", "description": "岳沉璧主持的护身阵课，永久提升一阶防御。", "teacherLine": "入阵。先学会不退，再学会不伤。" }
+    ]
+  }
+}

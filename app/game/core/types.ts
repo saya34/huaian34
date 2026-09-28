@@ -40,6 +40,9 @@ export type UnifiedCardInstance = {
   mode: "active" | "passive";
   source: "story" | "alchemy" | "dungeon";
   art: string;
+  abilityId?: string;
+  abilityName?: string;
+  abilityDescription?: string;
   activeEffect?: "sword" | "assault" | "healing" | "ward" | "frost";
   bonuses?: Partial<Record<"health" | "defense" | "damage" | "dodge" | "moveSpeed" | "expGain" | "attackSpeed" | "projectileSpeed", number>>;
   alchemyRecord?: CharacterCardRecord;

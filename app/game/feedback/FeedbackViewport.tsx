@@ -21,6 +21,24 @@ function MessageContent({ item }: { item: FeedbackItem }) {
   </>;
 }
 
+function ItemAcquiredContent({ item }: { item: FeedbackItem }) {
+  const acquired = item.itemAcquired;
+  if (!acquired) return <MessageContent item={item} />;
+  const artStyle = acquired.imagePosition
+    ? { backgroundImage: `url(${acquired.imageSrc})`, backgroundPosition: acquired.imagePosition }
+    : undefined;
+  return <div className="item-acquired-content">
+    {acquired.imagePosition
+      ? <span className="item-acquired-art is-atlas" style={artStyle} aria-hidden="true" />
+      : <span className="item-acquired-art"><img src={acquired.imageSrc} alt="" /></span>}
+    <span className="item-acquired-copy">
+      <small>{feedbackText("items.gainedTitle")}</small>
+      <strong>{acquired.name}<b>×{acquired.amount}</b></strong>
+      <em>{acquired.description}</em>
+    </span>
+  </div>;
+}
+
 function AnchoredPopover({item,onDismiss}:{item:FeedbackItem;onDismiss:(id?:string)=>void}){
   const [position,setPosition]=useState(()=>({x:item.anchor?.x??180,y:item.anchor?.y??180,flip:false}));
   useEffect(()=>{const update=()=>{const rect=item.anchor?.element?.getBoundingClientRect();const x=rect?rect.left+rect.width/2:item.anchor?.x??180;const targetY=rect?rect.bottom:item.anchor?.y??180;const flip=targetY>window.innerHeight*.66;setPosition({x:Math.max(148,Math.min(window.innerWidth-148,x)),y:Math.max(110,Math.min(window.innerHeight-110,flip?(rect?.top??targetY)-14:targetY)),flip});};update();window.addEventListener("resize",update);window.addEventListener("scroll",update,true);return()=>{window.removeEventListener("resize",update);window.removeEventListener("scroll",update,true)}},[item]);
@@ -45,7 +63,7 @@ export function FeedbackViewport({ center, important, toasts, floats, sheet, pop
       <div className="feedback-scroll" onClick={(event) => event.stopPropagation()}><MessageContent item={center} />{center.actions?.length ? <footer>{center.actions.map((action) => <button className={`action-${action.tone ?? "secondary"}`} key={action.labelKey} onClick={() => { action.onSelect(); onDismiss(center.id); }}>{feedbackText(action.labelKey)}</button>)}</footer> : null}<button className="feedback-close" onClick={() => onDismiss(center.id)} aria-label={feedbackText("system.close")}>{feedbackText("system.closeGlyph")}</button></div>
     </div>}
     {important && <section className={`feedback-important tone-${important.tone} variant-${important.variant}`} role="status" onClick={(event) => event.stopPropagation()}><MessageContent item={important} />{important.actions?.length ? <footer>{important.actions.slice(0, 1).map((action) => <button className={`action-${action.tone ?? "secondary"}`} key={action.labelKey} onClick={() => { action.onSelect(); onDismiss(important.id); }}>{feedbackText(action.labelKey)}</button>)}</footer> : null}<button type="button" className="feedback-close" onClick={(event) => { event.stopPropagation(); onDismiss(important.id); }} aria-label={feedbackText("system.close")}>{feedbackText("system.closeGlyph")}</button></section>}
-    <div className="feedback-toast-stack">{toasts.map((item) => <button type="button" className={`feedback-toast tone-${item.tone}`} key={item.id} onClick={() => onDismiss(item.id)}><MessageContent item={item} /></button>)}</div>
+    <div className="feedback-toast-stack">{toasts.map((item) => <button type="button" className={`feedback-toast tone-${item.tone} variant-${item.variant}`} key={item.id} onClick={() => onDismiss(item.id)}>{item.variant === "item-acquired" ? <ItemAcquiredContent item={item} /> : <MessageContent item={item} />}</button>)}</div>
     {floats.map((item, index) => <div className={`feedback-float tone-${item.tone}`} key={item.id} style={item.anchor ? { left: item.anchor.x, top: item.anchor.y } : { left: "50%", top: `${42 + index * 5}%` }}><MessageContent item={item} /></div>)}
     {popoverItem && <AnchoredPopover item={popoverItem} onDismiss={onDismiss}/>}
     {sheet && <div className="feedback-sheet-backdrop" role="presentation" onMouseDown={() => onDismiss(sheet.id)}><section className={`feedback-sheet tone-${sheet.tone} variant-${sheet.variant}`} role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}><header><span>{sheet.icon ?? feedbackText("system.iconInspect")}</span><button onClick={() => onDismiss(sheet.id)} aria-label={feedbackText("system.close")}>{feedbackText("system.closeGlyph")}</button></header><MessageContent item={sheet} />{sheet.actions?.length ? <footer>{sheet.actions.map((action) => <button className={`action-${action.tone ?? "secondary"}`} key={action.labelKey} onClick={action.onSelect}>{feedbackText(action.labelKey)}</button>)}</footer> : null}</section></div>}

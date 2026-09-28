@@ -17,6 +17,7 @@ const VARIANT_LEVEL: Record<FeedbackInput["variant"], FeedbackLevel> = {
   "project-milestone": "L2",
   "rare-reward": "L3",
   "identification-reveal": "L2",
+  "item-acquired": "L1",
   "action-toast": "L1",
   "floating-text": "L1",
   "info-popover": "D",
@@ -164,6 +165,7 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
         return current;
       });
     } else if (input.variant === "floating-text") setFloats([item]);
+    else if (input.variant === "item-acquired") setToasts((current) => [...current, item].slice(-2));
     else setToasts([item]);
     return item.id;
   }, [archive, isBlocked]);

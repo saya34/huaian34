@@ -1,0 +1,184 @@
+{
+  "rewardCatalog": [
+    { "id": "scene:hall-sword-tassel", "name": "旧剑穗", "description": "褪色的剑穗仍残留一缕凌云殿剑意。", "itemType": "treasure", "rarity": 4, "image": "/assets/items/item-33.webp" },
+    { "id": "scene:tavern-pink-pill", "name": "不知名的粉色药丸", "description": "沾着淡淡桃香，老板娘只说不可在旁人面前细问。", "itemType": "pill", "rarity": 5, "image": "/assets/items/item-39.webp" },
+    { "id": "scene:market-silent-weight", "name": "无字哑秤砣", "description": "无论秤什么都纹丝不动，背面却刻着一枚旧市印。", "itemType": "treasure", "rarity": 4, "image": "/assets/items/item-24.webp" },
+    { "id": "scene:bedroom-dream-incense", "name": "一寸梦香", "description": "点燃后不会冒烟，只会让昨夜的梦更清晰。", "itemType": "treasure", "rarity": 5, "image": "/assets/items/item-34.webp" },
+    { "id": "scene:farm-ancient-seed", "name": "无名古种", "description": "种壳上有天然云纹，尚无人辨出它会开出什么。", "itemType": "material", "rarity": 5, "image": "/assets/items/item-06.webp" },
+    { "id": "scene:kitchen-secret-spice", "name": "王妈私藏香料", "description": "仅需一撮便能令寻常汤羹生出灵韵。", "itemType": "material", "rarity": 4, "image": "/assets/items/item-29.webp" },
+    { "id": "scene:bureau-sealed-intel", "name": "未署名密札", "description": "火漆完整，纸背隐约透出一行被涂去的名字。", "itemType": "quest", "rarity": 5, "image": "/assets/items/item-35.webp" },
+    { "id": "scene:shop-moon-jade", "name": "月蚀边玉", "description": "玉面缺了一角，却会在月色下显出完整圆轮。", "itemType": "treasure", "rarity": 5, "image": "/assets/items/item-23.webp" },
+    { "id": "scene:sister-frost-hairpin", "name": "霜纹旧簪", "description": "簪尾凝着不化的薄霜，像是某段旧誓的余温。", "itemType": "gift", "rarity": 5, "image": "/assets/items/item-14.webp" },
+    { "id": "scene:junior-rabbit-charm", "name": "歪耳兔护符", "description": "针脚有些笨拙，却被人认真地缝了两遍。", "itemType": "gift", "rarity": 4, "image": "/assets/items/item-27.webp" },
+    { "id": "scene:forest-white-antler", "name": "白鹿遗角", "description": "没有猎杀痕迹，像是山灵主动留下的赠礼。", "itemType": "material", "rarity": 5, "image": "/assets/items/item-21.webp" },
+    { "id": "scene:field-heirloom-button", "name": "稻香铜扣", "description": "旧童衣上拆下的铜扣，擦亮后会映出丰收田野。", "itemType": "treasure", "rarity": 4, "image": "/assets/items/item-25.webp" },
+    { "id": "scene:shen-estate-red-thread", "name": "沈府旧红线", "description": "被妥帖收在绣篮底层，线结像是从未送出的心意。", "itemType": "gift", "rarity": 5, "image": "/assets/items/item-28.webp" }
+  ],
+  "objects": [
+    {
+      "id": "lingxiao-incense", "sceneId": "lingxiao", "name": "殿前旧香炉", "description": "炉灰里偶尔会凝成一小撮温热灵砂。", "interaction": "拂去炉灰", "atlas": "/assets/scene-objects/sanctum-atlas.png", "cell": [0, 0], "atlasAspect": 0.75,
+      "layout": { "x": 14, "y": 70, "size": 1.08 },
+      "production": { "initialDelayDays": 0, "intervalDays": [2, 4], "spawnChance": 0.72, "commonPool": [{ "id": "mat-30", "weight": 5, "amount": [1, 3] }, { "id": "mat-20", "weight": 3, "amount": [1, 2] }], "rareChance": 0.07, "rarePool": [{ "id": "scene:hall-sword-tassel", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "lingxiao-sword-rest", "sceneId": "lingxiao", "name": "青玉剑架", "description": "剑架空置已久，靠近时仍能听到细微剑鸣。", "interaction": "听剑鸣", "atlas": "/assets/scene-objects/sanctum-atlas.png", "cell": [3, 0], "atlasAspect": 0.75,
+      "layout": { "x": 82, "y": 31, "size": 1.02 },
+      "production": { "initialDelayDays": 1, "intervalDays": [3, 5], "spawnChance": 0.48, "commonPool": [{ "id": "mat-13", "weight": 4, "amount": [1, 2] }, { "id": "mat-25", "weight": 2, "amount": [1, 1] }], "rareChance": 0.05, "rarePool": [{ "id": "scene:hall-sword-tassel", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "tavern-wine-cup", "sceneId": "tavern", "name": "老板娘的酒盅", "description": "杯沿总留着一点桃色，似乎从不让旁人碰。", "interaction": "轻叩酒盅", "atlas": "/assets/scene-objects/market-atlas.png", "cell": [0, 0], "atlasAspect": 0.75,
+      "layout": { "x": 13, "y": 72, "size": 0.52 },
+      "production": { "initialDelayDays": 0, "intervalDays": [2, 4], "spawnChance": 0.7, "commonPool": [{ "id": "mat-29", "weight": 3, "amount": [1, 1] }, { "id": "prd-38", "weight": 2, "amount": [1, 1] }], "rareChance": 0.12, "rarePool": [{ "id": "scene:tavern-pink-pill", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "tavern-pipa", "sceneId": "tavern", "name": "歇弦琵琶", "description": "无人拨弦时，偶尔会自己响起半句旧调。", "interaction": "拨一根弦", "atlas": "/assets/scene-objects/market-atlas.png", "cell": [1, 0], "atlasAspect": 0.75,
+      "layout": { "x": 84, "y": 28, "size": 1.32 },
+      "production": { "initialDelayDays": 2, "intervalDays": [3, 5], "spawnChance": 0.42, "commonPool": [{ "id": "mat-09", "weight": 4, "amount": [1, 2] }, { "id": "mat-33", "weight": 1, "amount": [1, 1] }], "rareChance": 0.04, "rarePool": [{ "id": "scene:tavern-pink-pill", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "tavern-wine-jar", "sceneId": "tavern", "name": "封泥老酒坛", "description": "封泥边缘会沁出细小灵露。", "interaction": "闻一闻酒香", "atlas": "/assets/scene-objects/market-atlas.png", "cell": [2, 0], "atlasAspect": 0.75,
+      "layout": { "x": 72, "y": 69, "size": 1.08 },
+      "production": { "initialDelayDays": 1, "intervalDays": [2, 3], "spawnChance": 0.62, "commonPool": [{ "id": "mat-29", "weight": 4, "amount": [1, 2] }, { "id": "mat-01", "weight": 2, "amount": [1, 1] }], "rareChance": 0.03, "rarePool": [{ "id": "scene:tavern-pink-pill", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "market-lantern", "sceneId": "market", "name": "市口暖灯", "description": "灯罩内常夹着来往商贩遗落的小物。", "interaction": "扶正灯罩", "atlas": "/assets/scene-objects/market-atlas.png", "cell": [3, 0], "atlasAspect": 0.75,
+      "layout": { "x": 85, "y": 26, "size": 0.96 },
+      "production": { "initialDelayDays": 0, "intervalDays": [2, 4], "spawnChance": 0.64, "commonPool": [{ "id": "mat-25", "weight": 4, "amount": [1, 2] }, { "id": "mat-34", "weight": 1, "amount": [1, 1] }], "rareChance": 0.05, "rarePool": [{ "id": "scene:market-silent-weight", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "market-scale", "sceneId": "market", "name": "百年铜秤", "description": "秤盘底偶尔压着无人认领的零碎。", "interaction": "拨动秤杆", "atlas": "/assets/scene-objects/market-atlas.png", "cell": [0, 1], "atlasAspect": 0.75,
+      "layout": { "x": 14, "y": 69, "size": 1.18 },
+      "production": { "initialDelayDays": 1, "intervalDays": [2, 5], "spawnChance": 0.56, "commonPool": [{ "id": "mat-20", "weight": 4, "amount": [1, 3] }, { "id": "mat-13", "weight": 2, "amount": [1, 1] }], "rareChance": 0.09, "rarePool": [{ "id": "scene:market-silent-weight", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "bedroom-tea-tray", "sceneId": "bedroom", "name": "温茶小案", "description": "茶盏总保持温热，像是有人刚刚来过。", "interaction": "试试茶温", "atlas": "/assets/scene-objects/sanctum-atlas.png", "cell": [1, 1], "atlasAspect": 0.75,
+      "layout": { "x": 15, "y": 71, "size": 1.04 },
+      "production": { "initialDelayDays": 0, "intervalDays": [2, 3], "spawnChance": 0.66, "commonPool": [{ "id": "mat-07", "weight": 4, "amount": [1, 2] }, { "id": "prd-38", "weight": 1, "amount": [1, 1] }], "rareChance": 0.05, "rarePool": [{ "id": "scene:bedroom-dream-incense", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "bedroom-folded-robe", "sceneId": "bedroom", "name": "叠好的旧道袍", "description": "衣角压着一张没有写完的符纸。", "interaction": "理平衣角", "atlas": "/assets/scene-objects/sanctum-atlas.png", "cell": [2, 1], "atlasAspect": 0.75,
+      "layout": { "x": 82, "y": 32, "size": 1.06 },
+      "production": { "initialDelayDays": 2, "intervalDays": [3, 5], "spawnChance": 0.43, "commonPool": [{ "id": "mat-25", "weight": 5, "amount": [1, 2] }, { "id": "mat-30", "weight": 2, "amount": [1, 2] }], "rareChance": 0.04, "rarePool": [{ "id": "scene:bedroom-dream-incense", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "bedroom-spirit-lamp", "sceneId": "bedroom", "name": "守夜灵灯", "description": "深夜时灯芯会结出一粒安神灯花。", "interaction": "剪一剪灯芯", "atlas": "/assets/scene-objects/sanctum-atlas.png", "cell": [3, 1], "atlasAspect": 0.75,
+      "layout": { "x": 70, "y": 72, "size": 0.78 },
+      "production": { "initialDelayDays": 1, "intervalDays": [2, 4], "spawnChance": 0.58, "commonPool": [{ "id": "mat-34", "weight": 3, "amount": [1, 1] }, { "id": "mat-02", "weight": 2, "amount": [1, 1] }], "rareChance": 0.06, "rarePool": [{ "id": "scene:bedroom-dream-incense", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "farm-watering-can", "sceneId": "spirit-farm", "name": "青铜灵壶", "description": "壶底积着几滴含有木灵的露水。", "interaction": "晃一晃水壶", "atlas": "/assets/scene-objects/homestead-atlas.png", "cell": [0, 0], "atlasAspect": 0.75,
+      "layout": { "x": 90, "y": 22, "size": 0.9 },
+      "production": { "initialDelayDays": 0, "intervalDays": [2, 3], "spawnChance": 0.7, "commonPool": [{ "id": "mat-03", "weight": 4, "amount": [1, 2] }, { "id": "mat-07", "weight": 3, "amount": [1, 2] }], "rareChance": 0.08, "rarePool": [{ "id": "scene:farm-ancient-seed", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "farm-seed-basket", "sceneId": "spirit-farm", "name": "旧种箩", "description": "箩底总会漏下一两粒来历不明的种子。", "interaction": "翻一翻种箩", "atlas": "/assets/scene-objects/homestead-atlas.png", "cell": [1, 0], "atlasAspect": 0.75,
+      "layout": { "x": 12, "y": 74, "size": 0.86 },
+      "production": { "initialDelayDays": 1, "intervalDays": [2, 4], "spawnChance": 0.65, "commonPool": [{ "id": "mat-01", "weight": 3, "amount": [1, 2] }, { "id": "mat-09", "weight": 3, "amount": [1, 2] }], "rareChance": 0.11, "rarePool": [{ "id": "scene:farm-ancient-seed", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "farm-feed-trough", "sceneId": "spirit-farm", "name": "灵兽食槽", "description": "灵兽进食后偶尔会留下沾着灵气的草叶。", "interaction": "清理食槽", "atlas": "/assets/scene-objects/homestead-atlas.png", "cell": [3, 0], "atlasAspect": 0.75,
+      "layout": { "x": 83, "y": 76, "size": 1.26 },
+      "production": { "initialDelayDays": 2, "intervalDays": [3, 5], "spawnChance": 0.48, "commonPool": [{ "id": "mat-08", "weight": 4, "amount": [1, 2] }, { "id": "mat-03", "weight": 2, "amount": [1, 1] }], "rareChance": 0.04, "rarePool": [{ "id": "scene:farm-ancient-seed", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "kitchen-spice-rack", "sceneId": "kitchen", "name": "百味香架", "description": "香料罐的次序只有王妈看得懂。", "interaction": "嗅一嗅香料", "atlas": "/assets/scene-objects/homestead-atlas.png", "cell": [1, 1], "atlasAspect": 0.75,
+      "layout": { "x": 14, "y": 69, "size": 1.22 },
+      "production": { "initialDelayDays": 0, "intervalDays": [2, 4], "spawnChance": 0.66, "commonPool": [{ "id": "mat-01", "weight": 3, "amount": [1, 2] }, { "id": "mat-08", "weight": 3, "amount": [1, 2] }], "rareChance": 0.1, "rarePool": [{ "id": "scene:kitchen-secret-spice", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "kitchen-soup-pot", "sceneId": "kitchen", "name": "温火汤釜", "description": "揭盖时偶尔能捞到王妈忘在里面的小料包。", "interaction": "揭开锅盖", "atlas": "/assets/scene-objects/homestead-atlas.png", "cell": [2, 1], "atlasAspect": 0.75,
+      "layout": { "x": 83, "y": 72, "size": 1.14 },
+      "production": { "initialDelayDays": 1, "intervalDays": [2, 3], "spawnChance": 0.7, "commonPool": [{ "id": "mat-29", "weight": 3, "amount": [1, 1] }, { "id": "prd-39", "weight": 1, "amount": [1, 1] }], "rareChance": 0.08, "rarePool": [{ "id": "scene:kitchen-secret-spice", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "kitchen-steamer", "sceneId": "kitchen", "name": "竹纹蒸笼", "description": "一缕香气从笼缝里钻出来，又很快散去。", "interaction": "掀开一层", "atlas": "/assets/scene-objects/homestead-atlas.png", "cell": [3, 1], "atlasAspect": 0.75,
+      "layout": { "x": 88, "y": 30, "size": 0.98 },
+      "production": { "initialDelayDays": 2, "intervalDays": [3, 5], "spawnChance": 0.46, "commonPool": [{ "id": "mat-03", "weight": 4, "amount": [1, 1] }, { "id": "mat-29", "weight": 1, "amount": [1, 1] }], "rareChance": 0.04, "rarePool": [{ "id": "scene:kitchen-secret-spice", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "bureau-paper-cranes", "sceneId": "intelligence-bureau", "name": "传讯纸鹤架", "description": "归来的纸鹤有时会衔着无主的小包裹。", "interaction": "点一点纸鹤", "atlas": "/assets/scene-objects/market-atlas.png", "cell": [2, 1], "atlasAspect": 0.75,
+      "layout": { "x": 84, "y": 30, "size": 1.02 },
+      "production": { "initialDelayDays": 0, "intervalDays": [2, 4], "spawnChance": 0.62, "commonPool": [{ "id": "mat-25", "weight": 4, "amount": [1, 2] }, { "id": "mat-33", "weight": 2, "amount": [1, 1] }], "rareChance": 0.09, "rarePool": [{ "id": "scene:bureau-sealed-intel", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "bureau-message-box", "sceneId": "intelligence-bureau", "name": "朱漆密匣", "description": "匣扣没有钥孔，只有被选中的消息才会自行出现。", "interaction": "敲三下匣盖", "atlas": "/assets/scene-objects/market-atlas.png", "cell": [3, 1], "atlasAspect": 0.75,
+      "layout": { "x": 14, "y": 72, "size": 0.84 },
+      "production": { "initialDelayDays": 1, "intervalDays": [3, 5], "spawnChance": 0.52, "commonPool": [{ "id": "mat-33", "weight": 4, "amount": [1, 1] }, { "id": "mat-35", "weight": 2, "amount": [1, 1] }], "rareChance": 0.12, "rarePool": [{ "id": "scene:bureau-sealed-intel", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "treasure-shop-casket", "sceneId": "treasure-shop", "name": "未开宝匣", "description": "栖珍阁里唯一没有标价的匣子。", "interaction": "贴近听一听", "atlas": "/assets/scene-objects/market-atlas.png", "cell": [1, 1], "atlasAspect": 0.75,
+      "layout": { "x": 15, "y": 72, "size": 0.96 },
+      "production": { "initialDelayDays": 0, "intervalDays": [3, 5], "spawnChance": 0.55, "commonPool": [{ "id": "mat-23", "weight": 3, "amount": [1, 1] }, { "id": "mat-33", "weight": 2, "amount": [1, 1] }], "rareChance": 0.12, "rarePool": [{ "id": "scene:shop-moon-jade", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "treasure-shop-scale", "sceneId": "treasure-shop", "name": "鉴宝铜衡", "description": "若放上赝品，秤杆便会悄悄向外偏。", "interaction": "轻推秤盘", "atlas": "/assets/scene-objects/market-atlas.png", "cell": [0, 1], "atlasAspect": 0.75,
+      "layout": { "x": 84, "y": 29, "size": 1.16 },
+      "production": { "initialDelayDays": 2, "intervalDays": [2, 4], "spawnChance": 0.46, "commonPool": [{ "id": "mat-20", "weight": 4, "amount": [1, 2] }, { "id": "mat-24", "weight": 2, "amount": [1, 1] }], "rareChance": 0.07, "rarePool": [{ "id": "scene:shop-moon-jade", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "senior-wind-chime", "sceneId": "senior-sister-home", "name": "霜玉风铃", "description": "风停之后，它还会多响一声。", "interaction": "托住风铃", "atlas": "/assets/scene-objects/sanctum-atlas.png", "cell": [1, 0], "atlasAspect": 0.75,
+      "layout": { "x": 86, "y": 27, "size": 0.78 },
+      "production": { "initialDelayDays": 0, "intervalDays": [2, 4], "spawnChance": 0.62, "commonPool": [{ "id": "mat-02", "weight": 4, "amount": [1, 2] }, { "id": "mat-14", "weight": 2, "amount": [1, 1] }], "rareChance": 0.1, "rarePool": [{ "id": "scene:sister-frost-hairpin", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "senior-plum-vase", "sceneId": "senior-sister-home", "name": "寒梅青瓷", "description": "梅枝数日不谢，花瓣落下时会凝成霜露。", "interaction": "拈一片花瓣", "atlas": "/assets/scene-objects/village-atlas.png", "cell": [1, 1], "atlasAspect": 1,
+      "layout": { "x": 14, "y": 70, "size": 0.96 },
+      "production": { "initialDelayDays": 1, "intervalDays": [3, 5], "spawnChance": 0.55, "commonPool": [{ "id": "mat-02", "weight": 4, "amount": [1, 1] }, { "id": "mat-11", "weight": 2, "amount": [1, 2] }], "rareChance": 0.08, "rarePool": [{ "id": "scene:sister-frost-hairpin", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "junior-spirit-lamp", "sceneId": "junior-sister-home", "name": "兔影灵灯", "description": "灯影在墙上像一只歪耳兔。", "interaction": "晃晃灯穗", "atlas": "/assets/scene-objects/sanctum-atlas.png", "cell": [3, 1], "atlasAspect": 0.75,
+      "layout": { "x": 85, "y": 27, "size": 0.78 },
+      "production": { "initialDelayDays": 0, "intervalDays": [2, 4], "spawnChance": 0.64, "commonPool": [{ "id": "mat-03", "weight": 4, "amount": [1, 2] }, { "id": "mat-09", "weight": 2, "amount": [1, 1] }], "rareChance": 0.09, "rarePool": [{ "id": "scene:junior-rabbit-charm", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "junior-jewelry-box", "sceneId": "junior-sister-home", "name": "藏糖妆匣", "description": "妆匣夹层里似乎并不只藏着胭脂。", "interaction": "碰一碰匣扣", "atlas": "/assets/scene-objects/village-atlas.png", "cell": [2, 1], "atlasAspect": 1,
+      "layout": { "x": 14, "y": 72, "size": 0.84 },
+      "production": { "initialDelayDays": 2, "intervalDays": [3, 5], "spawnChance": 0.48, "commonPool": [{ "id": "mat-01", "weight": 3, "amount": [1, 1] }, { "id": "prd-38", "weight": 2, "amount": [1, 1] }], "rareChance": 0.1, "rarePool": [{ "id": "scene:junior-rabbit-charm", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "forest-bow-rack", "sceneId": "forest-cabin", "name": "猎人弓架", "description": "弓弦旁夹着几片从深山带回的药叶。", "interaction": "检查弓弦", "atlas": "/assets/scene-objects/village-atlas.png", "cell": [0, 0], "atlasAspect": 1,
+      "layout": { "x": 17, "y": 72, "size": 1.42 },
+      "production": { "initialDelayDays": 0, "intervalDays": [2, 4], "spawnChance": 0.68, "commonPool": [{ "id": "mat-09", "weight": 4, "amount": [1, 2] }, { "id": "mat-21", "weight": 2, "amount": [1, 1] }], "rareChance": 0.1, "rarePool": [{ "id": "scene:forest-white-antler", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "forest-herb-rack", "sceneId": "forest-cabin", "name": "野药晒架", "description": "晒架上总有几束认不出名字的山药。", "interaction": "翻动药束", "atlas": "/assets/scene-objects/village-atlas.png", "cell": [1, 0], "atlasAspect": 1,
+      "layout": { "x": 85, "y": 29, "size": 1.38 },
+      "production": { "initialDelayDays": 1, "intervalDays": [2, 3], "spawnChance": 0.7, "commonPool": [{ "id": "mat-03", "weight": 4, "amount": [1, 3] }, { "id": "mat-08", "weight": 3, "amount": [1, 2] }], "rareChance": 0.07, "rarePool": [{ "id": "scene:forest-white-antler", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "forest-trap", "sceneId": "forest-cabin", "name": "封齿旧兽夹", "description": "齿口已经钉死，只用来压住猎人的藏宝纸。", "interaction": "拉一拉铁链", "atlas": "/assets/scene-objects/village-atlas.png", "cell": [2, 0], "atlasAspect": 1,
+      "layout": { "x": 76, "y": 75, "size": 1.12 },
+      "production": { "initialDelayDays": 2, "intervalDays": [4, 6], "spawnChance": 0.38, "commonPool": [{ "id": "mat-20", "weight": 3, "amount": [1, 2] }, { "id": "mat-21", "weight": 2, "amount": [1, 1] }], "rareChance": 0.06, "rarePool": [{ "id": "scene:forest-white-antler", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "field-scarecrow", "sceneId": "field-cottage", "name": "蓝衣稻草人", "description": "它的袖口常挂着被风吹来的小袋子。", "interaction": "替它正正斗笠", "atlas": "/assets/scene-objects/village-atlas.png", "cell": [3, 0], "atlasAspect": 1,
+      "layout": { "x": 87, "y": 28, "size": 1.46 },
+      "production": { "initialDelayDays": 0, "intervalDays": [2, 4], "spawnChance": 0.66, "commonPool": [{ "id": "mat-01", "weight": 4, "amount": [1, 2] }, { "id": "mat-09", "weight": 2, "amount": [1, 2] }], "rareChance": 0.08, "rarePool": [{ "id": "scene:field-heirloom-button", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "field-grain-sieve", "sceneId": "field-cottage", "name": "晒谷竹筛", "description": "筛过三次后，总会剩下一粒格外圆润的谷种。", "interaction": "筛一筛谷粒", "atlas": "/assets/scene-objects/village-atlas.png", "cell": [0, 1], "atlasAspect": 1,
+      "layout": { "x": 14, "y": 72, "size": 1.1 },
+      "production": { "initialDelayDays": 1, "intervalDays": [2, 3], "spawnChance": 0.72, "commonPool": [{ "id": "mat-03", "weight": 4, "amount": [1, 2] }, { "id": "mat-08", "weight": 3, "amount": [1, 2] }], "rareChance": 0.09, "rarePool": [{ "id": "scene:field-heirloom-button", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "field-egg-basket", "sceneId": "field-cottage", "name": "屋檐蛋篮", "description": "囡囡每天都要数一遍，却总会多出一枚。", "interaction": "轻数蛋壳", "atlas": "/assets/scene-objects/homestead-atlas.png", "cell": [0, 1], "atlasAspect": 0.75,
+      "layout": { "x": 75, "y": 74, "size": 0.8 },
+      "production": { "initialDelayDays": 2, "intervalDays": [3, 4], "spawnChance": 0.55, "commonPool": [{ "id": "mat-03", "weight": 3, "amount": [1, 1] }, { "id": "mat-29", "weight": 1, "amount": [1, 1] }], "rareChance": 0.05, "rarePool": [{ "id": "scene:field-heirloom-button", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "shen-estate-lantern", "sceneId": "shen-estate", "name": "回廊宫灯", "description": "灯纸后夹着沈府旧年的赏花笺。", "interaction": "转一转灯面", "atlas": "/assets/scene-objects/market-atlas.png", "cell": [3, 0], "atlasAspect": 0.75,
+      "layout": { "x": 86, "y": 27, "size": 0.98 },
+      "production": { "initialDelayDays": 0, "intervalDays": [2, 4], "spawnChance": 0.6, "commonPool": [{ "id": "mat-25", "weight": 4, "amount": [1, 2] }, { "id": "mat-33", "weight": 2, "amount": [1, 1] }], "rareChance": 0.08, "rarePool": [{ "id": "scene:shen-estate-red-thread", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "shen-estate-plum-vase", "sceneId": "shen-estate", "name": "月白梅瓶", "description": "瓶中没有水，梅枝却常年含苞。", "interaction": "触一触花苞", "atlas": "/assets/scene-objects/village-atlas.png", "cell": [1, 1], "atlasAspect": 1,
+      "layout": { "x": 14, "y": 70, "size": 1.0 },
+      "production": { "initialDelayDays": 1, "intervalDays": [3, 5], "spawnChance": 0.55, "commonPool": [{ "id": "mat-02", "weight": 3, "amount": [1, 1] }, { "id": "mat-11", "weight": 3, "amount": [1, 2] }], "rareChance": 0.09, "rarePool": [{ "id": "scene:shen-estate-red-thread", "weight": 1, "amount": [1, 1] }] }
+    },
+    {
+      "id": "shen-estate-embroidery", "sceneId": "shen-estate", "name": "未完绣篮", "description": "莲纹只绣到一半，针线却一直摆得整整齐齐。", "interaction": "拨开丝线", "atlas": "/assets/scene-objects/village-atlas.png", "cell": [3, 1], "atlasAspect": 1,
+      "layout": { "x": 75, "y": 73, "size": 0.86 },
+      "production": { "initialDelayDays": 2, "intervalDays": [3, 6], "spawnChance": 0.44, "commonPool": [{ "id": "mat-09", "weight": 3, "amount": [1, 2] }, { "id": "mat-25", "weight": 2, "amount": [1, 1] }], "rareChance": 0.13, "rarePool": [{ "id": "scene:shen-estate-red-thread", "weight": 1, "amount": [1, 1] }] }
+    }
+  ]
+}

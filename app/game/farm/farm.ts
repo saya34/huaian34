@@ -19,12 +19,13 @@ export type HerbCropDefinition = {
   lore: string;
 };
 
-export type FertilizerId = "rapid-root" | "bounty-soil" | "five-phase";
+export type FertilizerId = "rapid-root" | "bounty-soil" | "five-phase" | "scale-compost";
 
 export const FERTILIZERS: Record<FertilizerId, { name: string; icon: string; speed: number; yield: number; description: string }> = {
   "rapid-root": { name: "催生灵露", icon: "露", speed: 1, yield: 0, description: "缩短一个游戏时辰的生长时间。" },
   "bounty-soil": { name: "丰穗灵壤", icon: "壤", speed: 0, yield: 1, description: "收获时稳定增加一份产物。" },
   "five-phase": { name: "五行沃土", icon: "阵", speed: 1, yield: 1, description: "兼具催生与增产，并强化天时相合。" },
+  "scale-compost": { name: "鳞骨灵肥", icon: "鳞", speed: 1, yield: 1, description: "以常见鱼获的鳞骨沤制，兼具催生与增产。" },
 };
 
 export const HERB_CROPS: HerbCropDefinition[] = [
@@ -99,7 +100,7 @@ export function createInitialFarm(): FarmProgress {
     experience: 0,
     totalHarvests: 0,
     spiritSoil: 2,
-    fertilizers: { "rapid-root": 2, "bounty-soil": 1, "five-phase": 0 },
+    fertilizers: { "rapid-root": 2, "bounty-soil": 1, "five-phase": 0, "scale-compost": 0 },
     toolLevel: 1,
     harvestSerial: 0,
     lastDewDay: 0,
@@ -278,6 +279,7 @@ export function harvestPlot(farm: FarmProgress, plotId: string, currentTick: num
 }
 
 export function craftFertilizer(farm: FarmProgress, id: FertilizerId) {
+  if (id === "scale-compost") return { farm, ok: false as const, message: "鳞骨灵肥需消耗一尾常见鱼获沤制" };
   const cost = id === "five-phase" ? 3 : 2;
   if (farm.spiritSoil < cost) return { farm, ok: false as const, message: `炼制${FERTILIZERS[id].name}需要 ${cost} 份原生灵壤` };
   return { farm: { ...farm, spiritSoil: farm.spiritSoil - cost, fertilizers: { ...farm.fertilizers, [id]: farm.fertilizers[id] + 1 } }, ok: true as const, message: `炼成${FERTILIZERS[id].name} ×1` };

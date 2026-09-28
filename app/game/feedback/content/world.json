@@ -31,5 +31,12 @@
   "world.travelCostValue": "同区域切换免费；跨区域远行消耗一个阶段",
   "world.sceneNpcLabel": "可能在场人物",
   "world.sceneActivityLabel": "特别时间窗",
-  "world.sceneActivityUnknown": "抵达后按当日时辰判定"
+  "world.sceneActivityUnknown": "抵达后按当日时辰判定",
+  "world.sceneObjectQuietTitle": "触景寻微",
+  "world.sceneObjectQuietBody": "你触碰了「{object}」。{description} 此刻还没有凝出可取之物。",
+  "world.sceneObjectNextLabel": "灵息再聚",
+  "world.sceneObjectFoundTitle": "灵物入囊",
+  "world.sceneObjectFoundBody": "你从「{object}」取得了 {reward} ×{amount}，物品已收入乾坤行囊。",
+  "world.sceneObjectRareTitle": "稀珍现世",
+  "world.sceneObjectRareBody": "「{object}」藏了许久的灵光终于显形：{reward} ×{amount}。在领取前，它不会消散。"
 }

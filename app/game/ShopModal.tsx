@@ -13,6 +13,7 @@ import WeaponMerchantPanel from "./WeaponMerchantPanel";
 import { fishById } from "./fishing/fishing";
 import { livestockProductById } from "./farm/livestock";
 import { useFeedback } from "./feedback/FeedbackProvider";
+import { itemAcquiredFeedback } from "./feedback/item-acquired";
 import { manualItemById, SHOP_MANUAL } from "./skills/manual-items";
 import { buyShopItem, itemSellValue, sellShopItem, shopBuyPrice, shopDiscount, shopStockRemaining } from "./core/trading-service";
 import { kitchenRecipeByItemId } from "./kitchen/content";
@@ -84,7 +85,16 @@ export default function ShopModal({ gifts, events, relationship, initialDepartme
     const copy = `购得「${definition.name}」· ${price} 灵石`;
     setMessage(relationship >= 15 ? `${copy}。宁砚书悄悄抹去了账尾的零头。` : `${copy}。宁砚书将物件仔细包好。`);
     playTradePulse("buy",itemId);
-    feedback.toast({titleKey:"shop.purchaseTitle",bodyKey:"shop.purchaseBody",params:{name:definition.name,value:price},icon:"购",dedupeKey:`shop-buy:${itemId}:${state.romance.day}`});
+    feedback.publish(itemAcquiredFeedback({
+      name: definition.name,
+      amount: 1,
+      description: definition.description,
+      imageSrc: "image" in definition ? definition.image : definition.art,
+      imagePosition: "imagePosition" in definition ? definition.imagePosition : undefined,
+      rarity: itemType === "manual" ? SHOP_MANUAL.rarity : itemId === "jadeAbacusCharm" ? 4 : 2,
+      dedupeKey: `shop-buy:${itemId}:${Date.now()}`,
+      presentationOwner: "world",
+    }));
   }
 
   function stackDefinition(stack: UnifiedItemStack) {

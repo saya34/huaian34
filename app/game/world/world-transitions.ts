@@ -69,7 +69,8 @@ export function prepareTimeTransition(input: {
   const preview = previewTimeAdvance(state, mode);
   const wakingAtHome = preview.day > state.day && preview.period === "清晨";
   const sceneId = wakingAtHome ? DAYBREAK_CONTENT.homeSceneId : state.sceneId;
-  const stamina = mode === "sleep"
+  const crossedIntoNewDay = preview.day > state.day;
+  const stamina = crossedIntoNewDay
     ? 10
     : mode === "rest"
       ? Math.min(10, state.stamina + preview.restGain)

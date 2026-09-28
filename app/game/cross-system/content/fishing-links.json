@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "preparedChums": [
+    { "chumId": "frost-chum", "materialName": "霜心草", "servings": 3, "label": "捣成霜心饵团" },
+    { "chumId": "jade-chum", "materialName": "碧落灵芝", "servings": 3, "label": "焙成碧芝饵团" },
+    { "chumId": "fire-chum", "materialName": "赤霄龙葵", "servings": 3, "label": "揉成赤霄饵团" }
+  ],
+  "fishableSeeds": [
+    { "id": "fishing-seed-mystic-algae", "cropId": "mystic-algae", "name": "玄藻灵核", "amount": 2, "unlockAtCatch": 1, "locations": ["tavern-pier", "yunzhou-wild", "underground-mirror-pool"], "description": "鱼腹中完好的水生灵种，可直接在灵田播种。" },
+    { "id": "fishing-seed-moon-lotus", "cropId": "moon-snow-lotus", "name": "月魄莲子", "amount": 1, "unlockAtCatch": 7, "locations": ["lingxiao-cloudpool", "canglan-wild", "moon-reed-secret"], "description": "被鱼鳞护住的寒露莲子，带回灵田后会出现在种匣。" }
+  ],
+  "fishFertilizer": {
+    "id": "scale-compost",
+    "name": "鳞骨灵肥",
+    "eligibleFishIds": ["green-scale-crucian", "silver-tail-carp", "cloud-wing-fish", "frost-fin-sturgeon", "drunken-moon-mandarin"],
+    "fishCost": 1,
+    "output": 2,
+    "description": "将常见鱼获的鳞骨沤成灵肥，兼具催生与增产。"
+  },
+  "fishingTools": [
+    {
+      "id": "plain-line",
+      "name": "青丝素线",
+      "icon": "线",
+      "description": "初始钓组，鱼群权重保持平稳。",
+      "materials": [],
+      "effect": "stable"
+    },
+    {
+      "id": "deep-sinker",
+      "name": "沉星坠",
+      "icon": "坠",
+      "description": "以黑曜火铁和星陨铁锻成，可触及深层鱼影并提高珍稀鱼权重。",
+      "materials": [
+        { "materialName": "黑曜火铁", "amount": 2 },
+        { "materialName": "星陨铁", "amount": 1 }
+      ],
+      "effect": "deep"
+    },
+    {
+      "id": "treasure-hook",
+      "name": "寻珍钩",
+      "icon": "钩",
+      "description": "以雷纹紫晶淬炼，明显提高钓起线索、遗物与鱼珠的机会。",
+      "materials": [
+        { "materialName": "雷纹紫晶", "amount": 1 },
+        { "materialName": "星陨铁", "amount": 2 }
+      ],
+      "effect": "treasure"
+    }
+  ],
+  "miningPond": {
+    "locationId": "underground-mirror-pool",
+    "unlockAfterMinedTiles": 3,
+    "discoveryId": "mining-discovered-underground-pond",
+    "name": "地脉镜潭",
+    "description": "矿壁后传来潮声，一条支洞通往从未见天日的地下水潭。"
+  },
+  "miningClue": {
+    "id": "fish-belly-mine-rubbing",
+    "name": "鱼腹矿纹拓片",
+    "description": "鱼腹鳞膜上的古矿纹，能在矿洞中显出一条隐蔽支路。",
+    "rarity": 3,
+    "unlockAtCatch": 4,
+    "repeatChance": 0.1,
+    "image": "/assets/items/item-23.webp"
+  },
+  "fishPearl": {
+    "id": "fishing-pearl-canghai",
+    "materialName": "沧海鲛珠",
+    "name": "沧海鲛珠",
+    "description": "灵鱼吐纳水月凝出的鱼珠，可作为水系丹方的核心药引。",
+    "unlockAtCatch": 3,
+    "minimumFishRarity": 2,
+    "repeatChance": 0.18
+  },
+  "alchemyRecipe": {
+    "id": "fishing-recipe-tidal-heart",
+    "scrollItemId": "recipe-scroll-tidal-heart",
+    "name": "《潮心护脉方》",
+    "resultName": "沧海护心丹",
+    "ingredientNames": ["沧海鲛珠", "霜心草", "玄水藻"],
+    "unlockAtCatch": 5,
+    "description": "以鱼珠承潮、霜心定神、玄藻调息，炼成可承伤的水盾丹。",
+    "image": "/assets/items/item-43.webp"
+  },
+  "fullManual": {
+    "discoveryId": "fishing-full-manual-thunder",
+    "itemId": "manual-thunder-incantation",
+    "name": "《听澜引雷真诀》",
+    "unlockAtCatch": 2,
+    "description": "完整功法玉简，不需拼片；收入行囊后即可研读习得天雷咒。"
+  },
+  "relics": [
+    {
+      "id": "shen-old-sword-tassel",
+      "name": "霜白旧剑穗",
+      "description": "从天池鱼腹取出的旧剑穗，内侧绣着一个极淡的“霜”字。",
+      "image": "/assets/items/item-33.webp",
+      "rarity": 4,
+      "unlockAtCatch": 6,
+      "characterIds": ["shen"],
+      "relationshipGain": 4,
+      "reaction": "沈清霜接过剑穗时指尖一顿。她说那只是少年时遗落的小物，却把它握得很紧。"
+    },
+    {
+      "id": "hua-moon-cup-seal",
+      "name": "醉月旧杯封",
+      "description": "一枚浸过酒香的杯封，背面留着花照影年轻时的印记。",
+      "image": "/assets/items/item-25.webp",
+      "rarity": 3,
+      "unlockAtCatch": 12,
+      "characterIds": ["hua"],
+      "relationshipGain": 3,
+      "reaction": "花照影本想笑着糊弄过去，认出杯封后却突然红了耳根，只说往事不许追问。"
+    }
+  ],
+  "fishGifts": [
+    { "fishId": "frost-fin-sturgeon", "characterIds": ["shen", "liu"], "relationshipGain": 3, "reaction": "这尾鱼的寒息很净。她认真收下，并问起你收线时可曾受伤。" },
+    { "fishId": "drunken-moon-mandarin", "characterIds": ["hua"], "relationshipGain": 4, "reaction": "花照影说正好缺一道下酒菜，笑意却比平日多停了一会儿。" },
+    { "fishId": "dream-goldscale", "characterIds": ["shimei", "luyaoyao"], "relationshipGain": 3, "reaction": "金鳞在掌心一闪，她的眼睛也跟着亮了起来。" },
+    { "fishId": "green-scale-crucian", "characterIds": ["wang-ma", "nannan-mother"], "relationshipGain": 2, "reaction": "她掂了掂鱼，已经开始盘算今晚该怎么料理。" }
+  ],
+  "npcFishingIntel": [
+    { "id": "hua-reed-cove", "characterId": "hua", "minimumRelationship": 4, "locationId": "moon-reed-secret", "name": "醉月芦湾", "hint": "花照影知道一处只在酒香顺风时显露的芦湾。", "reaction": "花照影在地图背面画了一弯月牙：别告诉旁人，这是我偷闲时去的地方。" },
+    { "id": "liu-herb-spring", "characterId": "liu", "minimumRelationship": 8, "locationId": "herb-spring-secret", "name": "药泉回湾", "hint": "柳知意听诊水脉时发现了药气汇聚的回湾。", "reaction": "柳知意把水脉与药性一并标好，叮嘱你见到带珠的灵鱼时不要伤及鳃骨。" }
+  ]
+}

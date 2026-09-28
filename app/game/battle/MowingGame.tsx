@@ -51,6 +51,7 @@ import { CULTIVATOR_PACK_SIZE, organizeEquipment } from "./inventorySystem";
 import type { UnifiedCardInstance } from "../core/types";
 import { ITEM_TABLE, MATERIALS as ALCHEMY_MATERIALS } from "../alchemy/item-data";
 import { MainEquipmentPanel } from "../ui/FusionSystemPanel";
+import { CardRaritySheen } from "../ui/CardRaritySheen";
 import { useFeedback } from "../feedback/FeedbackProvider";
 import { feedbackText } from "../feedback/texts";
 import { DUNGEONS } from "../core/dungeons";
@@ -1006,7 +1007,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
       {toast && <div className="battle-toast">{toast}</div>}
       {error && screen !== "loading" && <div className="fatal-error">{error}</div>}
       {cardChoices.length > 0 && <section className="card-choice-overlay" aria-label="选择人物卡">
-        <div className="card-choice-panel"><small>太虚名册 · 元气已满</small><h2>择一人入梦相助</h2><div className="card-choice-grid">{cardChoices.map((card) => <button key={card.id} onClick={() => chooseCardSummon(card)}><img src={card.art} alt="" /><span><b>{card.name}</b><em>{card.rarity >= 7 ? "神品" : card.rarity >= 6 ? "仙品" : "人物卡"}</em></span></button>)}</div></div>
+        <div className="card-choice-panel"><small>太虚名册 · 元气已满</small><h2>择一人入梦相助</h2><div className="card-choice-grid">{cardChoices.map((card) => <button key={card.id} data-rarity={card.rarity} onClick={() => chooseCardSummon(card)}><img src={card.art} alt="" /><CardRaritySheen rarity={card.rarity} /><span><b>{card.name}</b><em>{card.rarity >= 7 ? "神品" : card.rarity >= 6 ? "仙品" : "人物卡"}</em></span></button>)}</div></div>
       </section>}
       {summonShowcaseOpen && <section className="summon-showcase-overlay" aria-label="召灵特效试炼">
         <div className="summon-showcase-panel">
@@ -1015,7 +1016,7 @@ export function MowingGame({ initialWaveId = 1, embedded = false, autoStart = fa
             const previewPartner = PARTNERS.find((partner) => partner.id === (card.activeEffect === "healing" ? "pill-fairy" : card.activeEffect === "ward" ? "vajra-monk" : card.activeEffect === "frost" ? "moon-demon" : card.activeEffect === "assault" ? "thunder-lord" : "sword-sister")) ?? PARTNERS[0];
             const effect = resolveSummonEffect(card, previewPartner, false);
             return <button type="button" key={card.id} style={{ "--showcase-accent": effect.palette.primary, "--showcase-order": index } as CSSProperties} onClick={() => testCardSummon(card)}>
-              <span className="summon-showcase-art">{/* Showcase portraits use local full-frame art and do not benefit from image optimization. */}{/* eslint-disable-next-line @next/next/no-img-element */}<img src={card.art} alt="" /><b>{String(index + 1).padStart(2, "0")}</b><em>{effect.glyph}</em></span>
+              <span className="summon-showcase-art" data-rarity={card.rarity}>{/* Showcase portraits use local full-frame art and do not benefit from image optimization. */}{/* eslint-disable-next-line @next/next/no-img-element */}<img src={card.art} alt="" /><CardRaritySheen rarity={card.rarity} /><b>{String(index + 1).padStart(2, "0")}</b><em>{effect.glyph}</em></span>
               <span className="summon-showcase-copy"><small>{effect.categoryLabel}</small><strong>{card.name.split("·")[0]}</strong><i>{effect.name}</i></span>
             </button>;
           })}</div>

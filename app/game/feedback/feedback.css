@@ -36,6 +36,18 @@
 .feedback-toast .feedback-copy > small { width: 30px; height: 30px; margin-right: 9px; color: #e7d4a4; font-size: 13px; background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.2); }
 .feedback-toast .feedback-copy h2 { color: #f4e8cc; font-size: 15px; letter-spacing: .08em; text-shadow: none; }
 .feedback-toast .feedback-copy p { margin-top: 3px; color: #cbd8d1; font-size: 13px; line-height: 1.35; }
+.feedback-toast.variant-item-acquired{position:relative;min-height:72px;padding:8px 12px 8px 8px;border-left-width:1px;border-radius:5px 17px 5px 17px;background:linear-gradient(120deg,rgba(12,31,25,.97),rgba(25,54,43,.97));box-shadow:0 10px 24px rgba(0,0,0,.34),inset 0 0 0 1px rgba(239,219,165,.08);animation:item-acquired-in 2.8s cubic-bezier(.2,.8,.2,1) both}
+.feedback-toast.variant-item-acquired::before{content:"";position:absolute;inset:4px;border:1px solid rgba(226,202,143,.14);border-radius:3px 13px 3px 13px;pointer-events:none}
+.feedback-toast.variant-item-acquired.tone-gold{border-color:rgba(207,165,78,.72);background:linear-gradient(120deg,rgba(38,31,18,.98),rgba(71,53,24,.96))}
+.item-acquired-content{position:relative;display:grid;grid-template-columns:54px minmax(0,1fr);align-items:center;gap:10px}
+.item-acquired-art{display:grid;place-items:center;width:54px;height:54px;overflow:hidden;border:1px solid rgba(222,193,126,.54);border-radius:50% 50% 13px 13px;background:radial-gradient(circle,#365c4d,#10291f 72%);box-shadow:0 5px 12px rgba(0,0,0,.32),inset 0 0 12px rgba(255,255,255,.08)}
+.item-acquired-art img{width:88%;height:88%;object-fit:contain;filter:drop-shadow(0 3px 3px rgba(0,0,0,.45))}
+.item-acquired-art.is-atlas{background-repeat:no-repeat;background-size:500% 100%}
+.item-acquired-copy{min-width:0;display:block;text-align:left}
+.item-acquired-copy small{display:block;margin-bottom:2px;color:#bba877;font-size:8px;letter-spacing:.22em}
+.item-acquired-copy strong{display:flex;align-items:baseline;gap:7px;overflow:hidden;color:#f3e4bd;font:15px "STKaiti","KaiTi","Noto Serif SC",serif;letter-spacing:.06em;white-space:nowrap;text-overflow:ellipsis}
+.item-acquired-copy strong b{flex:none;color:#d4b466;font:12px Georgia,serif}
+.item-acquired-copy em{display:-webkit-box;margin-top:3px;overflow:hidden;color:#b9cbc2;font-size:10px;line-height:1.35;font-style:normal;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .feedback-float { position: absolute; transform: translate(-50%,-50%); pointer-events: none; padding: 7px 13px; border: 1px solid rgba(230,206,151,.7); border-radius: 999px; color: #fff4ce; background: rgba(22,55,45,.9); box-shadow: 0 8px 20px rgba(0,0,0,.28); animation: feedback-float-up 1.8s ease-out both; white-space: nowrap; }
 .feedback-float .feedback-copy > small, .feedback-float .feedback-copy p { display: none; }
 .feedback-float .feedback-copy h2 { color: inherit; font-size: 13px; letter-spacing: .06em; text-shadow: none; }
@@ -104,6 +116,7 @@
 @keyframes feedback-scroll-in { from { opacity: 0; transform: translateY(18px) scale(.94); filter: blur(5px); } to { opacity: 1; transform: none; filter: none; } }
 @keyframes feedback-important-in { from { opacity:0;transform:translate(-50%,-8px) scale(.97) } to { opacity:1;transform:translate(-50%,0) scale(1) } }
 @keyframes feedback-toast-in { 0% { opacity: 0; transform: translateY(-7px) scale(.97); } 8%,86% { opacity: 1; transform:none; } 100% { opacity:0; transform:translateY(-4px) scale(.99) } }
+@keyframes item-acquired-in{0%{opacity:0;transform:translateY(-10px) scale(.9)}8%{opacity:1;transform:translateY(0) scale(1.025)}14%,84%{opacity:1;transform:none}100%{opacity:0;transform:translateY(-7px) scale(.98)}}
 @keyframes feedback-float-up { 0% { opacity: 0; transform: translate(-50%, 10px) scale(.85); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -52px) scale(1.06); } }
 @keyframes feedback-sheet-in { from { opacity: 0; transform: translateY(45px); } to { opacity: 1; transform: none; } }
 @keyframes feedback-popover-in { from { opacity: 0; transform: translate(-50%, 7px) scale(.97); } to { opacity: 1; transform: translate(-50%, 14px) scale(1); } }

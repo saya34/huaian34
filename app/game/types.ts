@@ -169,6 +169,22 @@ export type EasterEggProgressRecord = {
   unlockedNoteIds: string[];
 };
 
+export type SceneObjectPendingReward = {
+  rewardId: string;
+  amount: number;
+  generatedDay: number;
+  /** Ordinary finds disappear at this day. Rare finds omit it and remain until claimed. */
+  expiresDay?: number;
+  tier: "common" | "rare";
+};
+
+export type SceneObjectRuntimeState = {
+  nextReadyDay: number;
+  pending?: SceneObjectPendingReward;
+  lastClaimedDay?: number;
+  interactions: number;
+};
+
 export type ExplorationEventConfig = {
   chance: number;
   positionMode: "random" | "fixed";
@@ -225,6 +241,7 @@ export type GameState = {
   calendarEventRuns: Record<string, string[]>;
   collectedEasterEggs: string[];
   easterEggProgress: Record<string, EasterEggProgressRecord>;
+  sceneObjectStates: Record<string, SceneObjectRuntimeState>;
   daybreakStoryRuns: string[];
   daybreakAcknowledgedDays: number[];
   completedEvents: string[];
@@ -290,6 +307,8 @@ export type RandomPresenceRule = {
   id: string;
   label: string;
   periods: Period[];
+  /** Optional in-game weekdays, 1 = Monday and 7 = Sunday. */
+  weekdays?: number[];
   conditions: Condition[];
   probability: number;
 };

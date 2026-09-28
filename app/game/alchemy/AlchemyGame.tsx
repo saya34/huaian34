@@ -38,16 +38,19 @@ import {
 import {
   COMMISSION_REFRESH_TICKS,
   DailyCommission,
+  commissionCategoryOf,
   generateCommissions,
   getMutationValue,
   matchesFuzzyCommission,
   matchesCommissionInventory,
+  MUTATIONS,
   MutationId,
   mutationDisplayName,
   ProductStack,
   productStackKey,
 } from "./commissions";
 import type { CommissionNpc } from "./commission-npcs";
+import { FISHING_LINK_CONTENT, fishingAlchemyRecipeRule } from "../cross-system/fishing-links";
 import {
   isMythicCardRecord,
   MYTHIC_CARD_OPTIONS,
@@ -59,8 +62,10 @@ import {
 import { useUnifiedGame } from "../core/UnifiedGameProvider";
 import type { AlchemyProgress } from "../core/types";
 import { cardQualityName } from "../core/card-service";
+import { withAlchemyState } from "../core/alchemy-projection";
 import { actionCostLabel, checkActionAdmission } from "../core/action-service";
 import { useFeedback } from "../feedback/FeedbackProvider";
+import { itemAcquiredFeedback } from "../feedback/item-acquired";
 import { feedbackText } from "../feedback/texts";
 import alchemyUi from "./data/ui.json";
 import { claimAlchemyBatch, prepareAlchemyBatch, startAlchemyBatch } from "./batch-service";
@@ -69,7 +74,9 @@ import RotarySelector from "../ui/RotarySelector";
 import { activeMedicineShortageRecipe } from "../projects/medicine-shortage-service";
 import { AlchemyResultOverlay, CommissionNpcDock, FatedCharacterOverlay, NpcDialogueOverlay } from "./AlchemyPresentation";
 import { AlchemyCodexOverlay, AlchemyMarketOverlay, FuzzyPickerOverlay } from "./AlchemyMarketOverlay";
-import { MythicCodexOverlay, MythicCreatorOverlay, MythicRevealOverlay } from "./AlchemyMythicOverlays";
+import { MythicCreatorOverlay, MythicRevealOverlay } from "./AlchemyMythicOverlays";
+import AlchemySubsystemDock from "./AlchemySubsystemDock";
+import { UnifiedCardCodexOverlay } from "../ui/UnifiedCardCodex";
 
 const FILTERS = ["全部", "灵草", "妖丹", "矿骨", "辅材", "法器"];
 const CODEX_FILTERS = ["全部", "材料", "成品", "神品", "神话"];
@@ -83,6 +90,7 @@ const INVENTORY_MATERIALS = [
   MYTHIC_MATERIAL,
   ...MATERIALS.filter((item) => !isMythicScroll(item)).slice(5),
 ];
+const MYTHIC_SCROLL_TEST_STOCK_KEY = "alchemy:mythic-scroll-stock-99:v1";
 
 function formatGameTicks(ticks: number) {
   const value=Math.max(0,Math.ceil(ticks));
@@ -112,7 +120,7 @@ function playTone(kind: "drop" | "ignite" | "reveal") {
 }
 
 export default function Home({ embedded = false, onExit, initialSurface = "furnace" }: { embedded?: boolean; onExit?: () => void; initialSurface?: "furnace" | "market" }) {
-  const { state: unifiedState, setAlchemy, applyEffects, transact } = useUnifiedGame();
+  const { state: unifiedState, hydrated, setAlchemy, applyEffects, transact } = useUnifiedGame();
   const feedback = useFeedback();
   const alchemy = unifiedState.alchemy;
   const setField = useCallback(<K extends keyof AlchemyProgress>(key: K, value: SetStateAction<AlchemyProgress[K]>) => {
@@ -131,7 +139,6 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
   const [inventoryPage, setInventoryPage] = useState(0);
   const [mobileView, setMobileView] = useState<"furnace" | "inventory" | "visitors">("furnace");
   const [mobileMaterialId, setMobileMaterialId] = useState(MATERIALS[0].id);
-  const [mobileUtilityOpen, setMobileUtilityOpen] = useState(false);
   const [draftPhase, setPhase] = useState<"idle" | "ready" | "brewing" | "done">("idle");
   const [draftTimeLeft, setTimeLeft] = useState(8);
   const [batchClock, setBatchClock] = useState(() => Date.now());
@@ -146,7 +153,6 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
   const [codexFilter, setCodexFilter] = useState("全部");
   const [codexSearch, setCodexSearch] = useState("");
   const [characterCard, setCharacterCard] = useState<NonNullable<ReturnType<typeof selectCharacterOutcome>> | null>(null);
-  const [characterCardFromCodex, setCharacterCardFromCodex] = useState(false);
   const [starArrivalPulse, setStarArrivalPulse] = useState(false);
   const [openingFlash, setOpeningFlash] = useState(false);
   const [toast, setToast] = useState("");
@@ -182,7 +188,12 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
     };
     return { content: projectRecipeContent, ingredients, result, rule };
   }, [projectRecipeContent]);
-  const effectiveRecipeRules = useMemo(() => projectRecipe ? [projectRecipe.rule, ...recipeRules] : recipeRules, [projectRecipe, recipeRules]);
+  const fishingRecipeUnlocked=alchemy.discoveredRecipes.includes(FISHING_LINK_CONTENT.alchemyRecipe.id);
+  const fishingRecipeRule=useMemo(fishingAlchemyRecipeRule,[]);
+  const effectiveRecipeRules = useMemo(() => {
+    const unlocked=fishingRecipeUnlocked?[fishingRecipeRule,...recipeRules]:recipeRules;
+    return projectRecipe ? [projectRecipe.rule, ...unlocked] : unlocked;
+  }, [fishingRecipeRule, fishingRecipeUnlocked, projectRecipe, recipeRules]);
   const gold = unifiedState.shared.spiritStones;
   const setGold = (value: SetStateAction<number>) => { const next = typeof value === "function" ? value(gold) : value; applyEffects([{ type: "add_currency", amount: next - gold }]); };
   const marketOffers = alchemy.marketOffers;
@@ -212,11 +223,11 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
   const [mythicTab, setMythicTab] = useState<MythicOptionPage>("character");
   const [mythicSelections, setMythicSelections] = useState<string[]>([]);
   const mythicRareUses = alchemy.mythicRareUses;
-  const characterCards = alchemy.characterCards;
+  const alchemyCharacterCards = alchemy.characterCards;
+  const unifiedCards = unifiedState.shared.cards;
   const [showMythicCodex, setShowMythicCodex] = useState(false);
   const pendingMythicCard = pendingBatch?.card && isMythicCardRecord(pendingBatch.card) ? pendingBatch.card : null;
   const [revealedMythicCard, setRevealedMythicCard] = useState<MythicCardRecord | null>(null);
-  const [mythicRevealFromCodex, setMythicRevealFromCodex] = useState(false);
   useEffect(() => {
     const busy = Boolean(showResult || characterCard || revealedMythicCard || openingFlash);
     feedback.setBusy("rare-reveal", busy);
@@ -232,6 +243,29 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
   }, [pendingBatch]);
   const recipeVersionRef = useRef(0);
   const mythicRevealStartedRef = useRef(false);
+
+  function openMarketSurface(tab: "goods" | "commissions") {
+    setMarketTab(tab);
+    setShowMarket(true);
+  }
+
+  function closeToFurnace(close: () => void) {
+    close();
+    setMobileView("furnace");
+  }
+
+  function leaveAlchemyOrReturn() {
+    if (pickerCommissionId) { setPickerCommissionId(null); return; }
+    if (activeCommissionNpc) { closeToFurnace(() => setActiveCommissionNpc(null)); return; }
+    if (showMythicCodex) { closeToFurnace(() => setShowMythicCodex(false)); return; }
+    if (showMythicCreator) { closeMythicCreator(); setMobileView("furnace"); return; }
+    if (showMarket) { closeToFurnace(() => setShowMarket(false)); return; }
+    if (showCodex) { closeToFurnace(() => setShowCodex(false)); return; }
+    if (mobileView !== "furnace") { setMobileView("furnace"); return; }
+    if (onExit) onExit();
+    else if (window.parent !== window) window.parent.postMessage({ type: "huaian-close-module" }, window.location.origin);
+    else window.location.assign("/");
+  }
 
   const filled = slots.filter(Boolean).length;
   const hasFatedFlower = slots.some(isFatedFlower);
@@ -273,8 +307,19 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
   const commissionRemaining = Math.max(0, commissionRefreshAt - marketClock);
   const productStackList = Object.values(productStacks).filter((stack) => stack.count > 0).map((stack) => ({ stack, item: PRODUCTS.find((item) => item.id === stack.productId) })).filter((entry): entry is { stack: ProductStack; item: GameItem } => Boolean(entry.item));
   const pickerCommission = commissions.find((commission) => commission.id === pickerCommissionId && commission.kind === "fuzzy");
-  const mythicCardCount = characterCards.filter(isMythicCardRecord).length;
-  const fatedCardCount = characterCards.length - mythicCardCount;
+  const mythicCardCount = alchemyCharacterCards.filter(isMythicCardRecord).length;
+
+  useEffect(() => {
+    if (!hydrated || unifiedState.shared.globalKeys[MYTHIC_SCROLL_TEST_STOCK_KEY]) return;
+    transact((current) => {
+      if (current.shared.globalKeys[MYTHIC_SCROLL_TEST_STOCK_KEY]) return current;
+      const alchemyWithTestStock = {
+        ...current.alchemy,
+        materialCounts: { ...current.alchemy.materialCounts, [MYTHIC_MATERIAL.id]: Math.max(99, current.alchemy.materialCounts[MYTHIC_MATERIAL.id] ?? 0) },
+      };
+      return withAlchemyState({ ...current, shared: { ...current.shared, globalKeys: { ...current.shared.globalKeys, [MYTHIC_SCROLL_TEST_STOCK_KEY]: true } } }, alchemyWithTestStock);
+    });
+  }, [hydrated, transact, unifiedState.shared.globalKeys]);
 
   const omen = useMemo(() => {
     if (hasMythicScroll) {
@@ -320,7 +365,7 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
       const resetExpired = !refreshResetAt || refreshResetAt <= marketClock;
       const pendingSoldOut = validOffers.length === 6 && validOffers.every((offer) => offer.sold) ? soldOutRefreshAt || marketClock + SOLD_OUT_REFRESH_TICKS : 0;
       const marketOffers = validOffers.length === 6 && !(pendingSoldOut > 0 && pendingSoldOut <= marketClock) ? validOffers : rollMarketOffers(MATERIALS);
-      const validCommissions = current.commissions.length <= 7 && current.commissions.every((commission) => commission.kind !== "fuzzy" || commission.pricingMode === "fixed" || commission.pricingMode === "dynamic") && commissionRefreshAt > marketClock;
+      const validCommissions = current.commissions.length === 8 && new Set(current.commissions.map(commissionCategoryOf)).size === 4 && current.commissions.every((commission) => commission.kind !== "fuzzy" || commission.pricingMode === "fixed" || commission.pricingMode === "dynamic") && commissionRefreshAt > marketClock;
       const rareDefaults = Object.fromEntries(MYTHIC_CARD_OPTIONS.filter((option) => option.tier === "rare").map((option) => [option.id, Math.max(0, Math.min(MYTHIC_RARE_MAX_USES, current.mythicRareUses[option.id] ?? MYTHIC_RARE_MAX_USES))]));
       return { ...current, marketOffers, manualRefreshCount: resetExpired ? 0 : current.manualRefreshCount, refreshResetAt: resetExpired ? 0 : refreshResetAt, soldOutRefreshAt: pendingSoldOut, commissions: validCommissions ? current.commissions : generateCommissions(MATERIALS, PRODUCTS), commissionRefreshAt: validCommissions ? commissionRefreshAt : marketClock + COMMISSION_REFRESH_TICKS, mythicRareUses: rareDefaults };
     });
@@ -398,7 +443,6 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
     setOpeningFlash(true);
     const timeout = window.setTimeout(() => {
       setOpeningFlash(false);
-      setMythicRevealFromCodex(false);
       setRevealedMythicCard(pendingMythicCard);
       if (soundOn) playTone("reveal");
     }, 720);
@@ -546,6 +590,15 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
     if (soundOn) playTone("drop");
   }
 
+  function quickFishingRecipe(){
+    if(phase==="brewing"||phase==="done")return;
+    if(!fishingRecipeUnlocked){setToast("这页丹方尚未从水脉中寻得");return;}
+    const ingredients=FISHING_LINK_CONTENT.alchemyRecipe.ingredientNames.map((name)=>MATERIALS.find((item)=>item.name===name)!);
+    const missing=ingredients.find((item)=>(materialCounts[item.id]??0)<1);
+    if(missing){setToast(`《潮心护脉方》还缺${missing.name}`);return;}
+    setSlots(ingredients);setResultItem(PRODUCTS.find((item)=>item.name===FISHING_LINK_CONTENT.alchemyRecipe.resultName)??selectAlchemyResult(ingredients,effectiveRecipeRules));setPhase("ready");setToast("鱼珠承潮 · 已按《潮心护脉方》配齐灵材");if(soundOn)playTone("drop");
+  }
+
   function primaryAction() {
     if (phase === "done") {
       if (hasMythicScroll) return;
@@ -556,7 +609,6 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
         window.setTimeout(() => {
           setOpeningFlash(false);
           if (pendingCharacter) {
-            setCharacterCardFromCodex(false);
             setCharacterCard(pendingCharacter);
           }
         }, 780);
@@ -596,8 +648,19 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
   function collectResult(keepRecipe = false) {
     const batch = alchemy.pendingBatch;
     if (!batch || batch.card || Date.now() < batch.readyAt) return;
+    const stackKey = productStackKey(resultItem.id, resultMutation);
+    const firstObtain = (productStacks[stackKey]?.count ?? 0) === 0;
     const now = Date.now();
     transact((current) => claimAlchemyBatch(current, batch.id, now));
+    if (!firstObtain) feedback.publish(itemAcquiredFeedback({
+      name: mutationDisplayName(resultItem, resultMutation),
+      amount: 1,
+      description: `${MUTATIONS[resultMutation].note}。${resultItem.effect}`,
+      imageSrc: resultItem.image,
+      rarity: resultItem.rarity,
+      eventId: `alchemy-repeat:${batch.id}`,
+      presentationOwner: "world",
+    }));
     clearClaimPresentation(keepRecipe);
     setToast(`${mutationDisplayName(resultItem, resultMutation)} 已收入成品库`);
   }
@@ -609,10 +672,6 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
 
   function collectCharacter() {
     if (!characterCard) return;
-    if (characterCardFromCodex) {
-      setCharacterCard(null); setCharacterCardFromCodex(false); setShowMythicCodex(true);
-      return;
-    }
     const batch = alchemy.pendingBatch;
     if (!batch?.card || isMythicCardRecord(batch.card) || Date.now() < batch.readyAt) return;
     const now = Date.now();
@@ -675,12 +734,6 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
   }
 
   function collectMythicCard() {
-    if (mythicRevealFromCodex) {
-      setRevealedMythicCard(null);
-      setMythicRevealFromCodex(false);
-      setShowMythicCodex(true);
-      return;
-    }
     const batch = alchemy.pendingBatch;
     if (!batch?.card || !isMythicCardRecord(batch.card) || Date.now() < batch.readyAt) return;
     const now = Date.now();
@@ -699,6 +752,15 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
       return;
     }
     transact((current) => buyAlchemyMarketOffer(current, offerId));
+    feedback.publish(itemAcquiredFeedback({
+      name: item.name,
+      amount: 1,
+      description: item.effect,
+      imageSrc: item.image,
+      rarity: item.rarity,
+      eventId: `alchemy-market:${offer.id}`,
+      presentationOwner: "world",
+    }));
     setToast(`${item.name} ×1 已收入乾坤灵囊`);
     if (soundOn) playTone("drop");
   }
@@ -866,21 +928,31 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
       <div className="vignette" aria-hidden="true" />
 
       <header className="topbar">
-        <button className="round-button" aria-label="返回主界面" onClick={() => onExit ? onExit() : window.parent !== window ? window.parent.postMessage({ type: "huaian-close-module" }, window.location.origin) : window.location.assign("/")}>返</button>
+        <button className="alchemy-back-button" aria-label="返回上一层" onClick={leaveAlchemyOrReturn}><i>‹</i><span>返回</span></button>
         <div className="title-lockup">
           <span className="eyebrow">太虚仙府 · 炼丹房</span>
           <h1>玄火丹炉</h1>
           <span className="seal">丹</span>
         </div>
         <div className="top-actions">
-          <button className="mythic-codex-entry" onClick={() => setShowMythicCodex(true)} aria-label={`打开太虚名册，共 ${characterCards.length} 张人物卡`}><span>册</span><strong>太虚名册</strong><b>{characterCards.length}</b></button>
+          <button className="mythic-codex-entry" onClick={() => setShowMythicCodex(true)} aria-label={`打开太虚名册，共 ${unifiedCards.length} 张人物卡`}><span>册</span><strong>太虚名册</strong><b>{unifiedCards.length}</b></button>
           <div className="gold-balance" aria-label={`持有灵石 ${gold}`}><span>◉</span>{gold.toLocaleString()}</div>
-          <button className="text-button market-entry-button" onClick={() => setShowMarket(true)}><span>市</span> 云游集市</button>
+          <button className="text-button market-entry-button" onClick={() => openMarketSurface("goods")}><span>市</span> 云游集市</button>
+          <button className="text-button commission-entry-button" onClick={() => openMarketSurface("commissions")}><span>榜</span> 仙门委托</button>
           {!embedded && <a className="text-button im-entry-button" href="/item-manager"><span>▦</span> IM 配方司 <b>v{recipeVersion}</b></a>}
           <button className="text-button" onClick={() => setShowCodex(true)}><span>◈</span> 万物图鉴 <b>{ITEM_TABLE.length}/{ITEM_TABLE.length}</b></button>
           <button className="sound-button" onClick={() => setSoundOn((value) => !value)} aria-label={soundOn ? "关闭声效" : "开启声效"}>{soundOn ? "♪" : "×"}</button>
         </div>
       </header>
+
+      <AlchemySubsystemDock
+        labels={{ market: alchemyUi.market, commissions: alchemyUi.commissions, codex: alchemyUi.codex, cards: alchemyUi.cards }}
+        cardCount={unifiedCards.length}
+        onOpenMarket={() => openMarketSurface("goods")}
+        onOpenCommissions={() => openMarketSurface("commissions")}
+        onOpenCodex={() => setShowCodex(true)}
+        onOpenCards={() => setShowMythicCodex(true)}
+      />
 
       <section className="alchemy-stage" aria-label="炼丹操作区">
         <aside className="omen-panel glass-panel">
@@ -913,14 +985,7 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
           <div className={`alchemy-scene-shortcuts ${projectRecipe ? "has-project-recipe" : ""}`}>
             <button type="button" onClick={() => setMobileView("inventory")}><i>囊</i><span>{alchemyUi.openBag}</span></button>
             <button type="button" className={projectRecipe ? "project-recipe-shortcut" : ""} onClick={quickRecipe} aria-label={projectRecipe?.content.buttonLabel ?? alchemyUi.quickRecipe}><i>{projectRecipe ? "药" : "方"}</i><span>{projectRecipe?.content.shortcutLabel ?? alchemyUi.quickRecipe}</span></button>
-          </div>
-          <div className={`alchemy-scene-utility ${mobileUtilityOpen ? "open" : ""}`}>
-            <button type="button" className="alchemy-utility-toggle" onClick={() => setMobileUtilityOpen((current) => !current)} aria-expanded={mobileUtilityOpen}><i>卷</i><span>{alchemyUi.more}</span></button>
-            <div className="alchemy-utility-fan">
-              <button type="button" onClick={() => { setMobileView("visitors"); setMobileUtilityOpen(false); }}><i>客</i><span>{alchemyUi.visitors}</span></button>
-              <button type="button" onClick={() => { setShowMarket(true); setMobileUtilityOpen(false); }}><i>市</i><span>{alchemyUi.market}</span></button>
-              <button type="button" onClick={() => { setShowCodex(true); setMobileUtilityOpen(false); }}><i>鉴</i><span>{alchemyUi.codex}</span></button>
-            </div>
+            {fishingRecipeUnlocked&&<button type="button" className="fishing-recipe-shortcut" onClick={quickFishingRecipe} aria-label="按潮心护脉方一键配伍"><i>珠</i><span>潮心护脉方</span></button>}
           </div>
           <div className="slot-row" aria-label="炼丹材料槽">
             {slots.map((slot, index) => (
@@ -1047,7 +1112,7 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
         <button type="button" className={mobileView === "furnace" ? "active" : ""} onClick={() => setMobileView("furnace")}><i>炉</i><span>玄火丹炉</span></button>
         <button type="button" className={mobileView === "inventory" ? "active" : ""} onClick={() => setMobileView("inventory")}><i>囊</i><span>乾坤灵囊</span></button>
         <button type="button" className={mobileView === "visitors" ? "active" : ""} onClick={() => setMobileView("visitors")}><i>客</i><span>仙门来客</span></button>
-        <button type="button" onClick={() => setShowMarket(true)}><i>市</i><span>云游集市</span></button>
+        <button type="button" onClick={() => openMarketSurface("goods")}><i>市</i><span>云游集市</span></button>
         <button type="button" onClick={() => setShowCodex(true)}><i>鉴</i><span>万物图鉴</span></button>
       </nav>
 
@@ -1055,20 +1120,20 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
       {toast && <div className="toast" role="status"><span>◇</span>{toast}<span>◇</span></div>}
       {openingFlash && <div className="opening-flash" aria-hidden="true"><span /><i /></div>}
 
-      <MythicCreatorOverlay open={showMythicCreator} tab={mythicTab} selections={mythicSelections} rareUses={mythicRareUses} mythicCardCount={mythicCardCount} onClose={closeMythicCreator} onTab={setMythicTab} onToggle={toggleMythicOption} onPrepare={prepareMythicBrew} />
-      <MythicRevealOverlay card={revealedMythicCard} fromCodex={mythicRevealFromCodex} onCollect={collectMythicCard} />
-      <MythicCodexOverlay open={showMythicCodex} cards={characterCards} fatedCount={fatedCardCount} mythicCount={mythicCardCount} onClose={() => setShowMythicCodex(false)} onOpenFated={(card, profile) => { setShowMythicCodex(false); setCharacterCardFromCodex(true); setCharacterCard({ ...profile, image: card.image, chance: card.chance, targeted: card.targeted }); }} onOpenMythic={(card) => { setShowMythicCodex(false); setMythicRevealFromCodex(true); setRevealedMythicCard(card); }} />
+      <MythicCreatorOverlay open={showMythicCreator} tab={mythicTab} selections={mythicSelections} rareUses={mythicRareUses} mythicCardCount={mythicCardCount} onClose={() => { closeMythicCreator(); setMobileView("furnace"); }} onTab={setMythicTab} onToggle={toggleMythicOption} onPrepare={prepareMythicBrew} />
+      <MythicRevealOverlay card={revealedMythicCard} fromCodex={false} onCollect={collectMythicCard} />
+      <UnifiedCardCodexOverlay open={showMythicCodex} cards={unifiedCards} onClose={() => closeToFurnace(() => setShowMythicCodex(false))} />
 
       <NpcDialogueOverlay
         npc={activeCommissionNpc}
         step={npcDialogueStep}
-        onClose={() => setActiveCommissionNpc(null)}
+        onClose={() => closeToFurnace(() => setActiveCommissionNpc(null))}
         onAdvance={advanceNpcDialogue}
       />
 
       <AlchemyMarketOverlay
         open={showMarket}
-        onClose={() => setShowMarket(false)}
+        onClose={() => closeToFurnace(() => setShowMarket(false))}
         gold={gold}
         tab={marketTab}
         onTab={setMarketTab}
@@ -1114,10 +1179,10 @@ export default function Home({ embedded = false, onExit, initialSurface = "furna
         onSearch={setCodexSearch}
         onFilter={setCodexFilter}
         onExport={exportCodex}
-        onClose={() => setShowCodex(false)}
+        onClose={() => closeToFurnace(() => setShowCodex(false))}
       />
 
-      <FatedCharacterOverlay character={characterCard} fromCodex={characterCardFromCodex} onCollect={collectCharacter} />
+      <FatedCharacterOverlay character={characterCard} fromCodex={false} onCollect={collectCharacter} />
       <AlchemyResultOverlay open={showResult} item={resultItem} mutation={resultMutation} firstObtain={(productStacks[productStackKey(resultItem.id,resultMutation)]?.count??0)===0} onCollect={() => collectResult()} onReset={resetBrew} />
     </main>
   );

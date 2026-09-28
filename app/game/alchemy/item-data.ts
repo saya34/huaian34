@@ -284,7 +284,7 @@ export const MYTHIC_MATERIAL: GameItem = {
   trait: "神话命刻",
   effect: "单独入炉后展开太初命卷，可定制并生成高级人物卡片",
   image: "/assets/items/primordial-fate-scroll.webp",
-  count: 1,
+  count: 99,
   color: "#f0c86c",
   advancedCardTrigger: true,
   group: "太初奇珍",

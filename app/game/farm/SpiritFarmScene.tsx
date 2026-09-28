@@ -8,7 +8,7 @@ import { BeastSprite } from "./LivestockPanel";
 import { HERB_CROPS, cropMaterial, farmLevel, gameTick, getFarmWeather, halfMonthCycle, nextHalfMonthDay, plotGrowth, rotatingHerbStock, type HerbCropDefinition } from "./farm";
 import { SPIRIT_BEASTS, buySpiritBeast, livestockCapacity, rotatingBeastStock, syncLivestock, type SpiritBeastDefinition } from "./livestock";
 
-type Props = { day: number; period: Period; onNotice: (message: string) => void; requestedModule?: { module: FarmModule; token: number } | null; onModuleOpened?: (module: FarmModule) => void };
+type Props = { day: number; period: Period; onNotice: (message: string) => void; requestedModule?: { module: FarmModule; token: number } | null; onModuleOpened?: (module: FarmModule | null) => void };
 type FarmModule = "field" | "livestock";
 type MerchantKind = "seed" | "ranch";
 
@@ -137,16 +137,16 @@ export default function SpiritFarmScene({ day, period, onNotice, requestedModule
 
   return <div className="farm-scene-hub" aria-label="云岫灵圃场景">
     <div className="farm-hub-heading"><small>CLOUD-CREST SPIRIT FARM</small><h2>云岫灵圃</h2><p>山泉穿过十二畦灵田，东坡药香与西苑兽铃在薄雾间相和。</p><span><i>{weather.icon}</i>{weather.name} · 第 {day} 日 {period}</span></div>
-    <button type="button" className="farm-landmark field-landmark" onClick={() => setModule("field")}>
+    <button type="button" className="farm-landmark field-landmark" onClick={() => { setModule("field"); onModuleOpened?.("field"); }}>
       <span className="landmark-rings"><i /><i /><b>田</b></span><div><small>十二畦灵田</small><strong>进入灵田劳作</strong><em>{readyCrops ? `${readyCrops} 畦灵光盈枝，可收获` : growingCrops ? `${growingCrops} 畦仙草正在生长` : "翻土、播种与培育炼丹仙草"}</em></div><u>进入 ›</u>
     </button>
-    <button type="button" className="farm-landmark ranch-landmark" onClick={() => setModule("livestock")}>
+    <button type="button" className="farm-landmark ranch-landmark" onClick={() => { setModule("livestock"); onModuleOpened?.("livestock"); }}>
       <span className="landmark-rings"><i /><i /><b>兽</b></span><div><small>云栖灵兽苑</small><strong>进入栏舍照料</strong><em>{readyBeasts ? `${readyBeasts} 只灵兽产物已经凝成` : livestock.animals.length ? `${livestock.animals.length} 只灵兽栖居苑中` : "投喂、抚灵与收取珍稀产物"}</em></div><u>进入 ›</u>
     </button>
     <button type="button" className="farm-scene-npc npc-seed" onClick={() => setMerchant("seed")}><img src={NPCS.seed.image} alt="叶青禾" /><span><small>{NPCS.seed.role}</small><strong>{NPCS.seed.name}</strong><em>{bondTitle(state.farm.npcBonds.seed)} · 灵种交易</em></span><b>交谈</b></button>
     <button type="button" className="farm-scene-npc npc-ranch" onClick={() => setMerchant("ranch")}><img src={NPCS.ranch.image} alt="宁绾秋" /><span><small>{NPCS.ranch.role}</small><strong>{NPCS.ranch.name}</strong><em>{bondTitle(state.farm.npcBonds.ranch)} · 灵兽迎养</em></span><b>交谈</b></button>
     <div className="farm-hub-overview"><span><small>灵圃等阶</small><b>{level} 阶</b></span><span><small>成熟灵草</small><b>{readyCrops}</b></span><span><small>苑中灵兽</small><b>{livestock.animals.length}</b></span><span><small>异货刷新</small><b>第 {nextHalfMonthDay(day)} 日</b></span></div>
-    {module && <SpiritFarmPanel key={module} day={day} period={period} initialView={module} onClose={() => setModule(null)} onNotice={onNotice} />}
+    {module && <SpiritFarmPanel key={module} day={day} period={period} initialView={module} onClose={() => { setModule(null); onModuleOpened?.(null); }} onNotice={onNotice} />}
     {merchant && <FarmMerchant kind={merchant} day={day} period={period} onClose={() => setMerchant(null)} onNotice={onNotice} />}
   </div>;
 }

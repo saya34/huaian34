@@ -1,0 +1,42 @@
+[
+  {
+    "characterId": "ruoshui",
+    "mode": "active",
+    "abilityId": "taixu-ward",
+    "abilityName": "太虚守一",
+    "abilityDescription": "元气圆满时可召出太虚法相，展开护道金光并清除近身妖物。",
+    "activeEffect": "ward"
+  },
+  {
+    "characterId": "qingdai",
+    "mode": "active",
+    "abilityId": "frost-domain",
+    "abilityName": "霜华封境",
+    "abilityDescription": "元气圆满时冻结全场妖物，并以霜剑造成一轮范围伤害。",
+    "activeEffect": "frost"
+  },
+  {
+    "characterId": "mingzhu",
+    "mode": "active",
+    "abilityId": "verdant-healing",
+    "abilityName": "青囊回春",
+    "abilityDescription": "元气圆满时回复生命，并在短时间内持续获得回春灵息。",
+    "activeEffect": "healing"
+  },
+  {
+    "characterId": "hanyan",
+    "mode": "passive",
+    "abilityId": "mist-star-trace",
+    "abilityName": "雾隐星痕",
+    "abilityDescription": "持有即生效：提升身法、闪避与局内修为获取。",
+    "bonuses": { "moveSpeed": 14, "dodge": 0.035, "expGain": 0.06 }
+  },
+  {
+    "characterId": "lingxi",
+    "mode": "active",
+    "abilityId": "myriad-sword-heart",
+    "abilityName": "万剑归心",
+    "abilityDescription": "元气圆满时召来万剑，对全场目标施加多段剑意伤害。",
+    "activeEffect": "sword"
+  }
+]

@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { cardQualityName } from "../core/card-service";
 import { COMMISSION_NPCS, type CommissionNpc } from "./commission-npcs";
 import { MUTATIONS, getMutationValue, mutationDisplayName, type MutationId } from "./commissions";
+import { DivineCardBirthFx } from "./DivineCardBirthFx";
 import { selectCharacterOutcome, type GameItem } from "./item-data";
 
 type CharacterOutcome = NonNullable<ReturnType<typeof selectCharacterOutcome>>;
@@ -25,9 +26,10 @@ export function NpcDialogueOverlay({ npc, step, onClose, onAdvance }: { npc: Com
 
 export function FatedCharacterOverlay({ character, fromCodex, onCollect }: { character: CharacterOutcome | null; fromCodex: boolean; onCollect: () => void }) {
   if (!character) return null;
-  return <div className="character-overlay" role="dialog" aria-modal="true" aria-label="命定炉灵人物卡">
+  return <div className={`character-overlay ${fromCodex ? "is-codex-view" : "is-birth-reveal"}`} role="dialog" aria-modal="true" aria-label="命定炉灵人物卡">
+    {!fromCodex && <DivineCardBirthFx tier="fated" />}
     <div className="character-portal" aria-hidden="true" /><div className="xian-cloud-curtain fated-curtain" aria-hidden="true"><i /><i /></div><div className="xian-reveal-mist mist-back" aria-hidden="true"><i /><i /><i /><i /></div>
-    <div className="character-card xian-card-frame xian-card-fated"><div className="character-halo" aria-hidden="true" /><div className="character-runes" aria-hidden="true">乾 · 坎 · 艮 · 震 · 巽 · 离 · 坤 · 兑</div><div className="character-image xian-portrait-mask"><img src={character.image} alt={character.title} /><span /></div><div className="character-copy"><span className="character-kicker">{cardQualityName(6)} · 灵 契 人 物 卡 · {character.targeted ? `缘物定向 ${character.chance}%` : "星命随机"}</span><h2>灵契·{character.name}</h2><p>{character.targeted ? "人物缘物在十息丹火中显化，星命神花循着熟悉气息找到了她。" : "未有缘物指引，星命神花自万千命轨中随机照见了她。"}</p><div className="character-stats"><span>人物关系<strong>{character.relation}</strong></span><span>本炉概率<strong>{character.chance}%</strong></span><span>命格特性<strong>{character.trait}</strong></span></div><button onClick={onCollect}>{fromCodex ? "返 回 太 虚 名 册" : "收 入 太 虚 名 册"}</button></div>{Array.from({ length: 12 }).map((_, index) => <i key={index} className={`card-particle particle-${index + 1}`} aria-hidden="true" />)}</div>
+    <div className="character-card xian-card-frame xian-card-fated"><div className="divine-card-sheen" aria-hidden="true" /><div className="character-halo" aria-hidden="true" /><div className="character-runes" aria-hidden="true">乾 · 坎 · 艮 · 震 · 巽 · 离 · 坤 · 兑</div><div className="character-image xian-portrait-mask"><img src={character.image} alt={character.title} /><span /></div><div className="character-copy"><span className="character-kicker">{cardQualityName(6)} · 灵 契 人 物 卡 · {character.targeted ? `缘物定向 ${character.chance}%` : "星命随机"}</span><h2>灵契·{character.name}</h2><p>{character.targeted ? "人物缘物在十息丹火中显化，星命神花循着熟悉气息找到了她。" : "未有缘物指引，星命神花自万千命轨中随机照见了她。"}</p><div className="character-stats"><span>人物关系<strong>{character.relation}</strong></span><span>本炉概率<strong>{character.chance}%</strong></span><span>命格特性<strong>{character.trait}</strong></span></div><button onClick={onCollect}>{fromCodex ? "返 回 太 虚 名 册" : "收 入 太 虚 名 册"}</button></div>{Array.from({ length: 12 }).map((_, index) => <i key={index} className={`card-particle particle-${index + 1}`} aria-hidden="true" />)}</div>
     <div className="xian-reveal-mist mist-front" aria-hidden="true"><i /><i /><i /><i /><i /></div>
   </div>;
 }

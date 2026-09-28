@@ -20,7 +20,8 @@
     "check:daybreak": "node scripts/check-daybreak.mjs",
     "check:vfx": "node scripts/check-vfx.mjs",
     "check:summon-showcase": "node scripts/check-summon-showcase.mjs",
-    "check:persistent-vfx": "node scripts/check-persistent-vfx.mjs"
+    "check:persistent-vfx": "node scripts/check-persistent-vfx.mjs",
+    "check:scene-objects": "node scripts/check-scene-objects.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

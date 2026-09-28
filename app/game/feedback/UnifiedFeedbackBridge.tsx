@@ -8,6 +8,7 @@ import type { UnifiedGameState } from "../core/types";
 import { useFeedback } from "./FeedbackProvider";
 import { feedbackText } from "./texts";
 import { manualById } from "../skills/manual-service";
+import { fishingAttemptLimit } from "../fishing/fishing";
 
 export function UnifiedFeedbackBridge({ children }: { children: React.ReactNode }) {
   const { state, hydrated } = useUnifiedGame();
@@ -91,7 +92,7 @@ export function UnifiedFeedbackBridge({ children }: { children: React.ReactNode 
       .filter((manual) => !manual.starter);
     for (const manual of newlyLearnedSkills) feedback.publish({ variant: "progression-milestone",level:"L2", priority: 1, tone: "gold", titleKey: "player.skillLearned", bodyKey: "player.skillLearnedBody", params: { name: manual.name }, icon: "悟", eventId: `skill:${manual.baseId}` });
 
-    if (state.fishing.dailyAttempts >= 6 && previous.fishing.dailyAttempts < 6) feedback.toast({ priority: 2, titleKey: "system.toastWarning", bodyKey: "fishing.limit", icon: "竿", dedupeKey: `fishing-limit:${state.romance.day}` });
+    if (state.fishing.dailyAttempts >= fishingAttemptLimit(state.fishing) && previous.fishing.dailyAttempts < fishingAttemptLimit(previous.fishing)) feedback.toast({ priority: 2, titleKey: "system.toastWarning", bodyKey: "fishing.limit", icon: "竿", dedupeKey: `fishing-limit:${state.romance.day}` });
     for (const slot of state.fishing.aging.filter((entry) => !previous.fishing.aging.some((old) => old.id === entry.id))) feedback.toast({ priority: 2, titleKey: "fishing.agingTitle", bodyKey: "fishing.agingBody", icon: "藏", dedupeKey: `fish-aging:${slot.id}` });
 
     if (state.mining.residentFloor > previous.mining.residentFloor) feedback.toast({ priority: 2, titleKey: "mining.depthTitle", bodyKey: "mining.depthBody", params: { depth: state.mining.residentFloor }, icon: "深", dedupeKey: `mine-floor:${state.mining.residentFloor}` });

@@ -21,7 +21,8 @@ export function resolveScenePresence(state: GameState, sceneId: SceneId, charact
     const context:TriggerContext={trigger:"scene_enter",sceneId,characterId:character.id};
     const guarantee=relevant.flatMap(item=>item.guaranteedRules.map(rule=>({appearance:item,rule}))).find(({rule})=>!used.has(`${character.id}:${sceneId}:${rule.id}`)&&rule.conditions.every(condition=>checkCondition(condition,state,context)));
     if(guarantee){present.push(character.id);used.add(`${character.id}:${sceneId}:${guarantee.rule.id}`);if(guarantee.rule.triggerEventId&&!forcedEvent){const candidate=events.find(item=>item.id===guarantee.rule.triggerEventId);if(candidate&&!state.completedEvents.includes(candidate.id))forcedEvent=candidate}continue}
-    const random=relevant.some(appearance=>appearance.randomRules.some(rule=>matchesPeriod(rule.periods,state.period)&&rule.conditions.every(condition=>checkCondition(condition,state,context))&&roll(`${state.day}:${state.period}:${sceneId}:${character.id}:${visit}:${rule.id}`)<rule.probability));
+    const weekday=((Math.max(1,state.day)-1)%7)+1;
+    const random=relevant.some(appearance=>appearance.randomRules.some(rule=>matchesPeriod(rule.periods,state.period)&&(!rule.weekdays?.length||rule.weekdays.includes(weekday))&&rule.conditions.every(condition=>checkCondition(condition,state,context))&&roll(`${state.day}:${state.period}:${sceneId}:${character.id}:${visit}:${rule.id}`)<rule.probability));
     if(random)present.push(character.id);
   }
   return { state:{...state,presentCharacters:{...state.presentCharacters,[sceneId]:present},appearanceTriggersUsed:[...used],sceneVisits:{...state.sceneVisits,[sceneId]:visit}}, present, forcedEvent };

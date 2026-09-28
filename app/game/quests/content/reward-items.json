@@ -1,0 +1,27 @@
+[
+  {
+    "id": "quest-danfire-seal",
+    "image": "/assets/alchemy/divine-card-seal.svg",
+    "description": "丹火亲手炼成的印记，证明你已经掌握玄火丹炉的基础法门。"
+  },
+  {
+    "id": "quest-clinic-record",
+    "image": "/assets/quests/quest-dossier-v1.png",
+    "description": "记载药材断供始末的医馆手札，其中夹着几笔尚未查明的线索。"
+  },
+  {
+    "id": "quest-qinglan-token",
+    "image": "/assets/gathering/mining/mountain-seal-token.webp",
+    "description": "被雨浸透的青岚令，背面刻着一株倒生槐树。"
+  },
+  {
+    "id": "chapter-one-dream-seed",
+    "image": "/assets/gathering/farming/earth-vein-seed.webp",
+    "description": "掌心温热的槐梦种，似乎会回应旧梦与深夜的灵息。"
+  },
+  {
+    "id": "quest-lantern-wick",
+    "image": "/assets/easter-eggs/easter-egg-atlas-v2.webp",
+    "description": "花照影留下的长明灯芯，能在槐安旧梦里照见被遮蔽的道路。"
+  }
+]

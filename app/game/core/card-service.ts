@@ -21,3 +21,24 @@ export function upsertCard(cards: UnifiedCardInstance[], incoming: UnifiedCardIn
   if (index < 0) return [...cards, card];
   return cards.map((entry, current) => current === index ? card : entry);
 }
+
+const ACTIVE_EFFECT_NAMES: Record<NonNullable<UnifiedCardInstance["activeEffect"]>, string> = {
+  sword: "剑意横空",
+  assault: "破阵强袭",
+  healing: "青囊回春",
+  ward: "护道金光",
+  frost: "霜天封境",
+};
+
+export function cardAbilityName(card: UnifiedCardInstance) {
+  if (card.abilityName) return card.abilityName;
+  if (card.mode === "active") return card.activeEffect ? ACTIVE_EFFECT_NAMES[card.activeEffect] : "命契召唤";
+  return "命格加护";
+}
+
+export function cardAbilityDescription(card: UnifiedCardInstance) {
+  if (card.abilityDescription) return card.abilityDescription;
+  if (card.mode === "active") return `元气圆满时进入人物卡三选一，召唤后释放「${cardAbilityName(card)}」。`;
+  const bonuses = Object.entries(card.bonuses ?? {});
+  return bonuses.length ? `持有即生效：${bonuses.map(([key, value]) => `${key} +${value}`).join(" · ")}。` : "持有即生效，为修士提供永久命格加护。";
+}

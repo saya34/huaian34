@@ -59,6 +59,7 @@ export const WORLD_MAPS: WorldMapDefinition[] = [
       { id: "treasure-shop", name: "栖珍阁", subtitle: "杂货铺 · 买卖百物", x: 77, y: 50, icon: "珍", sceneId: "treasure-shop", unlocked: true },
       { id: "field-cottage", name: "田间小屋", subtitle: "囡囡母女的田畔居所", x: 23, y: 66, icon: "舍", sceneId: "field-cottage", unlocked: true },
       { id: "shen-estate", name: "沈家大院", subtitle: "清音与晚棠的旧宅", x: 72, y: 65, icon: "沈", sceneId: "shen-estate", unlocked: true },
+      { id: "training-hall", name: "听风练功房", subtitle: "轮值授业 · 强化根基", x: 49, y: 78, icon: "武", sceneId: "training-hall", unlocked: true },
       { id: "to-yunzhou", name: "登云山门", subtitle: "返回凌云宗门", x: 77, y: 13, icon: "宗", targetMapId: "yunzhou", unlocked: true },
       { id: "to-wilds", name: "村外古道", subtitle: "前往野外", x: 75, y: 87, icon: "野", targetMapId: "wilds", unlocked: true },
     ],

@@ -8,6 +8,7 @@ import { equipmentAttributeBonus, equipmentById, equipmentRequirements, equipmen
 import { ensureWeeklyWeaponShop, nextWeaponShopRefreshDay, publicWeaponRarity, rarityRank, WEAPON_SHOP_GRID_SIZE, weaponGridPositions, weaponPurchasePrice, weaponSellPrice, weaponShopWeekNumber } from "./battle/weaponShop";
 import { useUnifiedGame } from "./core/UnifiedGameProvider";
 import { useFeedback } from "./feedback/FeedbackProvider";
+import { itemAcquiredFeedback } from "./feedback/item-acquired";
 
 type DragPayload = { source: "store" | "player" | "identify"; uid: string };
 type Selection = DragPayload | null;
@@ -93,7 +94,7 @@ export default function WeaponMerchantPanel({ onNotice: _onNotice }: { onNotice:
     setSelection({ source: "player", uid: purchased.uid });
     setMessage(`${copy}，花费 ${price.toLocaleString()} 灵石。`);
     if(revealed)feedback.publish({variant:"identification-reveal",level:rarityRank(publicWeaponRarity(purchased)??base.rarity)>=4?"L3":"L2",priority:1,tone:"gold",titleKey:"items.identifiedTitle",bodyKey:"items.identifiedBody",params:{name:purchased.name??base.name},icon:"鉴",imageSrc:base.art,details:[{labelKey:"items.rarityLabel",value:RARITY_META[publicWeaponRarity(purchased)??base.rarity].name},{labelKey:"items.bonusLabel",value:formatBonus(equipmentAttributeBonus(purchased)).join(" · ")},{labelKey:"items.gridLabel",value:`${equipmentSize(purchased).width}×${equipmentSize(purchased).height}`}],eventId:`weapon-reveal:${purchased.uid}`,outcome:"discovered",firstObtain:true,costs:[`灵石 -${price.toLocaleString()}`],rewards:[purchased.name??base.name]});
-    else feedback.toast({titleKey:"shop.purchaseTitle",bodyKey:"shop.purchaseBody",params:{name:purchased.name??base.name,value:price.toLocaleString()},icon:"购",dedupeKey:`weapon-buy:${purchased.uid}`});
+    else feedback.publish(itemAcquiredFeedback({name:purchased.name??base.name,amount:1,description:purchased.description??base.description,imageSrc:purchased.art??base.art,rarity:rarityRank(publicWeaponRarity(purchased)??base.rarity),eventId:`weapon-buy:${purchased.uid}`,presentationOwner:"world"}));
   }
 
   function sell(uid: string) {

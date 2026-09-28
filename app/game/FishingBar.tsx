@@ -103,9 +103,25 @@ export default function FishingBar({ config, children, onHit, onFinish, theme = 
   const targetStart=targetCenter-targetWidth/2,targetEnd=targetCenter+targetWidth/2,nearStart=targetCenter-nearWidth/2,nearEnd=targetCenter+nearWidth/2;
   const actionCopy=theme==="fish"?lastHit==="target"?`灵线绷紧 · +${targetPoints}`:lastHit==="near"?`顺势收线 · +${nearPoints}`:lastHit==="miss"?"鱼影挣动 · MISS":"观察鱼影游速，在浮标进入红区时点击收线":lastHit==="target"?`正中酒意 · +${targetPoints}`:lastHit==="near"?`尚算稳当 · +${nearPoints}`:lastHit==="miss"?"酒意散了 · MISS":"忽快忽慢，等红区出现时落杯";
   const fishStrength=Math.max(0,100-score/config.targetScore*100),rare=(config.rarity??0)>=4;
+  const drinkDialStyle={
+    "--dial-near-start":`${nearStart*3.6}deg`,
+    "--dial-target-start":`${targetStart*3.6}deg`,
+    "--dial-target-end":`${targetEnd*3.6}deg`,
+    "--dial-near-end":`${nearEnd*3.6}deg`,
+    "--dial-position":`${position*3.6}deg`,
+  } as CSSProperties;
   return <div className={`fishing-bar-game bar-theme-${theme} hit-${lastHit??"none"} ${theme==="fish"&&rare?`rare-fish rarity-${config.rarity}`:""}`} role="button" tabIndex={0} onPointerDown={strike} onKeyDown={keyStrike} aria-label={theme==="fish"?"点击收线，判定浮标位置":"点击判定浮标位置"}>
     <div className="fishing-game-content">{children}{theme==="fish"&&<><div className="fishing-dual-status"><section className="fish-strength"><header><span>鱼影灵力</span><b>{Math.ceil(fishStrength)}%</b></header><i><u style={{width:`${fishStrength}%`}}/></i><small>{fishStrength>66?"仍在强烈挣扎":fishStrength>28?"灵力正在衰退":"即将成功收服"}</small></section><section className={`line-tension ${tension>82?"danger":""}`}><header><span>灵线张力</span><b>{tension}%</b></header><i><u style={{width:`${tension}%`}}/></i><small>{tension>82?"灵线将断 · 等待回落":tension<24?"线势过松 · 及时收紧":"张力稳定"}</small></section></div>{combo>=2&&<div className="fishing-combo" key={combo}><span>连势</span><b>×{combo}</b></div>}{rare&&<div className="rare-fish-omen"><i/><span>{config.rarity===5?"太虚星潮":"玄光逆流"}</span><strong>{config.rarity===5?"传说鱼影正在撼动水域":"珍稀鱼影潜伏于水下"}</strong><b>珍稀征兆</b></div>}</>}</div>
-    <aside className="fishing-meter-panel">
+    {theme==="drink"?<aside className={`drinking-rhythm-panel pace-${pace}`}>
+      <div className="wine-round-pips" aria-label={`已判定 ${attempts} 次，共 ${config.maxAttempts} 次`}>{Array.from({length:config.maxAttempts},(_,index)=><i key={index} className={index<attempts?"filled":""}/>)}</div>
+      <div className="wine-rhythm-dial" style={drinkDialStyle}>
+        <i className="wine-rhythm-needle"><b/></i>
+        <span><small>酒韵</small><strong>{score}</strong><em>/ {config.targetScore}</em></span>
+        <u/>
+      </div>
+      <div className="wine-rhythm-copy"><b>{difficulty}阶 · {config.difficultyName??"动态"}</b><span>{actionCopy}</span></div>
+      <span className="wine-strike-call">落杯</span>
+    </aside>:<aside className="fishing-meter-panel">
       <div className="fishing-score"><span>得分 <b>{score}</b> / {config.targetScore}</span><span>判定 <b>{attempts}</b> / {config.maxAttempts}</span><span className={`fishing-pace ${pace}`}>{pace==="fast"?"骤疾":pace==="slow"?"忽缓":"游移"}</span></div>
       <div className="fishing-meter" style={{"--target-start":`${targetStart}%`,"--target-end":`${targetEnd}%`,"--near-start":`${nearStart}%`,"--near-end":`${nearEnd}%`} as CSSProperties}>
         <i className="fishing-float" style={{top:`${position}%`}}><b/></i>
@@ -113,6 +129,6 @@ export default function FishingBar({ config, children, onHit, onFinish, theme = 
       </div>
       <div className="fishing-legend"><span><i className="red"/>目标 +{targetPoints}</span><span><i className="yellow"/>靠近 +{nearPoints}</span><span><i className="green"/>MISS +0</span></div>
       <p><b>{difficulty}阶 · {config.difficultyName??"动态"}</b>{actionCopy}</p>
-    </aside>
+    </aside>}
   </div>;
 }

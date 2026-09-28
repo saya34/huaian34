@@ -53,6 +53,10 @@ export interface MetaProgress {
   playerExp: number;
   highestUnlockedWave: number;
   attributeAllocation: AttributeAllocation;
+  /** Permanent attribute-point equivalents earned from NPC teaching. */
+  trainingAllocation: AttributeAllocation;
+  /** Session counts keyed by day, teacher and lesson. Training remains repeatable. */
+  trainingRecords: Record<string, number>;
   passiveRanks: Record<string, number>;
   skillBooks: number;
   skillMastery: SkillMasteryMap;
@@ -88,6 +92,8 @@ export const DEFAULT_META: MetaProgress = {
   playerExp: 0,
   highestUnlockedWave: 1,
   attributeAllocation: { health: 0, defense: 0, damage: 0, dodge: 0, moveSpeed: 0, attackSpeed: 0 },
+  trainingAllocation: { health: 0, defense: 0, damage: 0, dodge: 0, moveSpeed: 0, attackSpeed: 0 },
+  trainingRecords: {},
   passiveRanks: {},
   skillBooks: 24,
   skillMastery: defaultSkillMastery(),
@@ -176,6 +182,8 @@ export function normalizeMetaProgress(parsed: Partial<MetaProgress> | null | und
     playerExp: Math.max(0, Number(value.playerExp) || 0),
     highestUnlockedWave: Math.max(1, Math.min(21, Number(value.highestUnlockedWave) || 1)),
     attributeAllocation: { ...DEFAULT_META.attributeAllocation, ...(value.attributeAllocation ?? {}) },
+    trainingAllocation: { ...DEFAULT_META.trainingAllocation, ...(value.trainingAllocation ?? {}) },
+    trainingRecords: value.trainingRecords && typeof value.trainingRecords === "object" ? Object.fromEntries(Object.entries(value.trainingRecords).map(([key, count]) => [key, Math.max(0, Math.floor(Number(count) || 0))])) : {},
     passiveRanks: normalizePassiveRanks(value.passiveRanks),
     skillBooks: value.skillBooks === undefined ? DEFAULT_META.skillBooks : Math.max(0, Number(value.skillBooks) || 0),
     skillMastery: normalizeSkillMastery(value.skillMastery), wmDraft: mergeWMConfig(value.wmDraft), wmPublished: mergeWMConfig(value.wmPublished), wmPublishedAt: Math.max(0, Number(value.wmPublishedAt) || 0), weaponShop: normalizeWeaponShop(value.weaponShop),
@@ -194,6 +202,8 @@ function cloneDefaultMeta(): MetaProgress {
     ownedCards: [...DEFAULT_META.ownedCards],
     cardSlots: [...DEFAULT_META.cardSlots],
     attributeAllocation: { ...DEFAULT_META.attributeAllocation },
+    trainingAllocation: { ...DEFAULT_META.trainingAllocation },
+    trainingRecords: { ...DEFAULT_META.trainingRecords },
     passiveRanks: { ...DEFAULT_META.passiveRanks },
     skillMastery: normalizeSkillMastery(DEFAULT_META.skillMastery),
     wmDraft: cloneWMConfig(DEFAULT_META.wmDraft),
@@ -212,6 +222,7 @@ export function computePermanentAttributes(meta: MetaProgress): HeroAttributes {
   const root = addAttributes(
     meta.baseAttributes,
     attributeAllocationBonus(meta.attributeAllocation),
+    attributeAllocationBonus(meta.trainingAllocation),
     ...passiveAttributeBonuses(meta.passiveRanks),
   );
   const equippedItems = [...new Set(Object.values(meta.equipped).filter((uid): uid is string => Boolean(uid)))]

@@ -37,6 +37,7 @@ import GatheringFocusHud from "../gathering/GatheringFocusHud";
 import { GATHERING_PRESENTATION, gatheringCopy } from "../gathering/content";
 import { createActivityReceipt } from "../core/activity-receipt";
 import RotarySelector from "../ui/RotarySelector";
+import { FISHING_LINK_CONTENT, fishFertilizerCandidate } from "../cross-system/fishing-links";
 
 type Props = { day: number; period: Period; onNotice: (message: string) => void; initialView?: "field" | "livestock"; onClose?: () => void };
 
@@ -45,7 +46,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
   const feedback = useFeedback();
   const [selectedCropId, setSelectedCropId] = useState<HerbCropId>("frost-heart");
   const [message, setMessage] = useState(GATHERING_PRESENTATION.farm.initialMessage);
-  const [plotFx, setPlotFx] = useState<{ id: string; kind: "plant" | "harvest" | "fertilize" } | null>(null);
+  const [plotFx, setPlotFx] = useState<{ id: string; kind: "plant" | "harvest" | "fertilize" | "water" } | null>(null);
   const [floatingInfo, setFloatingInfo] = useState<{ id: string; text: string; tone: "green" | "gold" | "blue" } | null>(null);
   const [toolMode, setToolMode] = useState<"inspect" | "water" | "fertilize">("inspect");
   const [selectedFertilizer, setSelectedFertilizer] = useState<FertilizerId>("rapid-root");
@@ -91,7 +92,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
     setMessage(copy);
   }
 
-  function pulsePlot(id: string, kind: "plant" | "harvest" | "fertilize") {
+  function pulsePlot(id: string, kind: "plant" | "harvest" | "fertilize" | "water") {
     setPlotFx({ id, kind });
     window.setTimeout(() => setPlotFx((current) => current?.id === id ? null : current), 720);
   }
@@ -117,7 +118,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
   function water(plotId: string) {
     const result = waterPlot(farm, plotId, day);
     if (!result.ok) { announce(result.message); return; }
-    setFarm(result.farm); pulsePlot(plotId, "fertilize"); floatPlot(plotId, "灵泉润畦 · 生长加速", "blue"); announce(result.message);
+    setFarm(result.farm); pulsePlot(plotId, "water"); floatPlot(plotId, "灵泉润畦 · 生长加速", "blue"); announce(result.message);
   }
 
   function harvest(plotId: string) {
@@ -238,6 +239,17 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
     setSelectedFertilizer("bounty-soil"); setToolMode("fertilize"); announce(`${product.beast.productName}化入沃土 · 丰穗灵壤 +2`);
   }
 
+  function compostFishCatch() {
+    const candidate = fishFertilizerCandidate(state.shared.items);
+    if (!candidate?.fish) { setMessage("需要一尾常见鱼获，才可沤制鳞骨灵肥。 "); return; }
+    const recipe = FISHING_LINK_CONTENT.fishFertilizer;
+    applyEffects([{ type: "remove_item", itemId: candidate.fish.id, amount: recipe.fishCost }]);
+    setFarm((current) => ({ ...current, fertilizers: { ...current.fertilizers, "scale-compost": (current.fertilizers["scale-compost"] ?? 0) + recipe.output } }));
+    setSelectedFertilizer("scale-compost"); setToolMode("fertilize");
+    feedback.publish({ variant:"item-acquired", level:"L1", tone:"jade", titleKey:"system.dynamicMessage", bodyKey:"system.dynamicMessage", params:{ message:`${candidate.fish.name}沤成${recipe.name} ×${recipe.output}` }, icon:"鳞", imageSrc:candidate.fish.art, rewards:[`${recipe.name} ×${recipe.output}`], impacts:["可对灵田施用：催生 1 时辰、收获 +1"], dedupeKey:`fish-compost:${farm.harvestSerial}:${candidate.fish.id}` });
+    announce(`${candidate.fish.name} -${recipe.fishCost} · ${recipe.name} +${recipe.output}`);
+  }
+
   if (livestockOpen) return <LivestockPanel day={day} period={period} onBack={() => setLivestockOpen(false)} onClose={onClose} onNotice={onNotice} />;
 
   return <section className={`spirit-farm-panel field-mode-${toolMode} ${readyCount ? "has-ready-harvest" : ""}`} role="dialog" aria-modal="true" aria-label="云岫灵圃">
@@ -277,7 +289,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
         <div className="farm-field-head"><span>已成熟 <b>{readyCount}</b></span><span>生长中 <b>{growingCount}</b></span><span>灵泉润养 <b>{supportedPlots}/{unlockedPlots} 畦</b></span><span>灵壤 <b>{farm.spiritSoil}</b></span></div>
         <div className="farm-tool-dock" aria-label="灵田工具">
           <button type="button" className={toolMode === "inspect" ? "active" : ""} onClick={() => setToolMode("inspect")}><i>察</i><span>察看与收获</span></button>
-          <button type="button" className={toolMode === "water" ? "active" : ""} onClick={() => setToolMode("water")}><i>泉</i><span>引灵泉浇灌</span></button>
+          <button type="button" className={toolMode === "water" ? "active" : ""} onClick={() => setToolMode("water")}><i className="farm-water-tool"><img src="/assets/ui/watering-can.svg" alt="" /></i><span>引灵泉浇灌</span></button>
           <button type="button" className={toolMode === "fertilize" ? "active" : ""} onClick={() => setToolMode("fertilize")}><i>{FERTILIZERS[selectedFertilizer].icon}</i><span>{FERTILIZERS[selectedFertilizer].name}</span></button>
           <button type="button" disabled={farm.toolLevel >= 3} onClick={improveFarmTool}><i>锄</i><span>{farm.toolLevel}阶 · 蕴养</span></button>
         </div>
@@ -290,6 +302,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
           const stage = growth.ready ? "ready" : growth.progress >= 65 ? "almost" : growth.progress >= 25 ? "sprout" : "seedling";
           return <button type="button" key={plot.id} data-plot-index={index} className={`farm-plot ${locked ? "locked" : ""} ${unsupported ? "unsupported" : ""} ${plot.cropId ? stage : "empty"} ${plot.watered ? "watered" : ""} ${plot.fertilized ? "fertilized" : ""} ${plotFx?.id === plot.id ? `fx-${plotFx.kind}` : ""}`} onClick={() => locked ? feedback.toast({titleKey:"farm.lockedHint",params:{level:level+1},icon:"锁",tone:"muted",dedupeKey:`farm:locked:${plot.id}`}) : unsupported ? feedback.toast({titleKey:"farm.unsupportedHint",params:{level:farm.wellLevel+1},icon:"泉",tone:"muted",dedupeKey:`farm:unsupported:${plot.id}`}) : interactPlot(plot.id)} aria-label={locked ? `第${index + 1}畦未解锁` : unsupported ? `第${index + 1}畦等待灵泉覆盖` : crop ? `${crop.materialName}，${growth.ready ? "已成熟" : `还需${growth.remaining}时辰`}` : `第${index + 1}畦空田`}>
             <span className="farm-soil-lines" />
+            {plotFx?.id === plot.id && plotFx.kind === "water" && <span className="farm-watering-action" aria-hidden="true"><img src="/assets/ui/watering-can.svg" alt=""/><i/><i/><i/></span>}
             {locked ? <span className="farm-lock"><b>封</b><small>{farmLevel(farm.experience) + 1}阶拓地</small></span> : crop && material ? <>
               <img src={material.image} alt="" style={{ "--crop-progress": Math.max(24, growth.progress), "--crop-color": crop.color } as React.CSSProperties} />
               <span className="farm-crop-label"><strong>{crop.materialName}</strong><small>{growth.ready ? "灵光盈枝 · 可收获" : `${stage === "seedling" ? "初芽" : stage === "sprout" ? "抽叶" : "将熟"} · 尚余 ${growth.remaining} 时辰`}</small></span>
@@ -308,7 +321,7 @@ export default function SpiritFarmPanel({ day, period, onNotice, initialView = "
         <button type="button" disabled={farm.wellLevel >= 3 || farm.wellUpgradedDay === day} onClick={upgradeWell}><i>泉</i><span><strong>疏浚灵泉 · {farm.wellLevel}阶</strong><small>{farm.wellLevel >= 3 ? "已覆盖全部灵田" : `◉ ${farm.wellLevel * 160} · 扩展润养容量`}</small></span></button>
         <button type="button" className={readyCount ? "harvest-ready primary-gather-action" : ""} onClick={bulkHarvest}><i>收</i><span><strong>一键收获</strong><small>{readyCount ? `${readyCount} 畦已成熟` : "暂无成熟仙草"}</small></span></button>
         <button type="button" disabled={farm.lastDewDay === day} onClick={gatherDew}><i>露</i><span><strong>凝露培土</strong><small>{farm.lastDewDay === day ? "今日已完成" : "体力 -1 · 灵壤 +2"}</small></span></button>
-        <div className="fertilizer-wheel" aria-label="灵壤炼制">{(Object.keys(FERTILIZERS) as FertilizerId[]).map((id) => <button type="button" key={id} className={selectedFertilizer === id ? "active" : ""} onClick={() => { if (selectedFertilizer === id && toolMode === "fertilize") refineFertilizer(id); else { setSelectedFertilizer(id); setToolMode("fertilize"); } }}><i>{FERTILIZERS[id].icon}</i><strong>{FERTILIZERS[id].name}</strong><small>持有 {farm.fertilizers[id]} · 再点炼制</small></button>)}<button type="button" onClick={compostBeastProduce}><i>融</i><strong>灵兽沃土</strong><small>消耗产物 · 丰穗灵壤 +2</small></button></div>
+        <div className="fertilizer-wheel" aria-label="灵壤炼制">{(Object.keys(FERTILIZERS) as FertilizerId[]).map((id) => <button type="button" key={id} className={selectedFertilizer === id ? "active" : ""} onClick={() => { if (id === "scale-compost") { if (selectedFertilizer === id && toolMode === "fertilize") compostFishCatch(); else { setSelectedFertilizer(id); setToolMode("fertilize"); } } else if (selectedFertilizer === id && toolMode === "fertilize") refineFertilizer(id); else { setSelectedFertilizer(id); setToolMode("fertilize"); } }}><i>{FERTILIZERS[id].icon}</i><strong>{FERTILIZERS[id].name}</strong><small>持有 {farm.fertilizers[id]} · {id === "scale-compost" ? "再点消耗鱼获沤制" : "再点炼制"}</small></button>)}<button type="button" onClick={compostBeastProduce}><i>融</i><strong>灵兽沃土</strong><small>消耗产物 · 丰穗灵壤 +2</small></button></div>
       </aside>
     </div>
 

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g stroke="#E9CE7D" stroke-linecap="round" filter="url(#glow)">
+    <circle cx="256" cy="256" r="223" stroke-width="2" opacity=".72"/>
+    <circle cx="256" cy="256" r="203" stroke-width="1" stroke-dasharray="3 10" opacity=".45"/>
+    <circle cx="256" cy="256" r="165" stroke-width="2" opacity=".52"/>
+    <circle cx="256" cy="256" r="116" stroke-width="1" stroke-dasharray="2 8" opacity=".5"/>
+    <path d="M256 33v57M256 422v57M33 256h57M422 256h57M98 98l41 41M373 373l41 41M414 98l-41 41M139 373l-41 41" stroke-width="4" opacity=".72"/>
+    <path d="M209 211c25-31 69-35 96-8 29 28 22 71-1 92-19 18-48 24-71 10-26-15-39-47-24-94Z" stroke-width="3" opacity=".62"/>
+    <path d="M213 298c23-24 61-23 84-1M214 215c22 23 60 23 83-1" stroke-width="2" opacity=".5"/>
+    <path d="M150 74h58m-58 10h23m12 0h23M304 74h58m-58 10h23m12 0h23M74 150v58m10-58v23m0 12v23M428 150v58m10-58v23m0 12v23M74 304v58m10-58v23m0 12v23M428 304v58m10-58v23m0 12v23M150 428h58m-58 10h23m12 0h23M304 428h58m-58 10h23m12 0h23" stroke-width="3" opacity=".58"/>
+  </g>
+</svg>

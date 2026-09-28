@@ -1,0 +1,6 @@
+[
+  { "id": "traveler-herbalist", "name": "过路药农", "title": "赶在闭市前补齐药篓", "seal": "行" },
+  { "id": "wounded-swordsman", "name": "负伤剑客", "title": "为下一程求一味护脉丹", "seal": "侠" },
+  { "id": "village-steward", "name": "村中管事", "title": "替乡里采买常用灵材", "seal": "乡" },
+  { "id": "wandering-scholar", "name": "游学书生", "title": "依残方寻访一枚成丹", "seal": "客" }
+]

@@ -11,13 +11,15 @@ import { createInitialGathering, normalizeGathering } from "../gathering/engine"
 import type { GatheringProgress } from "../gathering/types";
 import { createInitialQuestProgress, normalizeQuestProgress } from "../quests/engine";
 import type { QuestProgress } from "../quests/types";
-import { canonicalCard } from "./card-service";
+import { canonicalCard, upsertCard } from "./card-service";
 import { projectGrowth } from "./game-state-reducer";
 import { inventoryProjection, syncAlchemyProductInventory } from "./inventory-service";
 import { normalizePlayerGrowth } from "./progression-service";
 import { SAVE_VERSION, type ActivityReceipt, type AlchemyProgress, type UnifiedCardInstance, type UnifiedGameState, type UnifiedItemStack } from "./types";
 import { createInitialKitchen, normalizeKitchen } from "../kitchen/service";
 import { mergeSummonShowcaseCards } from "../battle/summon-showcase";
+import { createAlchemyCardInstance } from "../alchemy/card-function-service";
+import type { SceneObjectPendingReward, SceneObjectRuntimeState } from "../types";
 
 const ITEM_TYPES = new Set(["gift", "material", "pill", "food", "equipment", "card", "treasure", "quest", "fish", "manual"]);
 const PERIODS = new Set(["清晨", "上午", "午后", "黄昏", "夜晚", "深夜"]);
@@ -77,6 +79,34 @@ function sanitizeEasterEggProgress(value: unknown, collectedIds: string[], fallb
       unlockedNoteIds: stringArray(record.unlockedNoteIds),
     }];
   }));
+}
+
+function sanitizeSceneObjectStates(value: unknown): Record<string, SceneObjectRuntimeState> {
+  const result: Record<string, SceneObjectRuntimeState> = {};
+  for (const [objectId, raw] of Object.entries(asRecord(value))) {
+    const record = asRecord(raw);
+    const pendingRaw = asRecord(record.pending);
+    const tier: SceneObjectPendingReward["tier"] = pendingRaw.tier === "rare" ? "rare" : "common";
+    const rewardId = typeof pendingRaw.rewardId === "string" ? pendingRaw.rewardId : "";
+    const pending = rewardId ? {
+      rewardId,
+      amount: integer(pendingRaw.amount, 1, 1, 99),
+      generatedDay: integer(pendingRaw.generatedDay, 1, 1),
+      ...(typeof pendingRaw.expiresDay === "number" && Number.isFinite(pendingRaw.expiresDay)
+        ? { expiresDay: integer(pendingRaw.expiresDay, 1, 1) }
+        : {}),
+      tier,
+    } : undefined;
+    result[objectId] = {
+      nextReadyDay: integer(record.nextReadyDay, 1, 1),
+      interactions: integer(record.interactions, 0, 0),
+      ...(typeof record.lastClaimedDay === "number" && Number.isFinite(record.lastClaimedDay)
+        ? { lastClaimedDay: integer(record.lastClaimedDay, 1, 1) }
+        : {}),
+      ...(pending ? { pending } : {}),
+    };
+  }
+  return result;
 }
 
 function sanitizeItems(value: unknown): Record<string, UnifiedItemStack> {
@@ -170,7 +200,7 @@ export function cloneInitial(): UnifiedGameState {
     alchemy: {
       materialCounts: Object.fromEntries(MATERIALS.map((item) => [item.id, item.count])), productStacks: {}, characterCards: [], mythicRareUses: {}, marketOffers: [], manualRefreshCount: 0, refreshResetAt: 0, soldOutRefreshAt: 0, commissions: [], commissionRefreshAt: 0, discoveredRecipes: [],
     },
-    battle: { ...DEFAULT_META, spiritStones: romance.spiritStones, baseAttributes: { ...DEFAULT_META.baseAttributes }, equipmentBag: DEFAULT_META.equipmentBag.map((item) => ({ ...item })), equipmentPositions: { ...DEFAULT_META.equipmentPositions }, personalBackpack: [], warehouse: [], equipped: {}, ownedCards: [], cardSlots: [null, null, null], attributeAllocation: { ...DEFAULT_META.attributeAllocation }, passiveRanks: {}, skillMastery: structuredClone(DEFAULT_META.skillMastery), wmDraft: structuredClone(DEFAULT_META.wmDraft), wmPublished: structuredClone(DEFAULT_META.wmPublished), weaponShop: { ...DEFAULT_META.weaponShop, stock: [], buyback: [] } },
+    battle: { ...DEFAULT_META, spiritStones: romance.spiritStones, baseAttributes: { ...DEFAULT_META.baseAttributes }, equipmentBag: DEFAULT_META.equipmentBag.map((item) => ({ ...item })), equipmentPositions: { ...DEFAULT_META.equipmentPositions }, personalBackpack: [], warehouse: [], equipped: {}, ownedCards: [], cardSlots: [null, null, null], attributeAllocation: { ...DEFAULT_META.attributeAllocation }, trainingAllocation: { ...DEFAULT_META.trainingAllocation }, trainingRecords: {}, passiveRanks: {}, skillMastery: structuredClone(DEFAULT_META.skillMastery), wmDraft: structuredClone(DEFAULT_META.wmDraft), wmPublished: structuredClone(DEFAULT_META.wmPublished), weaponShop: { ...DEFAULT_META.weaponShop, stock: [], buyback: [] } },
     farm: createInitialFarm(),
     fishing: createInitialFishing(),
     mining: createInitialMining(),
@@ -229,6 +259,11 @@ export function mergeSave(saved: unknown) {
   };
   const rawItems = { ...base.shared.items, ...sanitizeItems(savedShared.items), ...collectedQuestItems(collectedEasterEggs) };
   const items = syncAlchemyProductInventory(rawItems, alchemy.productStacks);
+  const restoredSharedCards = sanitizeCards(savedShared.cards, base.shared.cards);
+  const reconciledCards = characterCards.reduce((cards, record) => {
+    const card = createAlchemyCardInstance(record);
+    return card ? upsertCard(cards, card) : cards;
+  }, restoredSharedCards);
   const shared = {
     ...base.shared,
     shopPurchases: { day: integer(asRecord(savedShared.shopPurchases).day, 0, 0), counts: numberRecord(asRecord(savedShared.shopPurchases).counts, {}, 0) },
@@ -237,7 +272,7 @@ export function mergeSave(saved: unknown) {
     playerLevel: integer(savedShared.playerLevel, base.shared.playerLevel, 1, 60),
     playerExperience: finiteNumber(savedShared.playerExperience, base.shared.playerExperience, 0),
     items,
-    cards: mergeSummonShowcaseCards(sanitizeCards(savedShared.cards, base.shared.cards)),
+    cards: mergeSummonShowcaseCards(reconciledCards),
     learnedSkills: numberArray(savedShared.learnedSkills, base.shared.learnedSkills),
     globalKeys: booleanRecord(savedShared.globalKeys, base.shared.globalKeys),
     luck: {
@@ -253,6 +288,8 @@ export function mergeSave(saved: unknown) {
   normalizedBattle.warehouseLevel = integer(savedBattle.warehouseLevel, base.battle.warehouseLevel, 0);
   normalizedBattle.baseAttributes = numberRecord(savedBattle.baseAttributes, base.battle.baseAttributes as unknown as Record<string, number>, 0) as unknown as typeof normalizedBattle.baseAttributes;
   normalizedBattle.attributeAllocation = numberRecord(savedBattle.attributeAllocation, base.battle.attributeAllocation as unknown as Record<string, number>, 0) as unknown as typeof normalizedBattle.attributeAllocation;
+  normalizedBattle.trainingAllocation = numberRecord(savedBattle.trainingAllocation, base.battle.trainingAllocation as unknown as Record<string, number>, 0) as unknown as typeof normalizedBattle.trainingAllocation;
+  normalizedBattle.trainingRecords = numberRecord(savedBattle.trainingRecords, {}, 0);
   normalizedBattle.passiveRanks = numberRecord(savedBattle.passiveRanks, {}, 0);
   normalizedBattle.cardSlots = normalizedBattle.cardSlots.map((id) => id && shared.cards.some((card) => card.id === id && card.mode === "active") ? id : null);
   const romanceCandidate = { ...base.romance, ...savedRomance } as UnifiedGameState["romance"];
@@ -291,6 +328,7 @@ export function mergeSave(saved: unknown) {
       claimedMessages: stringArray(savedRomance.claimedMessages, base.romance.claimedMessages),
       collectedEasterEggs,
       easterEggProgress,
+      sceneObjectStates: sanitizeSceneObjectStates(savedRomance.sceneObjectStates),
       daybreakStoryRuns: stringArray(savedRomance.daybreakStoryRuns, base.romance.daybreakStoryRuns),
       daybreakAcknowledgedDays: numberArray(savedRomance.daybreakAcknowledgedDays, base.romance.daybreakAcknowledgedDays).filter((day) => day > 0),
       completedEvents: stringArray(savedRomance.completedEvents, base.romance.completedEvents),

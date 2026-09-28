@@ -2,6 +2,7 @@ import type { CharacterDefinition, CharacterMessageDefinition, DialogueProfileDe
 import { SHOP_CHARACTERS, SHOP_EVENTS, SHOP_GIFTS, SHOP_MESSAGES, SHOP_SCENES } from "./shop-content";
 import transparentNpcContent from "./content/transparent-npcs.json";
 import mapExpansionContent from "./content/map-expansion.json";
+import teachingContent from "./teaching/content/teaching-content.json";
 import { EASTER_EGG_EVENTS } from "./easter-eggs/content";
 import { SHEN_QINGSHUANG_CHARACTER, SHEN_QINGSHUANG_DIALOGUE, SHEN_QINGSHUANG_EVENTS } from "./content/shen-qingshuang-content";
 
@@ -115,6 +116,14 @@ const MAP_EXPANSION_SCENES = (mapExpansionContent as unknown as { scenes: SceneD
 const MAP_EXPANSION_CHARACTERS: CharacterDefinition[] = (
   mapExpansionContent as unknown as { characters: TransparentNpcRecord[] }
 ).characters.map(({ relationshipAddresses, ...character }) => ({
+  ...character,
+  relationshipStages: relationshipStages(relationshipAddresses),
+}));
+
+const TEACHING_SCENE = (teachingContent as unknown as { scene: SceneDefinition }).scene;
+const TEACHING_CHARACTERS: CharacterDefinition[] = (
+  teachingContent as unknown as { teachers: TransparentNpcRecord[] }
+).teachers.map(({ relationshipAddresses, ...character }) => ({
   ...character,
   relationshipStages: relationshipStages(relationshipAddresses),
 }));
@@ -651,9 +660,9 @@ export const EVENTS: EventDefinition[] = [
   },
 ];
 
-SCENES.push(...SHOP_SCENES, ...MAP_EXPANSION_SCENES);
+SCENES.push(...SHOP_SCENES, ...MAP_EXPANSION_SCENES, TEACHING_SCENE);
 GIFTS.push(...SHOP_GIFTS);
-CHARACTERS.push(...SHOP_CHARACTERS, ...MAP_EXPANSION_CHARACTERS);
+CHARACTERS.push(...SHOP_CHARACTERS, ...MAP_EXPANSION_CHARACTERS, ...TEACHING_CHARACTERS);
 CHARACTER_MESSAGES.push(...SHOP_MESSAGES);
 EVENTS.push(...SHOP_EVENTS);
 // Redesigned Shen Qingshuang content is authored in one staged source. Remove the

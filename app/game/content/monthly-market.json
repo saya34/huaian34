@@ -1,0 +1,44 @@
+{
+  "calendar": {
+    "eyebrow": "MONTHLY FAIR · 云州月市",
+    "title": "每月十五 · 百宝同市",
+    "description": "拍卖听槌、七席赌石、云糕尝鲜",
+    "focusAction": "查看市集日",
+    "openAction": "前往山下集市"
+  },
+  "reminders": {
+    "3": {
+      "title": "三日后，云市开门",
+      "body": "再过三日便是十五。云舟拍卖会先亮出本月的三件藏品，石坊的七席原石也已运到。若有看中的东西，记得先留些灵石与体力。",
+      "announcement": "云州市集还有三日开市"
+    },
+    "1": {
+      "title": "明日云市开门",
+      "body": "明日是十五，云州市集会开一整日。拍卖行有新到的旧物，石坊也运来一批星髓原石。若你想去，我在市口等你。",
+      "announcement": "明日云州市集开市"
+    }
+  },
+  "venues": [
+    {
+      "id": "auction",
+      "title": "云舟拍卖",
+      "subtitle": "玉台展宝 · 三轮竞价 · 落槌成交",
+      "cost": "入席体力 1 · 成交再扣灵石",
+      "icon": "/assets/ui/market/auction-hammer.svg"
+    },
+    {
+      "id": "stones",
+      "title": "七席赌石",
+      "subtitle": "循光择石 · 一刀问灵 · 珍废未知",
+      "cost": "每次体力 1 + 原石价",
+      "icon": "/assets/ui/market/spirit-stone.svg"
+    },
+    {
+      "id": "sweets",
+      "title": "云糕铺",
+      "subtitle": "六盘现蒸 · 伴手好礼 · 可反复购买",
+      "cost": "仅消耗灵石",
+      "icon": "/assets/ui/market/cloud-pastry.svg"
+    }
+  ]
+}
